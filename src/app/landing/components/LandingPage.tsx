@@ -637,26 +637,6 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <div className="anim-fade-up delay-5" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 9, marginTop: 22 }}>
-                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>Popular:</span>
-                {POPULAR_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    className="tag-pill"
-                    onClick={() => setActiveTag(tag)}
-                    style={{
-                      background: activeTag === tag ? "#10B981" : "rgba(255,255,255,0.09)",
-                      color: activeTag === tag ? "white" : "rgba(255,255,255,0.78)",
-                      borderColor: activeTag === tag ? "#10B981" : "rgba(255,255,255,0.2)",
-                      boxShadow: activeTag === tag ? "0 4px 14px rgba(16,185,129,0.4)" : "none",
-                      backdropFilter: "blur(8px)",
-                    }}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-
               <p className="anim-fade-up delay-6" style={{ marginTop: 18, fontSize: 13, color: "rgba(255,255,255,0.38)", fontStyle: "italic" }}>
                 ඔබට අවශ්‍ය හොඳම ගුරුවරයෙකු හොයාගන්නේ?
               </p>
