@@ -1,6 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import {
+  getInputStyle,
+  getSelectStyle,
+  formContainerStyle,
+  formGridStyle,
+  getPrimaryButtonStyle,
+  handleButtonHoverEnter,
+  handleButtonHoverLeave,
+  handleLinkHoverEnter,
+  handleLinkHoverLeave,
+} from "@/utils/formStyles";
 
 export default function StudentRegistration() {
   const [formData, setFormData] = useState({
@@ -32,7 +43,7 @@ export default function StudentRegistration() {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <form onSubmit={handleSubmit} style={formContainerStyle}>
       {/* Full Name */}
       <input
         type="text"
@@ -42,24 +53,12 @@ export default function StudentRegistration() {
         onChange={handleInputChange}
         onFocus={() => setHoveredField("fullName")}
         onBlur={() => setHoveredField(null)}
-        style={{
-          padding: "12px 16px",
-          fontSize: 14,
-          border: hoveredField === "fullName" ? "2px solid #10b981" : "1px solid #d1d5db",
-          borderRadius: 10,
-          background: "#ffffff",
-          outline: "none",
-          transition: "all 0.3s ease",
-          boxShadow:
-            hoveredField === "fullName"
-              ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-              : "none",
-        }}
+        style={getInputStyle(hoveredField, "fullName")}
         required
       />
 
       {/* School/Institute & Age */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={formGridStyle(2)}>
         <input
           type="text"
           placeholder="School / Institute"
@@ -68,19 +67,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("school")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "school" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "school"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-          }}
+          style={getInputStyle(hoveredField, "school")}
           required
         />
         <input
@@ -91,46 +78,20 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("age")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "age" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "age"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-          }}
+          style={getInputStyle(hoveredField, "age")}
           required
         />
       </div>
 
       {/* Language & Grade */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={formGridStyle(2)}>
         <select
           name="language"
           value={formData.language}
           onChange={handleInputChange}
           onFocus={() => setHoveredField("language")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "language" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "language"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-            cursor: "pointer",
-            color: formData.language ? "#111827" : "#9ca3af",
-          }}
+          style={getSelectStyle(hoveredField, "language", !!formData.language)}
           required
         >
           <option value="">Select Language</option>
@@ -147,21 +108,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("grade")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "grade" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "grade"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-            cursor: "pointer",
-            color: formData.grade ? "#111827" : "#9ca3af",
-          }}
+          style={getSelectStyle(hoveredField, "grade", !!formData.grade)}
           required
         >
           <option value="">Select Grade/Level</option>
@@ -174,7 +121,7 @@ export default function StudentRegistration() {
       </div>
 
       {/* Email & Address */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={formGridStyle(2)}>
         <input
           type="email"
           placeholder="Email Address"
@@ -183,19 +130,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("email")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "email" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "email"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-          }}
+          style={getInputStyle(hoveredField, "email")}
           required
         />
         <input
@@ -206,25 +141,13 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("address")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "address" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "address"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-          }}
+          style={getInputStyle(hoveredField, "address")}
           required
         />
       </div>
 
       {/* Password Fields */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={formGridStyle(2)}>
         <input
           type="password"
           placeholder="Password"
@@ -233,19 +156,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("password")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "password" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "password"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-          }}
+          style={getInputStyle(hoveredField, "password")}
           required
         />
         <input
@@ -256,19 +167,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("confirmPassword")}
           onBlur={() => setHoveredField(null)}
-          style={{
-            padding: "12px 16px",
-            fontSize: 14,
-            border: hoveredField === "confirmPassword" ? "2px solid #10b981" : "1px solid #d1d5db",
-            borderRadius: 10,
-            background: "#ffffff",
-            outline: "none",
-            transition: "all 0.3s ease",
-            boxShadow:
-              hoveredField === "confirmPassword"
-                ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                : "none",
-          }}
+          style={getInputStyle(hoveredField, "confirmPassword")}
           required
         />
       </div>
@@ -276,31 +175,9 @@ export default function StudentRegistration() {
       {/* Submit Button */}
       <button
         type="submit"
-        style={{
-          padding: "14px 24px",
-          fontSize: 15,
-          fontWeight: 700,
-          color: "white",
-          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-          border: "none",
-          borderRadius: 10,
-          cursor: "pointer",
-          marginTop: 12,
-          transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
-          boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-        }}
-        onMouseEnter={(e) => {
-          (e.target as HTMLButtonElement).style.transform = "translateY(-2px)";
-          (e.target as HTMLButtonElement).style.boxShadow =
-            "0 8px 25px rgba(16, 185, 129, 0.4)";
-        }}
-        onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.transform = "translateY(0)";
-          (e.target as HTMLButtonElement).style.boxShadow =
-            "0 4px 15px rgba(16, 185, 129, 0.3)";
-        }}
+        style={getPrimaryButtonStyle()}
+        onMouseEnter={(e) => handleButtonHoverEnter(e, true)}
+        onMouseLeave={(e) => handleButtonHoverLeave(e, true)}
       >
         Create Account
       </button>
@@ -323,12 +200,8 @@ export default function StudentRegistration() {
             fontWeight: 600,
             transition: "color 0.2s ease",
           }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLAnchorElement).style.color = "#059669";
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLAnchorElement).style.color = "#10b981";
-          }}
+          onMouseEnter={handleLinkHoverEnter}
+          onMouseLeave={handleLinkHoverLeave}
         >
           Sign in
         </a>
