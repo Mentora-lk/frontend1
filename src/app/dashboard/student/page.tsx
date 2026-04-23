@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client';
 
 import { useState } from 'react';
