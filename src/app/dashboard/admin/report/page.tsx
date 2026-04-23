@@ -1,129 +1,142 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  AlertCircle, CheckCircle, Users, Search, MoreHorizontal,
-  MapPin, Eye, X, FileText, XCircle
-} from 'lucide-react';
-import { StatCard, StatusBadge } from '@/components/ui';
-import { tutorVerifications } from '@/lib/data';
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { transactions } from '../../../../data/adminData';
+import { appendAudit, downloadFile } from '../utils/operations';
 
-type Tutor = typeof tutorVerifications[0];
+function StatusBadge({ status }: { status: string }) {
+  const palette =
+    status === 'Success'
+      ? { bg: 'rgba(34,197,94,0.10)', color: '#22c55e', border: 'rgba(34,197,94,0.20)' }
+      : status === 'Pending'
+      ? { bg: 'rgba(245,158,11,0.10)', color: '#f59e0b', border: 'rgba(245,158,11,0.20)' }
+      : { bg: 'rgba(239,68,68,0.10)', color: '#ef4444', border: 'rgba(239,68,68,0.20)' };
 
-export default function TutorsPage() {
-  const [selectedTutor, setSelectedTutor]   = useState<Tutor | null>(null);
-  const [searchQuery,   setSearchQuery]     = useState('');
-  const [statusFilter,  setStatusFilter]    = useState('All');
-  const [subjectFilter, setSubjectFilter]   = useState('Science');
+  return <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, background: palette.bg, color: palette.color, border: `1px solid ${palette.border}` }}>{status}</span>;
+}
 
-  const filteredTutors = tutorVerifications.filter((tutor) => {
-    const matchesSearch  = tutor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           tutor.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus  = statusFilter === 'All' || tutor.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+function StatCard({ title, value, trend, detail }: { title: string; value: string; trend?: string; detail?: string }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ width: 44, height: 32, borderRadius: 10, background: '#1d4ed8', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
+        {trend && <span style={{ color: '#10B981', fontSize: 12, fontWeight: 700 }}>{trend}</span>}
+      </div>
+      <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
+      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
+      {detail && <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>{detail}</div>}
+    </div>
+  );
+}
+
+export default function PaymentsPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'sessions' | 'advertisements'>('sessions');
+  const [page, setPage] = useState(1);
+  const pageSize = 3;
+
+  const totalPages = Math.max(1, Math.ceil(transactions.length / pageSize));
+  const visibleTransactions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return transactions.slice(start, start + pageSize);
+  }, [page]);
+
+  const exportCsv = () => {
+    const header = ['Transaction ID', 'Student', 'Tutor', 'Amount', 'Commission', 'Revenue', 'Status'];
+    const rows = transactions.map((txn) => [txn.id, txn.student, txn.tutor, txn.amount.toFixed(2), txn.comm, txn.revenue.toFixed(2), txn.status]);
+    const csv = [header, ...rows].map((row) => row.join(',')).join('\n');
+    downloadFile('payments-report.csv', csv, 'text/csv;charset=utf-8;');
+    appendAudit('REPORT_EXPORT', 'Payments report downloaded');
+  };
+
+  const handleTabChange = (tab: 'sessions' | 'advertisements') => {
+    setActiveTab(tab);
+    if (tab === 'advertisements') {
+      appendAudit('TAB_SWITCH', 'Navigated from payments to advertisements');
+      router.push('/dashboard/admin/advertisements');
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">Tutor Verification</h2>
-          <p className="text-slate-400 text-sm mt-1">Review and approve tutor applications for the marketplace.</p>
+    <div style={{ display: 'grid', gap: 22 }}>
+      <div>
+        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Playfair Display', serif" }}>Payments & Commission</h2>
+        <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Revenue and payout summary in LKR.</p>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'inline-flex', gap: 8, background: '#fff', borderRadius: 12, padding: 6, border: '1px solid #dfeee8' }}>
+          <button
+            onClick={() => handleTabChange('sessions')}
+            style={{
+              border: 'none',
+              background: activeTab === 'sessions' ? '#ecfdf5' : 'transparent',
+              color: activeTab === 'sessions' ? '#047857' : '#6b7280',
+              padding: '8px 12px',
+              borderRadius: 8,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Sessions
+          </button>
+          <button
+            onClick={() => handleTabChange('advertisements')}
+            style={{ border: 'none', background: 'transparent', color: '#6b7280', padding: '8px 12px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
+          >
+            Advertisements
+          </button>
         </div>
+        <button onClick={exportCsv} style={{ border: '1px solid #bbf7d0', background: '#ecfdf5', color: '#047857', borderRadius: 12, padding: '10px 14px', cursor: 'pointer' }}>Export Report</button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Pending Review"  value="24"    trend="up"   trendValue="+5% from yesterday"  icon={AlertCircle}  colorClass="text-amber-400" />
-        <StatCard title="Verified Today"  value="12"    trend="down" trendValue="-2% from yesterday"  icon={CheckCircle}  colorClass="text-cyan-400"  />
-        <StatCard title="Total Tutors"    value="1,402" trend="up"   trendValue="+1% growth"          icon={Users}        colorClass="text-blue-400"  />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+        <StatCard title="Total Commission" value="LKR 450,200.00" trend="+12.5%" />
+        <StatCard title="Pending Payouts to Tutors" value="LKR 125,800.00" detail="Target: 200k" />
+        <StatCard title="Total Transactions" value="1,284" trend="+5.7%" />
       </div>
 
-      {/* Filters */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 backdrop-blur-sm">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-            <input
-              type="text"
-              placeholder="Search by tutor name, email or NIC..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/50 text-slate-200 pl-10 pr-4 py-2.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 placeholder:text-slate-500"
-            />
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-900/50 text-slate-200 px-4 py-2.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-            >
-              <option value="All">Status: All</option>
-              <option value="Pending">Pending</option>
-              <option value="Verified">Verified</option>
-              <option value="Missing Docs">Missing Docs</option>
-            </select>
-            <select
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-              className="bg-slate-900/50 text-slate-200 px-4 py-2.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-            >
-              <option value="Science">Subject: Science</option>
-              <option value="Maths">Subject: Maths</option>
-              <option value="IT">Subject: IT</option>
-            </select>
-            <button className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2.5 rounded-lg transition-colors">
-              <MoreHorizontal size={18} />
-            </button>
-          </div>
+      <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+        <div style={{ padding: 18, borderBottom: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <h3 style={{ margin: 0, color: '#111827' }}>Transaction History</h3>
+          <span style={{ color: '#6b7280', background: '#f8faf9', border: '1px solid #dfeee8', padding: '8px 12px', borderRadius: 10 }}>Oct 1 - Oct 31, 2023</span>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden backdrop-blur-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase font-medium">
-              <tr>
-                <th className="px-6 py-4">Tutor Profile</th>
-                <th className="px-6 py-4">Subjects</th>
-                <th className="px-6 py-4">Location</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+            <thead>
+              <tr style={{ color: '#6b7280', fontSize: 12, textAlign: 'left', background: '#f0fdf4' }}>
+                {['Transaction ID', 'Student', 'Tutor', 'Amount (LKR)', 'Comm %', 'Revenue', 'Status', 'Actions'].map((h) => (
+                  <th key={h} style={{ padding: '12px 16px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/50 text-sm">
-              {filteredTutors.map((tutor) => (
-                <tr key={tutor.id} className="hover:bg-slate-700/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold">
-                        {tutor.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="text-slate-200 font-medium">{tutor.name}</div>
-                        <div className="text-xs text-slate-500">{tutor.email}</div>
-                      </div>
-                    </div>
+            <tbody>
+              {visibleTransactions.map((txn, idx) => (
+                <tr key={txn.id} style={{ borderTop: '1px solid #ecf4ef' }}>
+                  <td style={{ padding: '14px 16px', color: '#6b7280', fontSize: 12, fontFamily: 'monospace' }}>{txn.id}</td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <div style={{ color: '#111827', fontWeight: 700 }}>{txn.student}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: ST-00{(page - 1) * pageSize + idx + 41}</div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-cyan-900/30 text-cyan-400 text-xs font-medium px-2 py-1 rounded border border-cyan-500/20">
-                      {tutor.subject}
-                    </span>
+                  <td style={{ padding: '14px 16px' }}>
+                    <div style={{ color: '#111827', fontWeight: 700 }}>{txn.tutor}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: TR-10{(page - 1) * pageSize + idx + 92}</div>
                   </td>
-                  <td className="px-6 py-4 text-slate-400">
-                    <div className="flex items-center space-x-1">
-                      <MapPin size={14} /><span>{tutor.location}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4"><StatusBadge status={tutor.status} /></td>
-                  <td className="px-6 py-4 text-right">
+                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#111827', fontWeight: 700 }}>{txn.amount.toFixed(2)}</td>
+                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#6b7280' }}>{txn.comm}</td>
+                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#10B981', fontWeight: 700 }}>{txn.revenue.toFixed(2)}</td>
+                  <td style={{ padding: '14px 16px', textAlign: 'center' }}><StatusBadge status={txn.status} /></td>
+                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                     <button
-                      onClick={() => setSelectedTutor(tutor)}
-                      className="text-cyan-400 hover:text-cyan-300 font-medium text-sm flex items-center justify-end space-x-1 ml-auto"
+                      onClick={() => {
+                        navigator.clipboard.writeText(txn.id);
+                        appendAudit('COPY_TRANSACTION_ID', `Copied ${txn.id}`);
+                      }}
+                      style={{ border: '1px solid #dfeee8', background: '#fff', color: '#374151', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                     >
-                      <Eye size={16} /><span>View Details</span>
+                      Copy ID
                     </button>
                   </td>
                 </tr>
@@ -132,104 +145,37 @@ export default function TutorsPage() {
           </table>
         </div>
 
-        <div className="p-6 border-t border-slate-700/50 flex justify-between items-center">
-          <span className="text-sm text-slate-400">Showing 1 to 10 of 24 applications</span>
-          <div className="flex items-center space-x-2">
-            <button className="text-slate-400 hover:text-slate-200 text-sm font-medium">Previous</button>
-            <button className="w-8 h-8 rounded-lg bg-cyan-500 text-white font-medium text-sm flex items-center justify-center">1</button>
-            <button className="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 font-medium text-sm flex items-center justify-center">2</button>
-            <button className="text-slate-400 hover:text-slate-200 text-sm font-medium">Next</button>
+        <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13 }}>
+          <span>
+            Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, transactions.length)} of {transactions.length} transactions
+          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page === 1}
+              style={{ border: '1px solid #bbf7d0', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#166534', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+            >
+              ‹
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                style={{ border: n === page ? '1px solid #10B981' : '1px solid #bbf7d0', background: n === page ? '#10B981' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#166534', cursor: 'pointer' }}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page === totalPages}
+              style={{ border: '1px solid #bbf7d0', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#166534', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+            >
+              ›
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Slide-over detail panel */}
-      {selectedTutor && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedTutor(null)} />
-          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-slate-900 border-l border-slate-700 z-50 overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-xl font-bold text-slate-100">Verification Detail</h2>
-                <button onClick={() => setSelectedTutor(null)} className="text-slate-400 hover:text-slate-200">
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* Tutor info */}
-              <div className="flex items-center space-x-4 mb-6 pb-6 border-b border-slate-700">
-                <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xl">
-                  {selectedTutor.name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-100">{selectedTutor.name}</h3>
-                  <p className="text-sm text-slate-400">Applied: {selectedTutor.date}</p>
-                  <div className="mt-2"><StatusBadge status="Under Review" /></div>
-                </div>
-              </div>
-
-              {/* Identity */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Identity Verification</h4>
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
-                  <div className="h-48 bg-slate-900 flex items-center justify-center">
-                    <div className="text-center">
-                      <FileText size={48} className="text-slate-600 mx-auto mb-2" />
-                      <p className="text-slate-500 text-sm">NIC Front</p>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-slate-800/50">
-                    <p className="text-xs text-slate-400">NIC Front</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Credentials */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Academic Credentials</h4>
-                <div className="bg-slate-800/50 rounded-lg border border-slate-700 p-4 flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-cyan-900/30 rounded-lg">
-                      <FileText size={20} className="text-cyan-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">{selectedTutor.credentials || 'No document'}</p>
-                      <p className="text-xs text-slate-500">University of Colombo • 2.4 MB</p>
-                    </div>
-                  </div>
-                  <button className="text-slate-400 hover:text-slate-200"><Eye size={18} /></button>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Internal Notes (Optional)</h4>
-                <textarea
-                  placeholder="Add a note or reason for rejection..."
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-lg p-4 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
-                  rows={4}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex space-x-3 pt-4 border-t border-slate-700">
-                <button
-                  onClick={() => setSelectedTutor(null)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-rose-400 py-3 rounded-lg font-medium border border-slate-700"
-                >
-                  <XCircle size={18} /><span>Reject</span>
-                </button>
-                <button
-                  onClick={() => setSelectedTutor(null)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-lg font-medium"
-                >
-                  <CheckCircle size={18} /><span>Approve</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
