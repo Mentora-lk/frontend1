@@ -642,7 +642,7 @@ export default function LandingPage() {
               </p>
 
               <div className="anim-fade-up cta-btns" style={{ display: "flex", gap: 12, marginTop: 22, flexWrap: "wrap" }}>
-                <Link href="/auth/register">
+                <Link href="/auth/signup">
                   <button className="btn-green" style={{ padding: "12px 26px", fontSize: 14, fontWeight: 700 }}>
                     Get Started
                   </button>
