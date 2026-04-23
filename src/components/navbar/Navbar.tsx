@@ -73,24 +73,6 @@ export default function Navbar({ scrollY }: NavbarProps) {
               </span>
             </Link>
           ))}
-          <span
-            style={{
-              color: scrollY > 50 ? '#374151' : 'rgba(255,255,255,0.88)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-              transition: 'color 0.2s',
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: '0.07em',
-              cursor: 'pointer',
-            }}
-          >
-            Browse Courses
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </span>
         </div>
       </div>
     </nav>
