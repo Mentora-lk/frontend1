@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
   "/auth/register",
   "/auth/forgot-password",
   "/unauthorized",
+  "/dashboard/student",
 ];
 
 export function middleware(request: NextRequest): NextResponse {

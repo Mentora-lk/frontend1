@@ -7,17 +7,17 @@ import Navbar from "../../../components/navbar/Navbar";
 const COURSES = [
   {
     id: 1,
-    title: "Advanced Level : Physics",
-    tutor: "Thilak Perera",
+    title: "A/L Combined Mathematics",
+    tutor: "Kasun Fernando",
     location: "Moratuwa",
     rating: 4.8,
     reviews: 94,
-    badge: null,
-    subject: "Physics",
-    mode: "offline",
+    badge: "Best Seller",
+    subject: "Mathematics",
+    mode: "online",
     fee: 2500,
-    image: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80",
-    desc: "Government teacher, BSc Graduate with 10+ years of experience.",
+    image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
+    desc: "Full A/L syllabus with past paper practice and exam techniques.",
   },
   {
     id: 2,
@@ -37,7 +37,7 @@ const COURSES = [
     id: 3,
     title: "IT : Web Development From Basics",
     tutor: "Isaac Rudansky",
-    location: "Piliyandala",
+    location: "Online",
     rating: 4.9,
     reviews: 121,
     badge: "Best Seller",
@@ -45,7 +45,7 @@ const COURSES = [
     mode: "online",
     fee: 4500,
     image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80",
-    desc: "Full-stack web development from HTML to React and Node.js.",
+    desc: "HTML, CSS, JavaScript and React from scratch.",
   },
   {
     id: 4,
@@ -59,35 +59,35 @@ const COURSES = [
     mode: "offline",
     fee: 1500,
     image: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80",
-    desc: "A passionate guitar teacher who inspires students, teaches techniques.",
+    desc: "A passionate guitar teacher who inspires students.",
   },
   {
     id: 5,
-    title: "උසස් පෙළ : භෞතික විද්‍යාව",
-    tutor: "Saman Kumara",
+    title: "A/L Physics Full Syllabus",
+    tutor: "Thilak Perera",
     location: "Moratuwa",
-    rating: 4.5,
-    reviews: 360,
-    badge: "Best Seller",
+    rating: 4.8,
+    reviews: 94,
+    badge: null,
     subject: "Physics",
-    mode: "both",
+    mode: "offline",
     fee: 2000,
-    image: "https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80",
-    desc: "A knowledgeable physics teacher who explains concepts clearly.",
+    image: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80",
+    desc: "Government teacher, BSc Graduate with 10+ years of experience.",
   },
   {
     id: 6,
-    title: "Personal Branding: Creating A Strong Online Presence",
-    tutor: "Dennis Yu",
-    location: "Online",
-    rating: 4.8,
-    reviews: 81,
+    title: "A/L Chemistry",
+    tutor: "Dilshan Rajapaksa",
+    location: "Colombo",
+    rating: 4.5,
+    reviews: 77,
     badge: null,
-    subject: "Business",
-    mode: "online",
-    fee: 5000,
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&q=80",
-    desc: "Build your personal brand and dominate social media.",
+    subject: "Chemistry",
+    mode: "both",
+    fee: 3500,
+    image: "https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80",
+    desc: "A/L Chemistry full syllabus with MCQ and essay training.",
   },
 ];
 
@@ -861,9 +861,9 @@ export default function LandingPage() {
               )}
 
               <div style={{ textAlign: "center", marginTop: 52 }}>
-                <Link href="/tutors/list">
+                <Link href="classes/search">
                   <button className="btn-outline-green" style={{ padding: "14px 44px", fontSize: 15 }}>
-                    View All Tutors -&gt;
+                    View All Classes -&gt;
                   </button>
                 </Link>
               </div>
