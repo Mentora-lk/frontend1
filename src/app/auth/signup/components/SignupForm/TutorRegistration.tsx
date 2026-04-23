@@ -1,0 +1,994 @@
+"use client";
+
+import { useState } from "react";
+
+type Qualification = {
+  id: string;
+  university: string;
+  degree: string;
+  year: string;
+  experience: string;
+};
+
+type TimeSlot = {
+  id: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+};
+
+export default function TutorRegistration() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    // Step 1: About
+    fullName: "",
+    dateOfBirth: "",
+    gender: "",
+    city: "",
+    email: "",
+    address: "",
+    // Step 2: Pictures
+    profilePicture: null as File | null,
+    profileBanner: null as File | null,
+    // Step 3: Education
+    qualifications: [] as Qualification[],
+    // Step 4: Teaching Profile
+    subjects: "",
+    gradeRange: "",
+    level: "",
+    medium: "",
+    classTypes: [] as string[],
+    aboutYourself: "",
+    teachingLocation: "",
+    timeSlots: [] as TimeSlot[],
+    instituteLocation: "",
+    instituteName: "",
+  });
+
+  const [hoveredField, setHoveredField] = useState<string | null>(null);
+  const [previewPicture, setPreviewPicture] = useState<string | null>(null);
+  const [previewBanner, setPreviewBanner] = useState<string | null>(null);
+  const [newQualification, setNewQualification] = useState<Qualification>({
+    id: "",
+    university: "",
+    degree: "",
+    year: "",
+    experience: "",
+  });
+
+  const genders = ["Male", "Female", "Other"];
+  const levels = ["G.C.E. ADVANCED LEVEL", "G.C.E. ORDINARY LEVEL", "Grade 6-9", "University"];
+  const mediums = ["SINHALA", "ENGLISH", "TAMIL"];
+  const classTypeOptions = ["Individual Class", "Group Class", "Hall Class"];
+  const teachingLocations = ["Home", "Student's Home", "Online", "Institute"];
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  const yearOptions = Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i);
+
+  const [newTimeSlot, setNewTimeSlot] = useState<TimeSlot>({
+    id: "",
+    day: "",
+    startTime: "",
+    endTime: "",
+  });
+
+  const inputStyle = (field: string) => ({
+    padding: "12px 16px",
+    fontSize: 14,
+    border: hoveredField === field ? "2px solid #10b981" : "1px solid #d1d5db",
+    borderRadius: 10,
+    outline: "none" as const,
+    transition: "all 0.3s ease",
+    boxShadow:
+      hoveredField === field ? "0 0 0 3px rgba(16, 185, 129, 0.1)" : "none",
+    background: "#ffffff",
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "profilePicture" | "profileBanner"
+  ) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      setFormData((prev) => ({ ...prev, [type]: file }));
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (type === "profilePicture") setPreviewPicture(reader.result as string);
+        else setPreviewBanner(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addQualification = () => {
+    if (newQualification.university && newQualification.degree && newQualification.year) {
+      setFormData((prev) => ({
+        ...prev,
+        qualifications: [
+          ...prev.qualifications,
+          { ...newQualification, id: Date.now().toString() },
+        ],
+      }));
+      setNewQualification({ id: "", university: "", degree: "", year: "", experience: "" });
+    }
+  };
+
+  const removeQualification = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      qualifications: prev.qualifications.filter((q) => q.id !== id),
+    }));
+  };
+
+  const addTimeSlot = () => {
+    if (newTimeSlot.day && newTimeSlot.startTime && newTimeSlot.endTime) {
+      setFormData((prev) => ({
+        ...prev,
+        timeSlots: [...prev.timeSlots, { ...newTimeSlot, id: Date.now().toString() }],
+      }));
+      setNewTimeSlot({ id: "", day: "", startTime: "", endTime: "" });
+    }
+  };
+
+  const removeTimeSlot = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      timeSlots: prev.timeSlots.filter((t) => t.id !== id),
+    }));
+  };
+
+  const toggleClassType = (classType: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      classTypes: prev.classTypes.includes(classType)
+        ? prev.classTypes.filter((c) => c !== classType)
+        : [...prev.classTypes, classType],
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Tutor Registration Complete:", formData);
+    // TODO: Add API call here
+  };
+
+  const canProceedToNextStep = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.fullName && formData.dateOfBirth && formData.gender && formData.city && formData.email && formData.address;
+      case 2:
+        return true;
+      case 3:
+        return formData.qualifications.length > 0;
+      case 4:
+        return formData.subjects && formData.gradeRange && formData.level && formData.medium && formData.classTypes.length > 0;
+      default:
+        return false;
+    }
+  };
+
+  type TimeSlot = {
+    id: string;
+    day: string;
+    startTime: string;
+    endTime: string;
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Step Indicator */}
+      <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background:
+                  currentStep >= step
+                    ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                    : "#e5e7eb",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 600,
+                fontSize: 14,
+                transition: "all 0.3s ease",
+              }}
+            >
+              {step}
+            </div>
+            {step < 4 && (
+              <div
+                style={{
+                  width: 40,
+                  height: 2,
+                  background:
+                    currentStep > step
+                      ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                      : "#e5e7eb",
+                  transition: "all 0.3s ease",
+                }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Step Labels */}
+      <div style={{ display: "flex", justifyContent: "space-around", fontSize: 12, fontWeight: 600, color: "#6b7280" }}>
+        <span>About</span>
+        <span>Pictures</span>
+        <span>Education</span>
+        <span>Teaching</span>
+      </div>
+
+      {/* Step 1: About */}
+      {currentStep === 1 && (
+        <form style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("fullName")}
+              onBlur={() => setHoveredField(null)}
+              placeholder="Legal name"
+              style={inputStyle("fullName") as React.CSSProperties}
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Date of Birth
+            </label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("dateOfBirth")}
+              onBlur={() => setHoveredField(null)}
+              style={inputStyle("dateOfBirth") as React.CSSProperties}
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Gender
+            </label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("gender")}
+              onBlur={() => setHoveredField(null)}
+              style={{
+                ...inputStyle("gender"),
+                cursor: "pointer",
+                color: formData.gender ? "#111827" : "#9ca3af",
+              } as React.CSSProperties}
+              required
+            >
+              <option value="">Select gender</option>
+              {genders.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              City
+            </label>
+            <input
+              type="text"
+              name="city"
+              value={formData.city}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("city")}
+              onBlur={() => setHoveredField(null)}
+              placeholder="Current city"
+              style={inputStyle("city") as React.CSSProperties}
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("email")}
+              onBlur={() => setHoveredField(null)}
+              placeholder="Contact email"
+              style={inputStyle("email") as React.CSSProperties}
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Address
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("address")}
+              onBlur={() => setHoveredField(null)}
+              placeholder="Full residential address"
+              style={inputStyle("address") as React.CSSProperties}
+              required
+            />
+          </div>
+        </form>
+      )}
+
+      {/* Step 2: Pictures & Media */}
+      {currentStep === 2 && (
+        <form style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+              Profile Picture (JPG, PNG - Min 400x400px)
+            </label>
+            <div
+              style={{
+                border: "2px dashed #10b981",
+                borderRadius: 12,
+                padding: 32,
+                textAlign: "center",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={(e) => handleFileChange(e, "profilePicture")}
+                style={{ display: "none" }}
+                id="profilePicture"
+              />
+              <label htmlFor="profilePicture" style={{ cursor: "pointer", display: "block" }}>
+                {previewPicture ? (
+                  <div>
+                    <img
+                      src={previewPicture}
+                      alt="Preview"
+                      style={{ maxWidth: "100%", maxHeight: 150, borderRadius: 8 }}
+                    />
+                    <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
+                      Click to change
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: "#10b981", margin: "0 0 8px" }}>
+                      📷 Upload Profile Picture
+                    </p>
+                    <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
+                      Click to select or drag and drop
+                    </p>
+                  </div>
+                )}
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+              Profile Banner (Recommended 1200x300px)
+            </label>
+            <div
+              style={{
+                border: "2px dashed #10b981",
+                borderRadius: 12,
+                padding: 32,
+                textAlign: "center",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={(e) => handleFileChange(e, "profileBanner")}
+                style={{ display: "none" }}
+                id="profileBanner"
+              />
+              <label htmlFor="profileBanner" style={{ cursor: "pointer", display: "block" }}>
+                {previewBanner ? (
+                  <div>
+                    <img
+                      src={previewBanner}
+                      alt="Preview"
+                      style={{ maxWidth: "100%", maxHeight: 100, borderRadius: 8 }}
+                    />
+                    <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
+                      Click to change
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: "#10b981", margin: "0 0 8px" }}>
+                      🖼️ Upload Banner
+                    </p>
+                    <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
+                      Click to select or drag and drop
+                    </p>
+                  </div>
+                )}
+              </label>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Step 3: Education */}
+      {currentStep === 3 && (
+        <form style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
+              Add Qualification
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <input
+                type="text"
+                placeholder="University / Institute Name"
+                value={newQualification.university}
+                onChange={(e) =>
+                  setNewQualification({ ...newQualification, university: e.target.value })
+                }
+                style={{
+                  padding: "12px 16px",
+                  fontSize: 14,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 10,
+                  outline: "none",
+                  background: "#ffffff",
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Degree / Certificate Title"
+                value={newQualification.degree}
+                onChange={(e) =>
+                  setNewQualification({ ...newQualification, degree: e.target.value })
+                }
+                style={{
+                  padding: "12px 16px",
+                  fontSize: 14,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 10,
+                  outline: "none",
+                  background: "#ffffff",
+                }}
+              />
+              <select
+                value={newQualification.year}
+                onChange={(e) =>
+                  setNewQualification({ ...newQualification, year: e.target.value })
+                }
+                style={{
+                  padding: "12px 16px",
+                  fontSize: 14,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  background: "#ffffff",
+                }}
+              >
+                <option value="">Year of Graduation</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                placeholder="Working Experience (optional)"
+                value={newQualification.experience}
+                onChange={(e) =>
+                  setNewQualification({ ...newQualification, experience: e.target.value })
+                }
+                style={{
+                  padding: "12px 16px",
+                  fontSize: 14,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 10,
+                  outline: "none",
+                  minHeight: 80,
+                  background: "#ffffff",
+                }}
+              />
+              <button
+                type="button"
+                onClick={addQualification}
+                style={{
+                  padding: "10px 16px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "white",
+                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.transform = "translateY(-2px)";
+                  (e.target as HTMLButtonElement).style.boxShadow = "0 8px 12px rgba(16, 185, 129, 0.3)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.transform = "translateY(0)";
+                  (e.target as HTMLButtonElement).style.boxShadow = "none";
+                }}
+              >
+                + Add Qualification
+              </button>
+            </div>
+          </div>
+
+          {formData.qualifications.map((qual) => (
+            <div
+              key={qual.id}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                padding: 16,
+                background: "#f9fafb",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600 }}>
+                    {qual.university}
+                  </h4>
+                  <p style={{ margin: "0 0 4px", fontSize: 12, color: "#6b7280" }}>
+                    {qual.degree}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>{qual.year}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeQualification(qual.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#ef4444",
+                    cursor: "pointer",
+                    fontSize: 18,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </form>
+      )}
+
+      {/* Step 4: Teaching Profile */}
+      {currentStep === 4 && (
+        <form style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Subjects You Teach
+            </label>
+            <input
+              type="text"
+              name="subjects"
+              value={formData.subjects}
+              onChange={handleInputChange}
+              placeholder="e.g., Mathematics, Physics, Chemistry"
+              style={inputStyle("subjects") as React.CSSProperties}
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Grade Range
+            </label>
+            <input
+              type="text"
+              name="gradeRange"
+              value={formData.gradeRange}
+              onChange={handleInputChange}
+              placeholder="e.g., Grade 10-13"
+              style={inputStyle("gradeRange") as React.CSSProperties}
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Level
+            </label>
+            <select
+              name="level"
+              value={formData.level}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("level")}
+              onBlur={() => setHoveredField(null)}
+              style={{
+                ...inputStyle("level"),
+                cursor: "pointer",
+                color: formData.level ? "#111827" : "#9ca3af",
+              } as React.CSSProperties}
+              required
+            >
+              <option value="">Select Level</option>
+              {levels.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Medium of Instruction
+            </label>
+            <select
+              name="medium"
+              value={formData.medium}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("medium")}
+              onBlur={() => setHoveredField(null)}
+              style={{
+                ...inputStyle("medium"),
+                cursor: "pointer",
+                color: formData.medium ? "#111827" : "#9ca3af",
+              } as React.CSSProperties}
+              required
+            >
+              <option value="">Select Medium</option>
+              {mediums.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+              Class Type
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              {classTypeOptions.map((classType) => (
+                <label
+                  key={classType}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    cursor: "pointer",
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid #e5e7eb",
+                    transition: "all 0.2s ease",
+                    background: formData.classTypes.includes(classType)
+                      ? "rgba(16, 185, 129, 0.05)"
+                      : "transparent",
+                    borderColor: formData.classTypes.includes(classType) ? "#10b981" : "#e5e7eb",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.classTypes.includes(classType)}
+                    onChange={() => toggleClassType(classType)}
+                    style={{ cursor: "pointer", accentColor: "#10b981" }}
+                  />
+                  <span style={{ fontSize: 13, color: "#4b5563" }}>{classType}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+              Describe Yourself
+            </label>
+            <textarea
+              name="aboutYourself"
+              value={formData.aboutYourself}
+              onChange={handleInputChange}
+              placeholder="Share your experience and teaching methods"
+              style={{
+                padding: "12px 16px",
+                fontSize: 14,
+                border: "1px solid #e5e7eb",
+                borderRadius: 10,
+                minHeight: 100,
+                outline: "none",
+              }}
+            />
+          </div>
+
+          {formData.classTypes.includes("Individual Class") && (
+            <>
+              <div>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                  Teaching Location
+                </label>
+                <select
+                  name="teachingLocation"
+                  value={formData.teachingLocation}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: 14,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 10,
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="">Select Location</option>
+                  {teachingLocations.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+                  Schedule Time Slots
+                </h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <select
+                    value={newTimeSlot.day}
+                    onChange={(e) =>
+                      setNewTimeSlot({ ...newTimeSlot, day: e.target.value })
+                    }
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: 13,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="">Select Day</option>
+                    {days.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="time"
+                    value={newTimeSlot.startTime}
+                    onChange={(e) =>
+                      setNewTimeSlot({ ...newTimeSlot, startTime: e.target.value })
+                    }
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: 13,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 8,
+                    }}
+                  />
+                  <input
+                    type="time"
+                    value={newTimeSlot.endTime}
+                    onChange={(e) =>
+                      setNewTimeSlot({ ...newTimeSlot, endTime: e.target.value })
+                    }
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: 13,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 8,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={addTimeSlot}
+                    style={{
+                      padding: "10px 16px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "white",
+                      background: "#10b981",
+                      border: "none",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                    }}
+                  >
+                    + Add Time Slot
+                  </button>
+                </div>
+
+                {formData.timeSlots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px",
+                      background: "#f9fafb",
+                      borderRadius: 8,
+                      marginTop: 8,
+                      fontSize: 12,
+                    }}
+                  >
+                    <span>
+                      {slot.day}: {slot.startTime} - {slot.endTime}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeTimeSlot(slot.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {(formData.classTypes.includes("Group Class") ||
+            formData.classTypes.includes("Hall Class")) && (
+            <>
+              <div>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                  Institute Name
+                </label>
+                <input
+                  type="text"
+                  name="instituteName"
+                  value={formData.instituteName}
+                  onChange={handleInputChange}
+                  placeholder="Institute name"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: 14,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 10,
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                  Institute Location
+                </label>
+                <input
+                  type="text"
+                  name="instituteLocation"
+                  value={formData.instituteLocation}
+                  onChange={handleInputChange}
+                  placeholder="Institute location"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: 14,
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 10,
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </form>
+      )}
+
+      {/* Navigation Buttons */}
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          justifyContent: "space-between",
+          marginTop: 24,
+        }}
+      >
+        <button
+          onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+          disabled={currentStep === 1}
+          style={{
+            padding: "12px 24px",
+            fontSize: 14,
+            fontWeight: 600,
+            color: currentStep === 1 ? "#9ca3af" : "#10b981",
+            background: currentStep === 1 ? "#f3f4f6" : "white",
+            border: currentStep === 1 ? "1px solid #d1d5db" : "2px solid #10b981",
+            borderRadius: 10,
+            cursor: currentStep === 1 ? "not-allowed" : "pointer",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            if (currentStep !== 1) {
+              (e.target as HTMLButtonElement).style.background = "#f0fdf4";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentStep !== 1) {
+              (e.target as HTMLButtonElement).style.background = "white";
+            }
+          }}
+        >
+          ← Previous
+        </button>
+
+        {currentStep < 4 ? (
+          <button
+            onClick={() => {
+              if (canProceedToNextStep()) {
+                setCurrentStep(currentStep + 1);
+              }
+            }}
+            disabled={!canProceedToNextStep()}
+            style={{
+              padding: "12px 24px",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "white",
+              background:
+                canProceedToNextStep()
+                  ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                  : "#d1d5db",
+              border: "none",
+              borderRadius: 10,
+              cursor: canProceedToNextStep() ? "pointer" : "not-allowed",
+              transition: "all 0.2s ease",
+            }}
+          >
+            Next →
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            style={{
+              padding: "12px 24px",
+              fontSize: 14,
+              fontWeight: 700,
+              color: "white",
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              border: "none",
+              borderRadius: 10,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Complete Registration
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
