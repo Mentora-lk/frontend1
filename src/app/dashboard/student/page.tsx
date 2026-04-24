@@ -3,7 +3,71 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
-import MyClassCard, { MyClass } from '@/components/dashboard/MyClassCard';
+
+type MyClassStatus = 'active' | 'requested' | 'approved';
+type MyClassMode = 'online' | 'offline' | 'both';
+
+type MyClass = {
+  id: number;
+  tutorId: number;
+  title: string;
+  tutor: string;
+  subject: string;
+  location: string;
+  mode: MyClassMode;
+  fee: number;
+  rating: number;
+  status: MyClassStatus;
+  sessionsAttended: number;
+  totalSessions: number;
+  nextSession: string;
+  image: string;
+};
+
+function MyClassCard({ cls, view }: { cls: MyClass; view: 'grid' | 'list' }) {
+  const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
+  const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: view === 'grid' ? 'column' : 'row',
+        gap: 12,
+        background: 'white',
+        border: '1px solid #E5E7EB',
+        borderRadius: 16,
+        padding: 14,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+      }}
+    >
+      <img
+        src={cls.image}
+        alt={cls.title}
+        style={{
+          width: view === 'grid' ? '100%' : 130,
+          height: view === 'grid' ? 130 : 90,
+          objectFit: 'cover',
+          borderRadius: 12,
+          flexShrink: 0,
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.title}</h4>
+          <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, textTransform: 'capitalize' }}>{cls.status}</span>
+        </div>
+        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
+        <p style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>Next: {cls.nextSession}</p>
+        <div style={{ width: '100%', height: 7, borderRadius: 999, background: '#F3F4F6', overflow: 'hidden', marginBottom: 6 }}>
+          <div style={{ width: `${progress}%`, height: '100%', background: '#10B981' }} />
+        </div>
+        <p style={{ fontSize: 11, color: '#6B7280' }}>{cls.sessionsAttended}/{cls.totalSessions} sessions • ⭐ {cls.rating.toFixed(1)}</p>
+      </div>
+    </div>
+  );
+}
 
 // ── All dummy data lives here ──────────────────────────────────────────────────
 const MY_CLASSES: MyClass[] = [
