@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   getInputStyle,
   getSelectStyle,
@@ -11,6 +12,7 @@ import {
   handleButtonHoverEnter,
   handleButtonHoverLeave,
 } from "@/utils/formStyles";
+import { authService } from "@/services/authService";
 
 type Qualification = {
   id: string;
@@ -28,6 +30,7 @@ type TimeSlot = {
 };
 
 export default function TutorRegistration() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1: About
@@ -60,6 +63,8 @@ export default function TutorRegistration() {
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [previewPicture, setPreviewPicture] = useState<string | null>(null);
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [newQualification, setNewQualification] = useState<Qualification>({
     id: "",
     university: "",
@@ -89,6 +94,7 @@ export default function TutorRegistration() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
   const handleFileChange = (
@@ -153,10 +159,43 @@ export default function TutorRegistration() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Tutor Registration Complete:", formData);
-    // TODO: Add API call here
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // Validate passwords match
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        setIsLoading(false);
+        return;
+      }
+
+      // Split full name into first and last name
+      const nameParts = formData.fullName.trim().split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ") || firstName;
+
+      const response = await authService.registerTutor({
+        email: formData.email,
+        password: formData.password,
+        firstName,
+        lastName,
+      });
+
+      // Store token and user info
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+
+      // Redirect to tutor dashboard
+      router.push("/dashboard/tutor");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+      console.error("Registration error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const canProceedToNextStep = () => {
@@ -231,6 +270,24 @@ export default function TutorRegistration() {
         <span>Education</span>
         <span>Teaching</span>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "#fee2e2",
+            border: "1px solid #fecaca",
+            borderRadius: 10,
+            color: "#991b1b",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 12,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* Step 1: About */}
       {currentStep === 1 && (
@@ -940,21 +997,24 @@ export default function TutorRegistration() {
         ) : (
           <button
             onClick={handleSubmit}
+            disabled={isLoading}
             style={{
               padding: "12px 24px",
               fontSize: 14,
               fontWeight: 700,
               color: "white",
-              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              background: isLoading
+                ? "#d1d5db"
+                : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
               border: "none",
               borderRadius: 10,
-              cursor: "pointer",
+              cursor: isLoading ? "not-allowed" : "pointer",
               transition: "all 0.2s ease",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
             }}
           >
-            Complete Registration
+            {isLoading ? "Completing Registration..." : "Complete Registration"}
           </button>
         )}
       </div>

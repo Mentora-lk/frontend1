@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   getInputStyle,
   getSelectStyle,
@@ -12,8 +13,10 @@ import {
   handleLinkHoverEnter,
   handleLinkHoverLeave,
 } from "@/utils/formStyles";
+import { authService } from "@/services/authService";
 
 export default function StudentRegistration() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: "",
     school: "",
@@ -27,6 +30,8 @@ export default function StudentRegistration() {
   });
 
   const [hoveredField, setHoveredField] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const grades = ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "O/L", "A/L"];
   const languages = ["Sinhala", "English", "Tamil", "Bilingual"];
@@ -34,16 +39,68 @@ export default function StudentRegistration() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Student Registration:", formData);
-    // TODO: Add API call here
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // Validate passwords match
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        setIsLoading(false);
+        return;
+      }
+
+      // Split full name into first and last name
+      const nameParts = formData.fullName.trim().split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ") || firstName;
+
+      const response = await authService.registerStudent({
+        email: formData.email,
+        password: formData.password,
+        firstName,
+        lastName,
+      });
+
+      // Store token and user info
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+
+      // Redirect to student dashboard
+      router.push("/dashboard/student");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+      console.error("Registration error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} style={formContainerStyle}>
+      {/* Error Message */}
+      {error && (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "#fee2e2",
+            border: "1px solid #fecaca",
+            borderRadius: 10,
+            color: "#991b1b",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 12,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Full Name */}
       <input
         type="text"
@@ -175,11 +232,12 @@ export default function StudentRegistration() {
       {/* Submit Button */}
       <button
         type="submit"
+        disabled={isLoading}
         style={getPrimaryButtonStyle()}
-        onMouseEnter={(e) => handleButtonHoverEnter(e, true)}
-        onMouseLeave={(e) => handleButtonHoverLeave(e, true)}
+        onMouseEnter={(e) => !isLoading && handleButtonHoverEnter(e, true)}
+        onMouseLeave={(e) => !isLoading && handleButtonHoverLeave(e, true)}
       >
-        Create Account
+        {isLoading ? "Creating Account..." : "Create Account"}
       </button>
 
       {/* Login Link */}
