@@ -17,8 +17,16 @@ export async function apiCall<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "API request failed");
+    let errorMessage = `API request failed (${response.status})`;
+    try {
+      const error = await response.json();
+      errorMessage = error.message || error.error || JSON.stringify(error);
+      console.warn(`[API ${response.status}] ${errorMessage}`);
+    } catch {
+      console.warn(`[API Error] ${response.status} ${response.statusText} (no JSON body)`);
+      errorMessage = `Server error ${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

@@ -184,9 +184,15 @@ export default function TutorRegistration() {
         lastName,
       });
 
+      // Extract user info from flat response
+      const user = { id: response.id, email: response.email, role: response.role };
+
       // Store token and user info
       localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Set user_role cookie so middleware allows dashboard access
+      document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
 
       // Redirect to tutor dashboard
       router.push("/dashboard/tutor");
