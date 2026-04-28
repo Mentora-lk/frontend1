@@ -32,21 +32,27 @@ export default function LoginPage() {
         password: formData.password,
       });
 
-      // Store token and user info
+      // The backend returns { id, email, role, token } at the top level
+      const user = { id: response.id, email: response.email, role: response.role };
+
+      // Store token and user info in localStorage
       localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // ✅ Set user_role cookie so the middleware can protect dashboard routes
+      document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
 
       // Redirect based on role
-      if (response.user.role === "tutor") {
+      if (user.role === "tutor") {
         router.push("/dashboard/tutor");
-      } else if (response.user.role === "admin") {
+      } else if (user.role === "admin") {
         router.push("/dashboard/admin");
       } else {
         router.push("/dashboard/student");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
-      console.error("Login error:", err);
+      console.warn("Login error:", err);
     } finally {
       setIsLoading(false);
     }

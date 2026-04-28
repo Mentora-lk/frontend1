@@ -55,27 +55,32 @@ export default function StudentRegistration() {
         return;
       }
 
-      // Split full name into first and last name
-      const nameParts = formData.fullName.trim().split(" ");
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(" ") || firstName;
-
       const response = await authService.registerStudent({
         email: formData.email,
         password: formData.password,
-        firstName,
-        lastName,
+        fullName: formData.fullName,
+        school: formData.school,
+        age: formData.age,
+        language: formData.language,
+        gradeLevel: formData.grade,   // form field is "grade", backend expects "gradeLevel"
+        address: formData.address,
       });
+
+      // Extract user info from flat response
+      const user = { id: response.id, email: response.email, role: response.role };
 
       // Store token and user info
       localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
+      localStorage.setItem("user", JSON.stringify(user));
 
-      // Redirect to student dashboard
-      router.push("/dashboard/student");
+      // Set user_role cookie so middleware allows dashboard access
+      document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
+
+      // Redirect to login so user can sign in with their new account
+      router.push("/auth/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
-      console.error("Registration error:", err);
+      console.warn("Registration error:", err);
     } finally {
       setIsLoading(false);
     }

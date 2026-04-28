@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
 import MyClassCard, { MyClass } from '@/components/dashboard/MyClassCard';
+import { authService } from '@/services/authService';
 
-// ── All dummy data lives here ──────────────────────────────────────────────────
-const MY_CLASSES: MyClass[] = [
+// ── Fallback dummy data (if API fails) ──────────────────────────────────────
+const FALLBACK_CLASSES: MyClass[] = [
   {
     id: 1, tutorId: 1,
     title: 'A/L Combined Mathematics',
@@ -101,20 +102,67 @@ export default function StudentDashboard() {
   const [view, setView]           = useState<'grid' | 'list'>('grid');
   const [statusFilter, setStatus] = useState<string>('all');
   const [searchQuery, setSearch]  = useState('');
+  const [classes, setClasses]     = useState<MyClass[]>(FALLBACK_CLASSES);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // No token — skip API call, use fallback data immediately
+        setClasses(FALLBACK_CLASSES);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const data = await authService.getStudentDashboard();
+        // Map API response to MyClass format
+        if (data.classes && Array.isArray(data.classes)) {
+          setClasses(data.classes as MyClass[]);
+        } else {
+          setClasses(FALLBACK_CLASSES);
+        }
+      } catch (err) {
+        // API failed — silently use fallback data
+        setClasses(FALLBACK_CLASSES);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
 
   // Derived stats
-  const activeClasses    = MY_CLASSES.filter(c => c.status === 'active');
-  const pendingClasses   = MY_CLASSES.filter(c => c.status === 'requested');
-  const totalSpend       = MY_CLASSES.filter(c => c.status === 'active' || c.status === 'approved').reduce((s, c) => s + c.fee, 0);
-  const avgRating        = (MY_CLASSES.reduce((s, c) => s + c.rating, 0) / MY_CLASSES.length).toFixed(1);
+  const activeClasses    = classes.filter(c => c.status === 'active');
+  const pendingClasses   = classes.filter(c => c.status === 'requested');
+  const totalSpend       = classes.filter(c => c.status === 'active' || c.status === 'approved').reduce((s, c) => s + c.fee, 0);
+  const avgRating        = (classes.reduce((s, c) => s + c.rating, 0) / classes.length).toFixed(1);
 
   // Filtered list
-  const filtered = MY_CLASSES.filter(c => {
+  const filtered = classes.filter(c => {
     const matchStatus = statusFilter === 'all' || c.status === statusFilter;
     const matchSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         c.tutor.toLowerCase().includes(searchQuery.toLowerCase());
     return matchStatus && matchSearch;
   });
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontSize: 16, color: '#6B7280' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 24, height: 24, border: '3px solid #E5E7EB', borderTop: '3px solid #10B981', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <span>Loading your dashboard...</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -216,7 +264,7 @@ export default function StudentDashboard() {
             {/* ── STAT CARDS ──────────────────────────────────────────────── */}
             <div className="fade-up delay-1" style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
               {[
-                { label: 'Total Classes',   value: MY_CLASSES.length,    icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
+                { label: 'Total Classes',   value: classes.length,       icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
                 { label: 'Active Classes',  value: activeClasses.length, icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
                 { label: 'Pending Approval',value: pendingClasses.length, icon: '⏳', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', shadow: 'rgba(245,158,11,0.1)'  },
               ].map((s, i) => (
@@ -241,7 +289,7 @@ export default function StudentDashboard() {
                   {/* Status filters */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {[
-                      { key: 'all',       label: `All (${MY_CLASSES.length})` },
+                      { key: 'all',       label: `All (${classes.length})` },
                       { key: 'active',    label: `Active (${activeClasses.length})` },
                       { key: 'requested', label: `Pending (${pendingClasses.length})` },
                       { key: 'approved',  label: 'Approved' },
