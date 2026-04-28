@@ -24,10 +24,12 @@ export interface RegisterTutorRequest {
 }
 
 export interface AuthResponse {
-  id: string;
-  email: string;
-  role: "student" | "tutor" | "admin";
   token: string;
+  user: {
+    id: string;
+    email: string;
+    role: "student" | "tutor" | "admin";
+  };
   profile?: any;
 }
 

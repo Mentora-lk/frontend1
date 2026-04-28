@@ -32,8 +32,8 @@ export default function LoginPage() {
         password: formData.password,
       });
 
-      // The backend returns { id, email, role, token } at the top level
-      const user = { id: response.id, email: response.email, role: response.role };
+      // The backend returns { token, user: { id, email, role } }
+      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
 
       // Store token and user info in localStorage
       localStorage.setItem("token", response.token);
