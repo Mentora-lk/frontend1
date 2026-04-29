@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authService } from "@/services/authService";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,29 +27,32 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch("/api/auth/login", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(formData),
-      // });
-      // const data = await response.json();
-      // if (!response.ok) {
-      //   setError(data.message || "Login failed");
-      //   return;
-      // }
-      // Store token and redirect
-      // localStorage.setItem("token", data.token);
-      // router.push("/dashboard/student");
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      console.log("Login attempt:", formData);
-      // Simulate successful login for now
-      setTimeout(() => {
+      // The backend returns { token, user: { id, email, role } }
+      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+
+      // Store token and user info in localStorage
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // ✅ Set user_role cookie so the middleware can protect dashboard routes
+      document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
+
+      // Redirect based on role
+      if (user.role === "tutor") {
+        router.push("/dashboard/tutor");
+      } else if (user.role === "admin") {
+        router.push("/dashboard/admin");
+      } else {
         router.push("/dashboard/student");
-      }, 500);
+      }
     } catch (err) {
-      setError("An error occurred. Please try again.");
-      console.error("Login error:", err);
+      setError(err instanceof Error ? err.message : "Login failed");
+      console.warn("Login error:", err);
     } finally {
       setIsLoading(false);
     }
