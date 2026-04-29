@@ -32,6 +32,11 @@ export default function LoginPage() {
         password: formData.password,
       });
 
+      // Guard against missing user data in response
+      if (!response || !response.user || !response.token) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
+
       // The backend returns { token, user: { id, email, role } }
       const user = { id: response.user.id, email: response.user.email, role: response.user.role };
 

@@ -78,6 +78,13 @@ export const authService = {
     });
   },
 
+  async registerTutorFormData(formData: FormData): Promise<AuthResponse> {
+    return apiCall<AuthResponse>("/api/auth/register/tutor", {
+      method: "POST",
+      body: formData,
+    });
+  },
+
   async getStudentDashboard(): Promise<StudentDashboardResponse> {
     const token = localStorage.getItem("token");
     return apiCall<StudentDashboardResponse>("/api/auth/student-dashboard", {
