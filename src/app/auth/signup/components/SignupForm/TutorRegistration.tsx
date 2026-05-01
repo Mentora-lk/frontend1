@@ -172,20 +172,47 @@ export default function TutorRegistration() {
         return;
       }
 
-      // Split full name into first and last name
-      const nameParts = formData.fullName.trim().split(" ");
-      const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(" ") || firstName;
+      const submissionData = new FormData();
+      submissionData.append("fullName", formData.fullName);
+      submissionData.append("dob", formData.dateOfBirth);
+      submissionData.append("gender", formData.gender);
+      submissionData.append("city", formData.city);
+      submissionData.append("email", formData.email);
+      submissionData.append("address", formData.address);
+      submissionData.append("password", formData.password);
+      
+      if (formData.profilePicture) {
+        submissionData.append("profilePicture", formData.profilePicture);
+      }
+      if (formData.profileBanner) {
+        submissionData.append("banner", formData.profileBanner);
+      }
 
-      const response = await authService.registerTutor({
-        email: formData.email,
-        password: formData.password,
-        firstName,
-        lastName,
-      });
+      // Extract the first qualification to match backend schema currently
+      if (formData.qualifications.length > 0) {
+        const firstQual = formData.qualifications[0];
+        submissionData.append("university", firstQual.university);
+        submissionData.append("degreeTitle", firstQual.degree);
+        submissionData.append("graduationYear", firstQual.year);
+        submissionData.append("experience", firstQual.experience || "");
+      }
 
-      // Extract user info from flat response
-      const user = { id: response.id, email: response.email, role: response.role };
+      submissionData.append("subjects", formData.subjects);
+      submissionData.append("gradeRange", formData.gradeRange);
+      submissionData.append("level", formData.level);
+      submissionData.append("medium", formData.medium);
+      submissionData.append("classType", formData.classTypes.join(", "));
+      submissionData.append("description", formData.aboutYourself);
+
+      const response = await authService.registerTutorFormData(submissionData);
+
+      // Guard against missing user data in response
+      if (!response || !response.user || !response.token) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
+
+      // Extract user info from response (backend returns { token, user: { id, email, role }, profile })
+      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
 
       // Store token and user info
       localStorage.setItem("token", response.token);

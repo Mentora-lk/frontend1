@@ -66,8 +66,8 @@ export default function StudentRegistration() {
         address: formData.address,
       });
 
-      // Extract user info from flat response
-      const user = { id: response.id, email: response.email, role: response.role };
+      // Extract user info from nested response.user
+      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
 
       // Store token and user info
       localStorage.setItem("token", response.token);
