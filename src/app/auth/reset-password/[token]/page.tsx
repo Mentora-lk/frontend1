@@ -1,39 +1,67 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { use } from "react";
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
+export default function ResetPasswordPage({ params }: { params: Promise<{ token: string }> }) {
+  const resolvedParams = use(params);
+  const { token } = resolvedParams;
+  
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    password: "",
+    confirmPassword: "",
+  });
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError("");
   };
 
-  const handleSendLink = async (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
     setSuccess("");
 
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
-        method: "POST",
+      const response = await fetch(`http://localhost:5000/api/auth/reset-password/${token}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          newPassword: formData.password,
+        }),
       });
       const data = await response.json();
+      
       if (!response.ok) {
-        setError(data.message || "Failed to send reset link");
+        setError(data.message || "Failed to reset password");
         return;
       }
 
-      setSuccess("Reset link sent to your email. Please check your inbox.");
+      setSuccess("Password reset successfully! Redirecting to login...");
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 2000);
     } catch (err) {
       setError("An error occurred. Please try again.");
       console.error("Error:", err);
@@ -51,7 +79,6 @@ export default function ForgotPasswordPage() {
           padding: "0 20px",
         }}
       >
-        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <h1
             style={{
@@ -63,7 +90,7 @@ export default function ForgotPasswordPage() {
               lineHeight: 1.2,
             }}
           >
-            Forgot Password
+            Create New Password
           </h1>
           <p
             style={{
@@ -73,12 +100,11 @@ export default function ForgotPasswordPage() {
               lineHeight: 1.6,
             }}
           >
-            Enter your email to receive a password reset link
+            Please enter your new password below.
           </p>
         </div>
 
-        {/* Forms */}
-        <form onSubmit={handleSendLink} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <form onSubmit={handleResetPassword} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {error && (
             <div
               style={{
@@ -122,22 +148,22 @@ export default function ForgotPasswordPage() {
                     marginBottom: 8,
                   }}
                 >
-                  Email Address
+                  New Password
                 </label>
                 <input
-                  type="email"
-                  placeholder="you@example.com"
-                  name="email"
-                  value={email}
+                  type="password"
+                  placeholder="••••••••"
+                  name="password"
+                  value={formData.password}
                   onChange={handleInputChange}
-                  onFocus={() => setHoveredField("email")}
+                  onFocus={() => setHoveredField("password")}
                   onBlur={() => setHoveredField(null)}
                   style={{
                     width: "100%",
                     padding: "12px 16px",
                     fontSize: 14,
                     border:
-                      hoveredField === "email"
+                      hoveredField === "password"
                         ? "2px solid #10b981"
                         : "1px solid #d1d5db",
                     borderRadius: 10,
@@ -146,7 +172,59 @@ export default function ForgotPasswordPage() {
                     transition: "all 0.3s ease",
                     boxSizing: "border-box",
                     boxShadow:
-                      hoveredField === "email"
+                      hoveredField === "password"
+                        ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
+                        : "none",
+                  }}
+                  required
+                />
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#9ca3af",
+                    marginTop: 6,
+                    margin: "6px 0 0",
+                  }}
+                >
+                  At least 8 characters
+                </p>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "#374151",
+                    marginBottom: 8,
+                  }}
+                >
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  onFocus={() => setHoveredField("confirmPassword")}
+                  onBlur={() => setHoveredField(null)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    fontSize: 14,
+                    border:
+                      hoveredField === "confirmPassword"
+                        ? "2px solid #10b981"
+                        : "1px solid #d1d5db",
+                    borderRadius: 10,
+                    background: "#ffffff",
+                    outline: "none",
+                    transition: "all 0.3s ease",
+                    boxSizing: "border-box",
+                    boxShadow:
+                      hoveredField === "confirmPassword"
                         ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
                         : "none",
                   }}
@@ -187,13 +265,12 @@ export default function ForgotPasswordPage() {
                   }
                 }}
               >
-                {isLoading ? "Sending..." : "Send Reset Link"}
+                {isLoading ? "Resetting..." : "Reset Password"}
               </button>
             </>
           )}
         </form>
 
-        {/* Back to Login Link */}
         <p
           style={{
             textAlign: "center",
