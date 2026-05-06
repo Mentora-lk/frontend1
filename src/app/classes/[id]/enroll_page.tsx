@@ -6,30 +6,7 @@ import { useParams } from 'next/navigation';
 import Navbar from '@/components/shared/Navbar';
 import EnrollSidebar from '@/components/shared/EnrollSidebar';
 
-// ── Course data (same as detail page) ─────────────────────────────────────────
-const COURSES_DB: Record<number, any> = {
-  1: {
-    id:1, title:'A/L Combined Mathematics', subject:'Mathematics', location:'Moratuwa',
-    mode:'online', fee:2500, enrolled:12, maxStudents:20,
-    image:'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-    schedule:{ Monday:['4:00 PM','6:00 PM'], Wednesday:['4:00 PM','6:00 PM'], Saturday:['9:00 AM','11:00 AM','2:00 PM'] },
-    tutor:{ name:'Kasun Fernando', avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80' },
-  },
-  2: {
-    id:2, title:'Advanced Level : ICT', subject:'ICT', location:'Piliyandala',
-    mode:'online', fee:3000, enrolled:18, maxStudents:25,
-    image:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',
-    schedule:{ Tuesday:['5:00 PM','7:00 PM'], Thursday:['5:00 PM','7:00 PM'], Sunday:['10:00 AM','2:00 PM'] },
-    tutor:{ name:'Nimesh Dissanayake', avatar:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80' },
-  },
-  3: {
-    id:3, title:'IT : Web Development From Basics', subject:'ICT', location:'Online',
-    mode:'both', fee:4500, enrolled:8, maxStudents:15,
-    image:'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80',
-    schedule:{ Monday:['6:00 PM','8:00 PM'], Friday:['6:00 PM','8:00 PM'], Saturday:['10:00 AM','1:00 PM'] },
-    tutor:{ name:'Isaac Rudansky', avatar:'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&q=80' },
-  },
-};
+
 
 // ── Reusable sub-pieces (small, only used inside this file) ────────────────────
 const inputStyle = (hasErr?: boolean): React.CSSProperties => ({
@@ -104,7 +81,6 @@ export default function EnrollPage() {
   const params = useParams();
   const id     = Number(params?.id ?? 2);
   const course = COURSES_DB[id] ?? COURSES_DB[2];
-  const tutor  = course.tutor;
 
   const [step, setStep] = useState(1);
 
@@ -199,7 +175,7 @@ export default function EnrollPage() {
               {step<4 ? 'Enroll in This Class' : 'Enrollment Requested!'}
             </h1>
             <p style={{ fontSize:14, color:'rgba(255,255,255,0.55)', fontWeight:300 }}>
-              {step<4 ? `Joining ${tutor.name}'s class · ${course.title}` : 'Your request has been sent to the tutor'}
+              {step<4 ? `Joining ${course.tutor_name || "Tutor"}'s class · ${course.title}` : 'Your request has been sent to the tutor'}
             </p>
           </div>
           <div style={{ position:'absolute', bottom:0, left:0, right:0, lineHeight:0 }}>
@@ -254,7 +230,7 @@ export default function EnrollPage() {
                   </FieldLabel>
                   <div style={{ gridColumn:'1 / -1' }}>
                     <FieldLabel label="Message to Tutor" hint="Optional — introduce yourself or ask a question">
-                      <textarea style={{ ...inputStyle(), resize:'vertical', minHeight:90, lineHeight:1.6 }} placeholder={`Hi ${tutor.name.split(' ')[0]}, I'm interested in joining your class because...`} value={message} onChange={e=>setMessage(e.target.value)} onFocus={focus} onBlur={e=>blur(e,false)}/>
+                      <textarea style={{ ...inputStyle(), resize:'vertical', minHeight:90, lineHeight:1.6 }} placeholder={`Hi ${course.tutor_name?.split(' ')[0] || 'Tutor'}, I'm interested in joining your class because...`} value={message} onChange={e=>setMessage(e.target.value)} onFocus={focus} onBlur={e=>blur(e,false)}/>
                     </FieldLabel>
                   </div>
                 </div>
