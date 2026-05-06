@@ -1,13 +1,158 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
-import MyClassCard, { MyClass } from '@/components/dashboard/MyClassCard';
-import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
 
+type MyClassStatus = 'active' | 'requested' | 'approved';
+type MyClassMode = 'online' | 'offline' | 'both';
 
+type MyClass = {
+  id: number;
+  tutorId: number;
+  title: string;
+  tutor: string;
+  subject: string;
+  location: string;
+  mode: MyClassMode;
+  fee: number;
+  rating: number;
+  status: MyClassStatus;
+  sessionsAttended: number;
+  totalSessions: number;
+  nextSession: string;
+  image: string;
+};
+
+function MyClassCard({ cls, view }: { cls: MyClass; view: 'grid' | 'list' }) {
+  const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
+  const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: view === 'grid' ? 'column' : 'row',
+        gap: 12,
+        background: 'white',
+        border: '1px solid #E5E7EB',
+        borderRadius: 16,
+        padding: 14,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+      }}
+    >
+      <img
+        src={cls.image}
+        alt={cls.title}
+        style={{
+          width: view === 'grid' ? '100%' : 130,
+          height: view === 'grid' ? 130 : 90,
+          objectFit: 'cover',
+          borderRadius: 12,
+          flexShrink: 0,
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.title}</h4>
+          <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, textTransform: 'capitalize' }}>{cls.status}</span>
+        </div>
+        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
+        <p style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>Next: {cls.nextSession}</p>
+        <div style={{ width: '100%', height: 7, borderRadius: 999, background: '#F3F4F6', overflow: 'hidden', marginBottom: 6 }}>
+          <div style={{ width: `${progress}%`, height: '100%', background: '#10B981' }} />
+        </div>
+        <p style={{ fontSize: 11, color: '#6B7280' }}>{cls.sessionsAttended}/{cls.totalSessions} sessions • ⭐ {cls.rating.toFixed(1)}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── All dummy data lives here ──────────────────────────────────────────────────
+const MY_CLASSES: MyClass[] = [
+  {
+    id: 1, tutorId: 1,
+    title: 'A/L Combined Mathematics',
+    tutor: 'Kasun Fernando',
+    subject: 'Mathematics',
+    location: 'Moratuwa',
+    mode: 'online',
+    fee: 2500,
+    rating: 4.8,
+    status: 'active',
+    sessionsAttended: 12,
+    totalSessions: 20,
+    nextSession: 'Monday, 6:00 PM',
+    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
+  },
+  {
+    id: 2, tutorId: 2,
+    title: 'Advanced Level : ICT',
+    tutor: 'Nimesh Dissanayake',
+    subject: 'ICT',
+    location: 'Piliyandala',
+    mode: 'online',
+    fee: 3000,
+    rating: 4.6,
+    status: 'active',
+    sessionsAttended: 8,
+    totalSessions: 24,
+    nextSession: 'Wednesday, 5:00 PM',
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',
+  },
+  {
+    id: 3, tutorId: 3,
+    title: 'A/L Physics Full Syllabus',
+    tutor: 'Thilak Perera',
+    subject: 'Physics',
+    location: 'Moratuwa',
+    mode: 'offline',
+    fee: 2000,
+    rating: 4.9,
+    status: 'requested',
+    sessionsAttended: 0,
+    totalSessions: 18,
+    nextSession: 'Awaiting tutor approval',
+    image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80',
+  },
+  {
+    id: 4, tutorId: 4,
+    title: 'Music : Guitar For Beginners',
+    tutor: 'Manoj Kumara',
+    subject: 'Music',
+    location: 'Matale',
+    mode: 'offline',
+    fee: 1500,
+    rating: 4.7,
+    status: 'approved',
+    sessionsAttended: 0,
+    totalSessions: 12,
+    nextSession: 'Starts Saturday, 9:00 AM',
+    image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80',
+  },
+  {
+    id: 5, tutorId: 5,
+    title: 'A/L Chemistry',
+    tutor: 'Dilshan Rajapaksa',
+    subject: 'Chemistry',
+    location: 'Colombo',
+    mode: 'both',
+    fee: 3500,
+    rating: 4.5,
+    status: 'active',
+    sessionsAttended: 5,
+    totalSessions: 22,
+    nextSession: 'Friday, 4:00 PM',
+    image: 'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80',
+  },
+];
+
+const UPCOMING_SESSIONS = [
+  { id: 1, subject: 'Mathematics', tutor: 'Kasun Fernando',   time: 'Mon, 6:00 PM · Tomorrow',   color: '#8B5CF6' },
+  { id: 2, subject: 'ICT',         tutor: 'Nimesh Dissanayake', time: 'Wed, 5:00 PM · In 3 days',  color: '#F59E0B' },
+  { id: 3, subject: 'Chemistry',   tutor: 'Dilshan Rajapaksa',  time: 'Fri, 4:00 PM · In 5 days',  color: '#10B981' },
+];
 
 const SUBJECT_COLORS: Record<string, string> = {
   Mathematics: '#8B5CF6', Physics: '#3B82F6', Chemistry: '#10B981',
