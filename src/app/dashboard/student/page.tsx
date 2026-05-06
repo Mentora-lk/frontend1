@@ -1,95 +1,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
 import MyClassCard, { MyClass } from '@/components/dashboard/MyClassCard';
+import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
 
-// ── All dummy data lives here ──────────────────────────────────────────────────
-const MY_CLASSES: MyClass[] = [
-  {
-    id: 1, tutorId: 1,
-    title: 'A/L Combined Mathematics',
-    tutor: 'Kasun Fernando',
-    subject: 'Mathematics',
-    location: 'Moratuwa',
-    mode: 'online',
-    fee: 2500,
-    rating: 4.8,
-    status: 'active',
-    sessionsAttended: 12,
-    totalSessions: 20,
-    nextSession: 'Monday, 6:00 PM',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-  },
-  {
-    id: 2, tutorId: 2,
-    title: 'Advanced Level : ICT',
-    tutor: 'Nimesh Dissanayake',
-    subject: 'ICT',
-    location: 'Piliyandala',
-    mode: 'online',
-    fee: 3000,
-    rating: 4.6,
-    status: 'active',
-    sessionsAttended: 8,
-    totalSessions: 24,
-    nextSession: 'Wednesday, 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',
-  },
-  {
-    id: 3, tutorId: 3,
-    title: 'A/L Physics Full Syllabus',
-    tutor: 'Thilak Perera',
-    subject: 'Physics',
-    location: 'Moratuwa',
-    mode: 'offline',
-    fee: 2000,
-    rating: 4.9,
-    status: 'requested',
-    sessionsAttended: 0,
-    totalSessions: 18,
-    nextSession: 'Awaiting tutor approval',
-    image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80',
-  },
-  {
-    id: 4, tutorId: 4,
-    title: 'Music : Guitar For Beginners',
-    tutor: 'Manoj Kumara',
-    subject: 'Music',
-    location: 'Matale',
-    mode: 'offline',
-    fee: 1500,
-    rating: 4.7,
-    status: 'approved',
-    sessionsAttended: 0,
-    totalSessions: 12,
-    nextSession: 'Starts Saturday, 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80',
-  },
-  {
-    id: 5, tutorId: 5,
-    title: 'A/L Chemistry',
-    tutor: 'Dilshan Rajapaksa',
-    subject: 'Chemistry',
-    location: 'Colombo',
-    mode: 'both',
-    fee: 3500,
-    rating: 4.5,
-    status: 'active',
-    sessionsAttended: 5,
-    totalSessions: 22,
-    nextSession: 'Friday, 4:00 PM',
-    image: 'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80',
-  },
-];
 
-const UPCOMING_SESSIONS = [
-  { id: 1, subject: 'Mathematics', tutor: 'Kasun Fernando',   time: 'Mon, 6:00 PM · Tomorrow',   color: '#8B5CF6' },
-  { id: 2, subject: 'ICT',         tutor: 'Nimesh Dissanayake', time: 'Wed, 5:00 PM · In 3 days',  color: '#F59E0B' },
-  { id: 3, subject: 'Chemistry',   tutor: 'Dilshan Rajapaksa',  time: 'Fri, 4:00 PM · In 5 days',  color: '#10B981' },
-];
 
 const SUBJECT_COLORS: Record<string, string> = {
   Mathematics: '#8B5CF6', Physics: '#3B82F6', Chemistry: '#10B981',
@@ -99,22 +17,64 @@ const SUBJECT_COLORS: Record<string, string> = {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function StudentDashboard() {
-  const [view, setView]           = useState<'grid' | 'list'>('grid');
-  const [statusFilter, setStatus] = useState<string>('all');
-  const [searchQuery, setSearch]  = useState('');
+  // Real data from backend
+  const [classes,  setClasses]  = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
 
-  // Derived stats
-  const activeClasses    = MY_CLASSES.filter(c => c.status === 'active');
-  const pendingClasses   = MY_CLASSES.filter(c => c.status === 'requested');
-  const totalSpend       = MY_CLASSES.filter(c => c.status === 'active' || c.status === 'approved').reduce((s, c) => s + c.fee, 0);
-  const avgRating        = (MY_CLASSES.reduce((s, c) => s + c.rating, 0) / MY_CLASSES.length).toFixed(1);
+  // Keep existing UI state
+  const [view,        setView]        = useState<'grid'|'list'>('grid');
+  const [statusFilter, setStatus]     = useState<string>('all');
+  const [searchQuery,  setSearch]     = useState('');
 
-  // Filtered list
-  const filtered = MY_CLASSES.filter(c => {
-    const matchStatus = statusFilter === 'all' || c.status === statusFilter;
-    const matchSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        c.tutor.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchStatus && matchSearch;
+  // Fetch enrollments
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await getMyEnrollments();
+        setClasses(data);
+      } catch (err: any) {
+        if (err.response?.status === 401) {
+          window.location.href = '/auth/login';
+          return;
+        }
+        setError(err.response?.data?.message || 'Failed to load your classes. Please try again.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEnrollments();
+  }, []);
+
+  const handleCancel = async (enrollmentId: number) => {
+    if (!confirm('Are you sure you want to cancel this enrollment?')) return;
+    try {
+      await cancelEnrollment(enrollmentId);
+      setClasses(prev => prev.map(c =>
+        c.id === enrollmentId ? { ...c, status: 'cancelled' } : c
+      ));
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to cancel enrollment.');
+    }
+  };
+
+  // These now calculated from real backend data
+  const activeClasses  = classes.filter(c => c.status === 'active');
+  const pendingClasses  = classes.filter(c => c.status === 'requested');
+  const totalSpend      = classes
+    .filter(c => ['active','approved'].includes(c.status))
+    .reduce((s, c) => s + Number(c.fee || 0), 0);
+
+  // Filter by search query on the frontend (status filter is done by backend)
+  const filtered = classes.filter(c => {
+    const title = c.title?.toLowerCase() || '';
+    const tutor = c.tutor_name?.toLowerCase() || '';
+    const q     = searchQuery.toLowerCase();
+    return !q || title.includes(q) || tutor.includes(q);
   });
 
   return (
@@ -128,6 +88,7 @@ export default function StudentDashboard() {
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 99px; }
 
         @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .fade-up { animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) both; }
         .delay-1 { animation-delay: 0.08s; }
         .delay-2 { animation-delay: 0.16s; }
@@ -217,9 +178,10 @@ export default function StudentDashboard() {
             {/* ── STAT CARDS ──────────────────────────────────────────────── */}
             <div className="fade-up delay-1" style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
               {[
-                { label: 'Total Classes',   value: MY_CLASSES.length,    icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
-                { label: 'Active Classes',  value: activeClasses.length, icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
-                { label: 'Pending Approval',value: pendingClasses.length, icon: '⏳', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', shadow: 'rgba(245,158,11,0.1)'  },
+                { label: 'Total Classes',    value: classes.length,        icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
+                { label: 'Active Classes',   value: activeClasses.length,  icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
+                { label: 'Pending Approval', value: pendingClasses.length, icon: '⏳', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', shadow: 'rgba(245,158,11,0.1)'  },
+                { label: 'Monthly Spend',    value: `LKR ${totalSpend.toLocaleString()}`, icon: '💰', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', shadow: 'rgba(59,130,246,0.1)' },
               ].map((s, i) => (
                 <div key={i} className="stat-card" style={{ boxShadow: `0 4px 20px ${s.shadow}`, border: `1px solid ${s.border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -242,7 +204,7 @@ export default function StudentDashboard() {
                   {/* Status filters */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {[
-                      { key: 'all',       label: `All (${MY_CLASSES.length})` },
+                      { key: 'all',       label: `All (${classes.length})` },
                       { key: 'active',    label: `Active (${activeClasses.length})` },
                       { key: 'requested', label: `Pending (${pendingClasses.length})` },
                       { key: 'approved',  label: 'Approved' },
@@ -292,50 +254,69 @@ export default function StudentDashboard() {
 
                 {/* Class cards */}
                 <div className={`fade-up delay-3 ${view === 'grid' ? 'class-grid' : 'class-list'}`}>
-                  {filtered.length > 0
-                    ? filtered.map(cls => <MyClassCard key={cls.id} cls={cls} view={view} />)
-                    : (
-                      <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF', gridColumn: '1/-1' }}>
-                        <div style={{ fontSize: 48, marginBottom: 12 }}>🎓</div>
-                        <p style={{ fontSize: 16, fontWeight: 600 }}>No classes found</p>
-                        <p style={{ fontSize: 13, marginTop: 6 }}>Try a different filter or search term</p>
-                        <Link href="/classes/search">
-                          <button style={{ marginTop: 20, background: '#10B981', color: 'white', border: 'none', borderRadius: 10, padding: '11px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                            Browse Classes
-                          </button>
-                        </Link>
-                      </div>
-                    )
-                  }
+                  {loading ? (
+                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1' }}>
+                      <div style={{ width:40, height:40, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+                      <p style={{ color:'#9CA3AF', fontSize:14 }}>Loading your classes...</p>
+                    </div>
+                  ) : error ? (
+                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1' }}>
+                      <p style={{ fontSize:16, color:'#EF4444', fontWeight:600, marginBottom:16 }}>{error}</p>
+                      <button onClick={() => setStatus('all')}
+                        style={{ background:'#10B981', color:'white', border:'none', borderRadius:10, padding:'10px 24px', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
+                        Try Again
+                      </button>
+                    </div>
+                  ) : filtered.length > 0 ? (
+                    filtered.map(enrollment => (
+                      <MyClassCard
+                        key={enrollment.id}
+                        cls={{
+                          id:               enrollment.id,
+                          tutorId:          enrollment.class_id,
+                          title:            enrollment.title,
+                          tutor:            enrollment.tutor_name || 'Tutor',
+                          subject:          enrollment.subject,
+                          location:         enrollment.location,
+                          mode:             enrollment.preferred_mode || enrollment.mode,
+                          fee:              Number(enrollment.fee),
+                          rating:           Number(enrollment.average_rating) || 0,
+                          status:           enrollment.status,
+                          sessionsAttended: enrollment.sessions_attended || 0,
+                          totalSessions:    enrollment.max_students || 20,
+                          nextSession:      enrollment.status === 'active'
+                                              ? `${enrollment.selected_day} at ${enrollment.selected_time}`
+                                              : enrollment.status === 'requested'
+                                              ? 'Awaiting tutor approval'
+                                              : enrollment.status === 'approved'
+                                              ? `Starts ${enrollment.selected_day} at ${enrollment.selected_time}`
+                                              : 'Cancelled',
+                          image:            enrollment.image,
+                        }}
+                        view={view}
+                        onCancel={() => handleCancel(enrollment.id)}
+                      />
+                    ))
+                  ) : (
+                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1', color:'#9CA3AF' }}>
+                      <div style={{ fontSize:48, marginBottom:12 }}>🎓</div>
+                      <p style={{ fontSize:16, fontWeight:600 }}>No classes found</p>
+                      <p style={{ fontSize:13, marginTop:6 }}>
+                        {statusFilter !== 'all' ? 'Try a different filter' : 'You have not enrolled in any classes yet'}
+                      </p>
+                      <Link href="/classes/search">
+                        <button style={{ marginTop:20, background:'#10B981', color:'white', border:'none', borderRadius:10, padding:'11px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+                          Browse Classes
+                        </button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* ── RIGHT PANEL ───────────────────────────────────────────── */}
               <div className="fade-up delay-4" style={{ width: 260, flexShrink: 0 }}>
-
-                {/* Upcoming sessions */}
-                <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 20 }}>
-                  <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    Upcoming Sessions
-                  </h3>
-                  {UPCOMING_SESSIONS.map((s, i) => (
-                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 0', borderBottom: i < UPCOMING_SESSIONS.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 11, background: `${s.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{s.subject}</p>
-                        <p style={{ fontSize: 11, color: '#9CA3AF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>By {s.tutor}</p>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <p style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>{s.time.split('·')[0].trim()}</p>
-                        <p style={{ fontSize: 10, color: '#9CA3AF' }}>{s.time.split('·')[1]?.trim()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
+                {/* Upcoming sessions panel could be added here */}
               </div>
             </div>
           </div>

@@ -54,9 +54,9 @@ function Stars({ rating, size = 12 }: { rating: number; size?: number }) {
 }
 
 // ── MyClassCard ───────────────────────────────────────────────────────────────
-interface Props { cls: MyClass; view: 'grid' | 'list'; }
+interface Props { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void; }
 
-export default function MyClassCard({ cls, view }: Props) {
+export default function MyClassCard({ cls, view, onCancel }: Props) {
   const [hov, setHov] = useState(false);
   const cfg         = STATUS_CONFIG[cls.status];
   const subjectColor = SUBJECT_COLORS[cls.subject] || SUBJECT_COLORS.Default;
@@ -120,6 +120,20 @@ export default function MyClassCard({ cls, view }: Props) {
                 onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#10B981'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
               >View →</button>
             </Link>
+            {(cls.status === 'requested' || cls.status === 'active') && onCancel && (
+              <button
+                onClick={e => { e.preventDefault(); onCancel(); }}
+                style={{
+                  background:'none', border:'1px solid #FCA5A5', borderRadius:8,
+                  padding:'6px 14px', fontSize:12, fontWeight:600, color:'#EF4444',
+                  cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='#EF4444'; e.currentTarget.style.color='white'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='#EF4444'; }}
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -213,13 +227,29 @@ export default function MyClassCard({ cls, view }: Props) {
           <span style={{ fontSize: 14, fontWeight: 800, color: '#059669' }}>
             LKR {cls.fee.toLocaleString()}<span style={{ fontSize: 10, fontWeight: 400, color: '#9CA3AF' }}>/mo</span>
           </span>
-          <Link href={`/classes/${cls.tutorId}`}>
-            <button
-              style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#10B981', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all 0.2s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = '#10B981'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#10B981'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
-            >View →</button>
-          </Link>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Link href={`/classes/${cls.tutorId}`}>
+              <button
+                style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#10B981', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = '#10B981'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#10B981'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
+              >View →</button>
+            </Link>
+            {(cls.status === 'requested' || cls.status === 'active') && onCancel && (
+              <button
+                onClick={e => { e.preventDefault(); onCancel(); }}
+                style={{
+                  background:'none', border:'1px solid #FCA5A5', borderRadius:8,
+                  padding:'6px 14px', fontSize:12, fontWeight:600, color:'#EF4444',
+                  cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='#EF4444'; e.currentTarget.style.color='white'; }}
+                onMouseLeave={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='#EF4444'; }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
