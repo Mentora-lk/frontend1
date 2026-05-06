@@ -1,0 +1,52 @@
+import { apiCall } from "@/lib/api";
+
+const getAuthHeaders = (): Record<string, string> => {
+    let token = null;
+    if (typeof window !== 'undefined') {
+        token = localStorage.getItem('token');
+    }
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const discoverCommunities = async (tag?: string) => {
+    const url = tag ? `/api/student/communities/discover?tag=${encodeURIComponent(tag)}` : "/api/student/communities/discover";
+    return apiCall<any>(url, {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
+export const requestCommunityAccess = async (communityId: string | number) => {
+    return apiCall<any>(`/api/student/communities/${communityId}/request`, {
+        method: "POST",
+        headers: getAuthHeaders()
+    });
+};
+
+export const getMyClasses = async () => {
+    return apiCall<any>("/api/student/communities/my-classes", {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
+export const getMyDeadlines = async () => {
+    return apiCall<any>("/api/student/deadlines", {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
+export const getCommunityFeed = async (communityId: string | number) => {
+    return apiCall<any>(`/api/student/communities/${communityId}/feed`, {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
+export const togglePostReaction = async (postId: string | number) => {
+    return apiCall<any>(`/api/student/posts/${postId}/react`, {
+        method: "POST",
+        headers: getAuthHeaders()
+    });
+};
