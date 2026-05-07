@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, ChangeEvent, DragEvent } from "react";
+import { classService } from "@/services/classService";
+import { useRouter } from "next/navigation";
 
 interface FormData {
   name: string;
@@ -28,6 +30,7 @@ const GRADES: string[] = ["A/L", "O/L", "Grade 6-9", "University", "Professional
 const MEDIUMS: string[] = ["English", "Sinhala", "Tamil"];
 
 export default function PostAdPage() {
+  const router = useRouter();
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
@@ -68,16 +71,36 @@ export default function PostAdPage() {
     setBannerUrl(null);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    console.log("Submitting ad:", form);
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setLoading(true);
+    try {
+      await classService.createClass({
+        title: form.name,
+        subject: form.subject,
+        grade: form.grade,
+        medium: form.medium,
+        fees: form.fees,
+        description: form.description,
+        schedule: form.schedule,
+        image: bannerUrl || undefined // Assuming the URL is temporary, usually we'd upload this first and pass the real URL
+      });
+      setSubmitted(true);
+      setTimeout(() => {
+        router.push('/dashboard/tutor/my-classes');
+      }, 1500);
+    } catch (err) {
+      console.error("Failed to post ad", err);
+      alert("Failed to post ad. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = (): void => {
-    setForm(EMPTY_FORM);
-    setBannerUrl(null);
+    router.push('/dashboard/tutor/my-classes');
   };
 
   return (
@@ -550,8 +573,8 @@ export default function PostAdPage() {
                 <button className="btn-cancel" type="button" onClick={handleCancel}>
                   Discard
                 </button>
-                <button className={`btn-submit${submitted ? " done" : ""}`} type="submit">
-                  {submitted ? "✓ Ad Posted!" : "🚀 Post Ad"}
+                <button className={`btn-submit${submitted ? " done" : ""}`} type="submit" disabled={loading}>
+                  {loading ? "Posting..." : submitted ? "✓ Ad Posted!" : "🚀 Post Ad"}
                 </button>
               </div>
 

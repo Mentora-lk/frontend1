@@ -1,25 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
-
-const REQUESTS = [
-  { id:1, name:'Nimesh Perera',   avatar:'N', color:'#8B5CF6', subject:'Mathematics', class:'A/L Combined Mathematics', date:'28 Apr 2026', time:'2 mins ago',  message:'Hi, I am interested in joining your mathematics class. I am an A/L student.', status:'pending' },
-  { id:2, name:'Dilshan Silva',   avatar:'D', color:'#F59E0B', subject:'ICT',         class:'Advanced Level : ICT',      date:'28 Apr 2026', time:'1 hour ago',  message:'I saw your profile and would love to join your ICT class this semester.',       status:'pending' },
-  { id:3, name:'Amali Fernando',  avatar:'A', color:'#10B981', subject:'Physics',     class:'A/L Physics Full Syllabus', date:'27 Apr 2026', time:'1 day ago',   message:'Please consider my application. I am a hardworking student.',                  status:'pending' },
-  { id:4, name:'Ruwan Bandara',   avatar:'R', color:'#3B82F6', subject:'Mathematics', class:'A/L Combined Mathematics', date:'26 Apr 2026', time:'2 days ago',  message:'I need to improve my math skills for the A/L exam next year.',               status:'approved' },
-  { id:5, name:'Shalini Jayawardene', avatar:'S', color:'#EC4899', subject:'ICT',    class:'Advanced Level : ICT',      date:'25 Apr 2026', time:'3 days ago',  message:'Your reviews are great! Looking forward to joining your class.',              status:'rejected' },
-];
+import { tutorService } from '@/services/tutorService';
 
 export default function RequestsPage() {
   const [filter, setFilter] = useState('all');
-  const [requests, setRequests] = useState(REQUESTS);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const data = await tutorService.getRequests();
+        setRequests(data);
+      } catch (err) {
+        console.error("Failed to fetch requests", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRequests();
+  }, []);
 
   const filtered = requests.filter(r => filter === 'all' || r.status === filter);
   const pending  = requests.filter(r => r.status === 'pending').length;
 
-  const approve = (id: number) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-  const reject  = (id: number) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+  const approve = async (id: number) => {
+    try {
+      await tutorService.updateRequestStatus(id, 'approved');
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+    } catch (err) {
+      console.error("Failed to approve request", err);
+    }
+  };
+
+  const reject  = async (id: number) => {
+    try {
+      await tutorService.updateRequestStatus(id, 'rejected');
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+    } catch (err) {
+      console.error("Failed to reject request", err);
+    }
+  };
 
   const statusStyle: Record<string, { color: string; bg: string }> = {
     pending:  { color:'#D97706', bg:'#FFFBEB' },
