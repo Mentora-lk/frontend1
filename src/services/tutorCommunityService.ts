@@ -76,17 +76,30 @@ export const createPost = async (communityId: string, data: { type: string; cont
         }
         formData.append('material', file);
         
-        const response = await fetch(`/api/tutor/communities/${communityId}/posts`, {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: formData
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
+        try {
+            const response = await fetch(`/api/tutor/communities/${communityId}/posts`, {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                body: formData
+            });
+            
+            if (!response.ok) {
+                let errorMessage = 'Failed to create post';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                } catch {
+                    // If response is not JSON, use status text
+                    errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                }
+                return { status: 'error', message: errorMessage };
+            }
+            
+            return await response.json();
+        } catch (error: any) {
+            console.error('Error creating post:', error);
             return { status: 'error', message: error.message || 'Failed to create post' };
         }
-        return await response.json();
     }
     
     // For text-only posts
