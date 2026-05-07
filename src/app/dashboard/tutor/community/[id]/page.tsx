@@ -144,6 +144,13 @@ export default function TutorCommunityDetailPage() {
         pollOptionsData = validOptions;
       }
 
+      console.log('📤 Submitting post...');
+      console.log('  Type:', postType);
+      console.log('  Content:', newMessage.trim() || (showPollModal ? pollQuestionText.trim() : ''));
+      console.log('  Has file?:', !!attachedFile);
+      console.log('  File info:', attachedFile ? { name: attachedFile.name, size: attachedFile.size, type: attachedFile.type } : 'NO FILE');
+      console.log('  Poll options:', pollOptionsData);
+
       const res = await createPost(
         communityId, 
         {
@@ -154,8 +161,11 @@ export default function TutorCommunityDetailPage() {
         attachedFile || undefined
       );
 
+      console.log('📥 Response:', res);
+
       if (res.status === 'success') {
         const p = res.data;
+        console.log('✅ Post created:', p);
         const newPost = {
           id: p.id, 
           author: 'Tutor (You)', 
@@ -169,7 +179,8 @@ export default function TutorCommunityDetailPage() {
           isTutor: true, 
           type: postType,
           mediaName: attachedFile ? attachedFile.name : '',
-          size: 'Unknown'
+          size: 'Unknown',
+          pollOptions: pollOptionsData
         };
         setDiscussions([newPost, ...discussions]);
         setNewMessage('');
@@ -179,10 +190,11 @@ export default function TutorCommunityDetailPage() {
         setShowPollModal(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
+        console.error('❌ Post failed:', res.message);
         setError(res.message || 'Failed to post');
       }
     } catch (error: any) {
-      console.error('Error submitting post:', error);
+      console.error('❌ Error submitting post:', error);
       setError('Failed to post');
     }
   };

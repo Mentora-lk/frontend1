@@ -76,12 +76,22 @@ export const createPost = async (communityId: string, data: { type: string; cont
         }
         formData.append('material', file);
         
+        console.log('📨 Sending FormData with file:');
+        console.log('  Type:', data.type);
+        console.log('  Content:', data.content);
+        console.log('  Poll options:', data.pollOptions);
+        console.log('  File name:', file.name);
+        console.log('  File size:', file.size);
+        console.log('  File type:', file.type);
+        
         try {
             const response = await fetch(`/api/tutor/communities/${communityId}/posts`, {
                 method: 'POST',
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
                 body: formData
             });
+            
+            console.log('📩 Response status:', response.status);
             
             if (!response.ok) {
                 let errorMessage = 'Failed to create post';
@@ -92,12 +102,15 @@ export const createPost = async (communityId: string, data: { type: string; cont
                     // If response is not JSON, use status text
                     errorMessage = `Server error: ${response.status} ${response.statusText}`;
                 }
+                console.error('❌ Error response:', errorMessage);
                 return { status: 'error', message: errorMessage };
             }
             
-            return await response.json();
+            const result = await response.json();
+            console.log('✅ Success response:', result);
+            return result;
         } catch (error: any) {
-            console.error('Error creating post:', error);
+            console.error('❌ Network error:', error);
             return { status: 'error', message: error.message || 'Failed to create post' };
         }
     }
