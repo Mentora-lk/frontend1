@@ -76,46 +76,48 @@ export const createPost = async (communityId: string, data: { type: string; cont
         }
         formData.append('material', file);
         
-        console.log('📨 Sending FormData with file:');
-        console.log('  Type:', data.type);
+        console.log('\n════════════════════════════════════════');
+        console.log('📨 SENDING FormData to API');
+        console.log('════════════════════════════════════════');
+        console.log('  Community ID:', communityId);
+        console.log('  Type:', data.type, '(type: ' + typeof data.type + ')');
         console.log('  Content:', data.content);
         console.log('  Poll options:', data.pollOptions);
         console.log('  File name:', file.name);
         console.log('  File size:', file.size);
         console.log('  File type:', file.type);
         
-        try {
-            const response = await fetch(`/api/tutor/communities/${communityId}/posts`, {
+        // Log FormData contents
+        console.log('  FormData entries:');
+        for (let [key, value] of formData.entries()) {
+            if (value instanceof File) {
+                console.log(`    ${key}: [File: ${value.name}]`);
+            } else {
+                console.log(`    ${key}: ${value}`);
+            }
+        }
+                try {
+            // Use unified apiCall which handles FormData correctly and adds auth headers
+            const result = await apiCall<any>(`/api/tutor/communities/${communityId}/posts`, {
                 method: 'POST',
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                headers: getAuthHeaders(),
                 body: formData
             });
-            
-            console.log('📩 Response status:', response.status);
-            
-            if (!response.ok) {
-                let errorMessage = 'Failed to create post';
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorMessage;
-                } catch {
-                    // If response is not JSON, use status text
-                    errorMessage = `Server error: ${response.status} ${response.statusText}`;
-                }
-                console.error('❌ Error response:', errorMessage);
-                return { status: 'error', message: errorMessage };
-            }
-            
-            const result = await response.json();
             console.log('✅ Success response:', result);
             return result;
-        } catch (error: any) {
+          } catch (error: any) {
             console.error('❌ Network error:', error);
             return { status: 'error', message: error.message || 'Failed to create post' };
-        }
+          }
     }
     
-    // For text-only posts
+    // For text-only posts (without file)
+    console.log('\n════════════════════════════════════════');
+    console.log('📨 SENDING JSON post (no file)');
+    console.log('════════════════════════════════════════');
+    console.log('  Type:', data.type);
+    console.log('  Content:', data.content);
+    
     return apiCall<any>(`/api/tutor/communities/${communityId}/posts`, { 
         method: "POST",
         body: JSON.stringify(data),
