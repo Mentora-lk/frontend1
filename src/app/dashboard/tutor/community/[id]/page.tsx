@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
@@ -36,6 +36,12 @@ export default function TutorCommunityDetailPage() {
 
   const [activeTab, setActiveTab] = useState<'discussions' | 'files' | 'members'>('discussions');
   const [newMessage, setNewMessage] = useState('');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pollQuestionText, setPollQuestionText] = useState('');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -78,12 +84,13 @@ export default function TutorCommunityDetailPage() {
           isTutor: p.author_role === 'tutor',
           type: p.type || 'text',
           mediaName: p.media_url ? p.media_url.split('/').pop() : '',
-          size: 'Unknown'
+          size: 'Unknown',
+          pollOptions: p.poll_options ? (typeof p.poll_options === 'string' ? JSON.parse(p.poll_options) : p.poll_options) : null
         }));
         setDiscussions(fetchedPosts);
         
         // Populate files tab from posts that are not text
-        setFiles(fetchedPosts.filter((p: any) => p.type !== 'text').map((p: any) => ({
+        setFiles(fetchedPosts.filter((p: any) => p.type !== 'text' && p.type !== 'poll').map((p: any) => ({
           id: p.id,
           name: p.mediaName || 'File',
           type: p.type,
@@ -121,25 +128,90 @@ export default function TutorCommunityDetailPage() {
   };
 
   const submitPost = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !attachedFile) return;
     try {
-      const res = await createPost(communityId, {
-        type: 'announcement',
-        content: newMessage.trim()
-      });
+      setError('');
+      let postType = 'announcement';
+      let pollOptionsData = undefined;
+
+      if (showPollModal && pollQuestionText.trim()) {
+        postType = 'poll';
+        const validOptions = pollOptions.filter(opt => opt.trim());
+        if (validOptions.length < 2) {
+          setError('Poll must have at least 2 options');
+          return;
+        }
+        pollOptionsData = validOptions;
+      }
+
+      const res = await createPost(
+        communityId, 
+        {
+          type: postType,
+          content: newMessage.trim() || (showPollModal ? pollQuestionText.trim() : ''),
+          pollOptions: pollOptionsData
+        },
+        attachedFile || undefined
+      );
+
       if (res.status === 'success') {
         const p = res.data;
         const newPost = {
-          id: p.id, author: 'Tutor (You)', avatar: 'T', color: '#10B981',
-          time: 'Just now', content: p.content, likes: 0, replies: 0, pinned: false, isTutor: true, type: 'text'
+          id: p.id, 
+          author: 'Tutor (You)', 
+          avatar: 'T', 
+          color: '#10B981',
+          time: 'Just now', 
+          content: p.content, 
+          likes: 0, 
+          replies: 0, 
+          pinned: false, 
+          isTutor: true, 
+          type: postType,
+          mediaName: attachedFile ? attachedFile.name : '',
+          size: 'Unknown'
         };
         setDiscussions([newPost, ...discussions]);
         setNewMessage('');
+        setAttachedFile(null);
+        setPollQuestionText('');
+        setPollOptions(['', '']);
+        setShowPollModal(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        setError(res.message || 'Failed to post');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting post:', error);
-      alert('Failed to post');
+      setError('Failed to post');
     }
+  };
+
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+    }
+  };
+
+  const handleAddPollOption = () => {
+    setPollOptions([...pollOptions, '']);
+  };
+
+  const handleRemovePollOption = (index: number) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handlePollOptionChange = (index: number, value: string) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
   };
 
   const toggleLike = (id: number) => {
@@ -258,19 +330,86 @@ export default function TutorCommunityDetailPage() {
                   <textarea
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
-                    placeholder="Make an announcement or start a discussion..."
+                    placeholder={showPollModal ? "Add context for your poll..." : "Make an announcement or start a discussion..."}
                     style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 12, padding: '10px 14px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: '#374151', resize: 'none', height: 70, outline: 'none', lineHeight: 1.5 }}
                     onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
                     onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
                   />
                 </div>
+
+                {/* Error message */}
+                {error && (
+                  <div style={{ background: '#FEE2E2', border: '1px solid #FECACA', color: '#DC2626', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 12 }}>
+                    {error}
+                  </div>
+                )}
+
+                {/* Show attached file */}
+                {attachedFile && (
+                  <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 12, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{attachedFile.name}</span>
+                      <span style={{ fontSize: 11, color: '#9CA3AF' }}>({(attachedFile.size / 1024).toFixed(2)} KB)</span>
+                    </div>
+                    <button onClick={() => { setAttachedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontWeight: 600 }}>Remove</button>
+                  </div>
+                )}
+
+                {/* Show poll preview */}
+                {showPollModal && (
+                  <div style={{ background: '#F0F9FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1E40AF', margin: 0 }}>📊 Create a Poll</h4>
+                      <button onClick={() => { setShowPollModal(false); setPollQuestionText(''); setPollOptions(['', '']); }} style={{ background: 'none', border: 'none', color: '#1E40AF', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                    </div>
+                    <input
+                      type="text"
+                      value={pollQuestionText}
+                      onChange={(e) => setPollQuestionText(e.target.value)}
+                      placeholder="What is your poll question?"
+                      style={{ width: '100%', border: '1px solid #BFDBFE', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", marginBottom: 12, outline: 'none' }}
+                      onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
+                      onBlur={e => { e.target.style.borderColor = '#BFDBFE'; }}
+                    />
+                    <div style={{ marginBottom: 12 }}>
+                      {pollOptions.map((option, index) => (
+                        <div key={index} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) => handlePollOptionChange(index, e.target.value)}
+                            placeholder={`Option ${index + 1}`}
+                            style={{ flex: 1, border: '1px solid #BFDBFE', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none' }}
+                            onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
+                            onBlur={e => { e.target.style.borderColor = '#BFDBFE'; }}
+                          />
+                          {pollOptions.length > 2 && (
+                            <button onClick={() => handleRemovePollOption(index)} style={{ background: '#FEE2E2', border: 'none', color: '#EF4444', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Remove</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={handleAddPollOption} style={{ background: 'none', border: '1px solid #BFDBFE', color: '#1E40AF', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600, width: '100%' }}>+ Add Option</button>
+                  </div>
+                )}
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov"
+                />
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <button style={{ background: 'none', border: 'none', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                    <button onClick={handleAttachClick} style={{ background: 'none', border: 'none', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, transition: 'color 0.2s' }} onMouseOver={e => { e.currentTarget.style.color = '#3B82F6'; }} onMouseOut={e => { e.currentTarget.style.color = '#6B7280'; }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                       Attach
                     </button>
-                    <button style={{ background: 'none', border: 'none', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                    <button onClick={() => setShowPollModal(!showPollModal)} style={{ background: showPollModal ? '#DBEAFE' : 'none', border: showPollModal ? '1px solid #BFDBFE' : 'none', color: showPollModal ? '#1E40AF' : '#6B7280', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, padding: showPollModal ? '6px 12px' : '0px', borderRadius: showPollModal ? 8 : 0, transition: 'all 0.2s' }} onMouseOver={e => { if (!showPollModal) e.currentTarget.style.color = '#3B82F6'; }} onMouseOut={e => { if (!showPollModal) e.currentTarget.style.color = '#6B7280'; }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                       Poll
                     </button>
@@ -338,6 +477,24 @@ export default function TutorCommunityDetailPage() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Manage
                       </button>
+                    </div>
+                  )}
+
+                  {post.type === 'poll' && post.pollOptions && (
+                    <div style={{ background: '#F0F9FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E40AF" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Poll</span>
+                      </div>
+                      {post.pollOptions.map((option: string, index: number) => (
+                        <div key={index} style={{ marginBottom: index < post.pollOptions.length - 1 ? 10 : 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ flex: 1, background: '#DBEAFE', borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#1E40AF' }}>{option}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF' }}>0%</span>
+                          </div>
+                        </div>
+                      ))}
+                      <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 12, marginBottom: 0 }}>0 votes</p>
                     </div>
                   )}
 
