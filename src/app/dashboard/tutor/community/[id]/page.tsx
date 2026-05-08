@@ -457,7 +457,7 @@ export default function TutorCommunityDetailPage() {
                   </div>
 
                   <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, marginBottom: 16 }}>{post.content}</p>
-
+                  
                   {/* Media Content (Video/PDF) */}
                   {post.type === 'video' && (
                     <div style={{ background: '#111827', borderRadius: 12, padding: 20, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -474,7 +474,9 @@ export default function TutorCommunityDetailPage() {
                     </div>
                   )}
 
-                  {post.type === 'pdf' && (
+                  {(console.log('Rendering image post with media URL:', post.type, post.media_url))}
+
+                  {post.type === 'announcement' && (
                     <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
