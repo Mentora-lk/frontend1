@@ -60,7 +60,7 @@ export default function SignupPage() {
           }}
         >
           {/* Student Registration Card */}
-          <Link href="/auth/signup/student-details">
+          <Link href="/auth/signup/student-details" style={{ textDecoration: 'none' }}>
             <div
               style={{
                 background: " rgb(224, 255, 224)",
@@ -152,7 +152,7 @@ export default function SignupPage() {
           </Link>
 
           {/* Tutor Registration Card */}
-          <Link href="/auth/signup/tutor-details">
+          <Link href="/auth/signup/tutor-details" style={{ textDecoration: 'none' }}>
             <div
               style={{
                 background: "rgb(224, 255, 224)",
