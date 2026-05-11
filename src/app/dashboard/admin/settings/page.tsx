@@ -42,20 +42,20 @@ export default function AdminSettingsPage() {
   return (
     <div style={{ display: 'grid', gap: 22 }}>
       <div>
-        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Playfair Display', serif" }}>Settings</h2>
+        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Settings</h2>
         <p style={{ margin: '6px 0 0', color: '#6b7280' }}>System preferences.</p>
       </div>
 
       <div style={{ display: 'grid', gap: 16 }}>
         {statusText && (
-          <div style={{ background: '#ecfdf5', border: '1px solid #bbf7d0', color: '#166534', borderRadius: 12, padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>
+          <div style={{ background: '#ecfeff', border: '1px solid #99f6e4', color: '#0f766e', borderRadius: 12, padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>
             {statusText}
           </div>
         )}
 
         {/* Notifications Section */}
-        <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-          <h3 style={{ margin: '0 0 14px', color: '#111827', fontWeight: 700 }}>Notifications & Alerts</h3>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ margin: '0 0 14px', color: '#111827', fontWeight: 700, fontFamily: "'Fraunces', serif" }}>Notifications & Alerts</h3>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: '1px solid #ecf4ef' }}>
             <div>
@@ -93,8 +93,8 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* System Settings Section */}
-        <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-          <h3 style={{ margin: '0 0 14px', color: '#111827', fontWeight: 700 }}>System Settings</h3>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ margin: '0 0 14px', color: '#111827', fontWeight: 700, fontFamily: "'Fraunces', serif" }}>System Settings</h3>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 14, borderBottom: '1px solid #ecf4ef' }}>
             <div>
@@ -132,8 +132,8 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Automation Section */}
-        <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-          <h3 style={{ margin: '0 0 14px', color: '#111827', fontWeight: 700 }}>Automation</h3>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+          <h3 style={{ margin: '0 0 14px', color: '#111827', fontWeight: 700, fontFamily: "'Fraunces', serif" }}>Automation</h3>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -155,8 +155,8 @@ export default function AdminSettingsPage() {
 
         {/* Quick Actions */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-          <button onClick={exportSettings} style={{ border: '1px solid #dfeee8', background: '#fff', color: '#111827', borderRadius: 12, padding: '12px 16px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8faf9'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>↓ Export Settings</button>
-          <button onClick={clearCache} style={{ border: '1px solid #dfeee8', background: '#fff', color: '#111827', borderRadius: 12, padding: '12px 16px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8faf9'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>↺ Clear Cache</button>
+          <button onClick={exportSettings} style={{ border: '1px solid #99f6e4', background: '#fff', color: '#111827', borderRadius: 12, padding: '12px 16px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#ecfeff'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>↓ Export Settings</button>
+          <button onClick={clearCache} style={{ border: '1px solid #99f6e4', background: '#fff', color: '#111827', borderRadius: 12, padding: '12px 16px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#ecfeff'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>↺ Clear Cache</button>
           <button onClick={resetSettings} style={{ border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', borderRadius: 12, padding: '12px 16px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}>🗑 Reset to Default</button>
         </div>
       </div>
