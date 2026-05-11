@@ -52,15 +52,15 @@ export default function AdminSignupPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Outfit:wght@300;400;500;600;700&display=swap');
         .signup-shell {
           min-height: 100vh;
-          background: #F8FAF9;
+          background: #F3F4F6;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px 16px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Outfit', sans-serif;
         }
         .signup-wrap { width: 100%; max-width: 620px; }
         .signup-card {
@@ -83,8 +83,8 @@ export default function AdminSignupPage() {
           box-sizing: border-box;
         }
         .auth-input:focus {
-          border-color: #10B981;
-          box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+          border-color: #0f766e;
+          box-shadow: 0 0 0 3px rgba(15,118,110,0.12);
         }
         .auth-input::placeholder { color: #9CA3AF; }
         .primary-btn {
@@ -92,7 +92,7 @@ export default function AdminSignupPage() {
           padding: 14px 20px;
           border-radius: 10px;
           border: none;
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
           color: white;
           font-weight: 600;
           cursor: pointer;
@@ -106,7 +106,7 @@ export default function AdminSignupPage() {
       <div className="signup-shell">
         <div className="signup-wrap">
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <h1 style={{ fontFamily: "'Inter', sans-serif", fontSize: 34, fontWeight: 800, color: '#f8fafc' }}>
+          <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 34, fontWeight: 800, color: '#111827' }}>
             Admin Signup
           </h1>
           <p style={{ color: '#6B7280', marginTop: 8 }}>Create an authorized admin account</p>
@@ -149,7 +149,7 @@ export default function AdminSignupPage() {
               {loading ? 'Creating account...' : 'Create Admin Account'}
             </button>
 
-            <button type="button" onClick={() => router.push('/dashboard/admin/auth')} style={{ background: 'none', border: 'none', color: '#10B981', fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>
+            <button type="button" onClick={() => router.push('/dashboard/admin/auth')} style={{ background: 'none', border: 'none', color: '#0f766e', fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>
               Back to admin login
             </button>
           </form>
