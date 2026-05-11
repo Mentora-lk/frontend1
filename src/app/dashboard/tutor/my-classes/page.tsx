@@ -152,7 +152,9 @@ export default function MyClassesPage() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <span style={{ fontSize:13, fontWeight:700, color:'#10B981' }}>Rs. {cls.fee.toLocaleString()}/mo</span>
                   <div style={{ display:'flex', gap:6 }}>
-                    <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
+                    <Link href={`/dashboard/tutor/edit-ad/${cls.id}`}>
+                      <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
+                    </Link>
                     <button onClick={() => handleDelete(cls.id)} style={{ fontSize:11, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Delete</button>
                   </div>
                 </div>
@@ -171,7 +173,9 @@ export default function MyClassesPage() {
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <p style={{ fontSize:14, fontWeight:700, color:'#10B981', marginBottom:6 }}>Rs. {cls.fee.toLocaleString()}</p>
                 <div style={{ display:'flex', gap:6 }}>
-                  <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
+                  <Link href={`/dashboard/tutor/edit-ad/${cls.id}`}>
+                    <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
+                  </Link>
                   <button onClick={() => handleDelete(cls.id)} style={{ fontSize:11, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Delete</button>
                 </div>
               </div>

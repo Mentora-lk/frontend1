@@ -24,6 +24,7 @@ export const classService = {
       fee: Number(data.fees),
       schedule: data.schedule,
       medium: data.medium,
+      grade: data.grade,
       mode: data.mode || "both",
       location: "Remote", // Default
       image: data.image
@@ -47,4 +48,33 @@ export const classService = {
       },
     });
   },
+
+  async updateClass(id: number | string, data: CreateClassRequest) {
+    const token = localStorage.getItem("token");
+    
+    const payload = {
+      title: data.title,
+      subject: data.subject,
+      description: data.description,
+      fee: Number(data.fees),
+      schedule: data.schedule,
+      medium: data.medium,
+      grade: data.grade,
+      mode: data.mode || "both",
+      location: "Remote",
+      image: data.image
+    };
+
+    return apiCall(`/api/courses/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getCourseById(id: number | string) {
+    return apiCall(`/api/courses/${id}`);
+  }
 };
