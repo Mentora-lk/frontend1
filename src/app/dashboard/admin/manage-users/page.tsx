@@ -23,10 +23,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function StatCard({ title, value, accent, trend }: { title: string; value: string; accent: string; trend: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div style={{ width: 44, height: 32, borderRadius: 10, background: accent, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
-        <span style={{ color: '#10B981', fontSize: 12, fontWeight: 700 }}>{trend}</span>
+        <span style={{ color: '#0f766e', fontSize: 12, fontWeight: 700 }}>{trend}</span>
       </div>
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
       <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
@@ -82,12 +82,12 @@ export default function TutorsPage() {
   return (
     <div style={{ display: 'grid', gap: 20 }}>
       <div>
-        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Playfair Display', serif" }}>Tutor Verification</h2>
+        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Tutor Verification</h2>
         <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Tutor review queue.</p>
       </div>
 
       {statusText && (
-        <div style={{ background: '#ecfdf5', border: '1px solid #bbf7d0', color: '#166534', borderRadius: 12, padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>
+        <div style={{ background: '#ecfeff', border: '1px solid #99f6e4', color: '#0f766e', borderRadius: 12, padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>
           {statusText}
         </div>
       )}
@@ -98,7 +98,7 @@ export default function TutorsPage() {
         <StatCard title="Total Tutors" value="1,402" trend="+1% growth" accent="#27c3ff" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, padding: 16, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.8fr 0.8fr auto', gap: 10 }}>
           <input
             type="text"
@@ -120,19 +120,19 @@ export default function TutorsPage() {
             <option value="IT">Subject: IT</option>
           </select>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { setPage(1); }} style={{ borderRadius: 12, border: '1px solid #bbf7d0', background: '#ecfdf5', color: '#047857', padding: '0 14px', cursor: 'pointer' }}>Apply</button>
+            <button onClick={() => { setPage(1); }} style={{ borderRadius: 12, border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', padding: '0 14px', cursor: 'pointer' }}>Apply</button>
             <button onClick={exportQueue} style={{ borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#374151', padding: '0 14px', cursor: 'pointer' }}>Export</button>
           </div>
         </div>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #dfeee8', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
-              <tr style={{ background: '#f0fdf4', textAlign: 'left' }}>
+                <tr style={{ background: '#f0fdfa', textAlign: 'left' }}>
                 {['Tutor Profile', 'Subjects', 'Location', 'Status', 'Actions'].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#166534' }}>{h}</th>
+                    <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -141,7 +141,7 @@ export default function TutorsPage() {
                 <tr key={tutor.id} style={{ borderTop: '1px solid #ecf4ef' }}>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 999, background: '#ecfdf5', color: '#166534', display: 'grid', placeItems: 'center', fontWeight: 700 }}>{tutor.name.charAt(0)}</div>
+                      <div style={{ width: 40, height: 40, borderRadius: 999, background: '#ecfeff', color: '#0f766e', display: 'grid', placeItems: 'center', fontWeight: 700 }}>{tutor.name.charAt(0)}</div>
                       <div>
                         <div style={{ color: '#111827', fontWeight: 700 }}>{tutor.name}</div>
                         <div style={{ color: '#6b7280', fontSize: 12 }}>{tutor.email}</div>
@@ -149,12 +149,12 @@ export default function TutorsPage() {
                     </div>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
-                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfdf5', color: '#047857', border: '1px solid #bbf7d0' }}>{tutor.subject}</span>
+                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfeff', color: '#0f766e', border: '1px solid #99f6e4' }}>{tutor.subject}</span>
                   </td>
                   <td style={{ padding: '14px 16px', color: '#374151' }}>📍 {tutor.location}</td>
                   <td style={{ padding: '14px 16px' }}><StatusBadge status={tutor.status} /></td>
                   <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                    <button onClick={() => setSelectedTutor(tutor)} style={{ border: 'none', background: 'none', color: '#10B981', fontWeight: 700, cursor: 'pointer' }}>View Details</button>
+                    <button onClick={() => setSelectedTutor(tutor)} style={{ border: 'none', background: 'none', color: '#0f766e', fontWeight: 700, cursor: 'pointer' }}>View Details</button>
                   </td>
                 </tr>
               ))}
@@ -165,11 +165,11 @@ export default function TutorsPage() {
         <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13 }}>
           <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredTutors.length)} of {filteredTutors.length} applications</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #bbf7d0', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#166534', cursor: 'pointer' }}>Previous</button>
+            <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Previous</button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-              <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #10B981' : '1px solid #bbf7d0', background: n === page ? '#10B981' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#166534', cursor: 'pointer' }}>{n}</button>
+              <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
             ))}
-            <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #bbf7d0', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#166534', cursor: 'pointer' }}>Next</button>
+            <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Next</button>
           </div>
         </div>
       </div>
@@ -177,14 +177,14 @@ export default function TutorsPage() {
       {selectedTutor && (
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 40 }} onClick={() => setSelectedTutor(null)} />
-          <div style={{ position: 'fixed', top: 0, right: 0, width: '100%', maxWidth: 440, height: '100vh', zIndex: 50, background: '#fff', borderLeft: '1px solid #dfeee8', overflowY: 'auto', padding: 20, boxShadow: '-8px 0 30px rgba(0,0,0,0.12)' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, width: '100%', maxWidth: 440, height: '100vh', zIndex: 50, background: '#fff', borderLeft: '1px solid #e5e7eb', overflowY: 'auto', padding: 20, boxShadow: '-8px 0 30px rgba(0,0,0,0.12)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <h3 style={{ margin: 0, color: '#111827' }}>Verification Detail</h3>
+              <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif" }}>Verification Detail</h3>
               <button onClick={() => setSelectedTutor(null)} style={{ border: 'none', background: 'none', color: '#6b7280', cursor: 'pointer' }}>×</button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid #ecf4ef', paddingBottom: 16, marginBottom: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: '#ecfdf5' }} />
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: '#ecfeff' }} />
               <div>
                 <div style={{ color: '#111827', fontSize: 18, fontWeight: 800 }}>{selectedTutor.name}</div>
                 <div style={{ color: '#6b7280', fontSize: 13 }}>Applied: {selectedTutor.date}</div>
@@ -200,12 +200,12 @@ export default function TutorsPage() {
 
             <div style={{ marginBottom: 14 }}>
               <p style={{ margin: '0 0 8px', color: '#374151', fontWeight: 700, fontSize: 13 }}>Academic Credentials</p>
-              <div style={{ border: '1px solid #dfeee8', borderRadius: 12, padding: 14, background: '#f8faf9', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#f8faf9', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>{selectedTutor.credentials || 'No document'}</div>
                   <div style={{ fontSize: 12, color: '#6b7280' }}>University of Colombo • 2.4 MB</div>
                 </div>
-                <span style={{ color: '#10B981' }}>👁</span>
+                <span style={{ color: '#0f766e' }}>👁</span>
               </div>
             </div>
 
@@ -215,8 +215,8 @@ export default function TutorsPage() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <button onClick={() => updateTutorStatus('Missing Docs')} style={{ border: '1px solid #fecaca', background: '#fff1f2', color: '#be123c', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer' }}>Reject</button>
-              <button onClick={() => updateTutorStatus('Verified')} style={{ border: '1px solid #10B981', background: '#10B981', color: '#fff', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer' }}>Approve</button>
+              <button onClick={() => updateTutorStatus('Missing Docs')} style={{ border: '1px solid #fca5a5', background: '#fff1f2', color: '#be123c', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer' }}>Reject</button>
+              <button onClick={() => updateTutorStatus('Verified')} style={{ border: '1px solid #0f766e', background: '#0f766e', color: '#fff', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer' }}>Approve</button>
             </div>
           </div>
         </>
