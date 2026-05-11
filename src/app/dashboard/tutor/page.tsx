@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
+import { authService } from '@/services/authService';
 
 type TutorClass = {
   id: number;
@@ -49,7 +50,27 @@ export default function TutorDashboard() {
   const [view, setView]       = useState<'grid' | 'list'>('grid');
   const [statusFilter, setStatus] = useState('all');
   const [searchQuery, setSearch]  = useState('');
-  const classes = FALLBACK_CLASSES;
+  
+  const [classes, setClasses] = useState<TutorClass[]>(FALLBACK_CLASSES);
+  const [recentRequests, setRecentRequests] = useState(RECENT_REQUESTS);
+  const [upcomingSessions, setUpcomingSessions] = useState(UPCOMING_SESSIONS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const data = await authService.getTutorDashboard();
+        if (data.classes && data.classes.length > 0) setClasses(data.classes);
+        if (data.recentRequests && data.recentRequests.length > 0) setRecentRequests(data.recentRequests);
+        if (data.upcomingSessions && data.upcomingSessions.length > 0) setUpcomingSessions(data.upcomingSessions);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
 
   const activeClasses  = classes.filter(c => c.status === 'active');
   const pendingClasses = classes.filter(c => c.status === 'pending');
@@ -215,8 +236,8 @@ export default function TutorDashboard() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               Upcoming Sessions
             </h3>
-            {UPCOMING_SESSIONS.map((s, i) => (
-              <div key={s.id} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom: i < UPCOMING_SESSIONS.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+            {upcomingSessions.map((s: any, i: number) => (
+              <div key={s.id} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom: i < upcomingSessions.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 <div style={{ width:40, height:40, borderRadius:11, background:`${s.color}15`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
@@ -238,8 +259,8 @@ export default function TutorDashboard() {
               <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:'#111827' }}>New Requests</h3>
               <Link href="/dashboard/tutor/requests"><span style={{ fontSize:12, color:'#10B981', fontWeight:600, cursor:'pointer' }}>View all</span></Link>
             </div>
-            {RECENT_REQUESTS.map((r, i) => (
-              <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom: i < RECENT_REQUESTS.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
+            {recentRequests.map((r: any, i: number) => (
+              <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom: i < recentRequests.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 <div style={{ width:36, height:36, borderRadius:'50%', background:`${r.color}20`, color:r.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:14, flexShrink:0 }}>{r.avatar}</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:13, fontWeight:600, color:'#111827', marginBottom:1 }}>{r.name}</p>

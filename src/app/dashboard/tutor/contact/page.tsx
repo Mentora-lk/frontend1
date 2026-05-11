@@ -1,9 +1,9 @@
-import ContactClient from "./ContactClient";
+// import ContactClient from "./ContactClient";
 
-export const metadata = {
-  title: "Contact | Mentora.lk",
-};
+// export const metadata = {
+//   title: "Contact | Mentora.lk",
+// };
 
-export default function Page() {
-  return <ContactClient />;
-}
+// export default function Page() {
+//   return <ContactClient />;
+// }

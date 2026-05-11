@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
+import { authService } from '@/services/authService';
+import { classService } from '@/services/classService';
 
 type TutorClass = {
   id: number; title: string; subject: string; location: string;
@@ -10,14 +12,6 @@ type TutorClass = {
   status: 'active' | 'pending' | 'completed';
   studentsEnrolled: number; totalSlots: number; nextSession: string; image: string;
 };
-
-const MY_CLASSES: TutorClass[] = [
-  { id:1, title:'A/L Combined Mathematics',  subject:'Mathematics', location:'Moratuwa', mode:'online',  fee:2500, rating:4.8, status:'active',    studentsEnrolled:18, totalSlots:25, nextSession:'Mon, 6:00 PM', image:'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80' },
-  { id:2, title:'Advanced Level : ICT',       subject:'ICT',         location:'Colombo',  mode:'online',  fee:3000, rating:4.6, status:'active',    studentsEnrolled:12, totalSlots:20, nextSession:'Wed, 5:00 PM', image:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80' },
-  { id:3, title:'A/L Physics Full Syllabus',  subject:'Physics',     location:'Moratuwa', mode:'offline', fee:2000, rating:4.9, status:'active',    studentsEnrolled:8,  totalSlots:15, nextSession:'Fri, 4:00 PM', image:'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80' },
-  { id:4, title:'Music : Guitar For Beginners',subject:'Music',      location:'Matale',   mode:'both',    fee:1500, rating:4.7, status:'pending',   studentsEnrolled:0,  totalSlots:10, nextSession:'Awaiting approval', image:'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80' },
-  { id:5, title:'A/L Chemistry',              subject:'Chemistry',   location:'Colombo',  mode:'both',    fee:3500, rating:4.5, status:'completed', studentsEnrolled:22, totalSlots:22, nextSession:'Completed', image:'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80' },
-];
 
 const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }> = {
   active:    { color:'#059669', bg:'#ECFDF5', label:'ACTIVE' },
@@ -29,12 +23,42 @@ export default function MyClassesPage() {
   const [statusFilter, setStatus] = useState('all');
   const [searchQuery,  setSearch] = useState('');
   const [view, setView] = useState<'grid'|'list'>('grid');
+  
+  const [classes, setClasses] = useState<TutorClass[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const active    = MY_CLASSES.filter(c => c.status === 'active');
-  const pending   = MY_CLASSES.filter(c => c.status === 'pending');
-  const completed = MY_CLASSES.filter(c => c.status === 'completed');
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const data = await authService.getTutorDashboard();
+        if (data.classes) {
+          setClasses(data.classes);
+        }
+      } catch (err) {
+        console.error("Failed to fetch classes", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClasses();
+  }, []);
 
-  const filtered = MY_CLASSES.filter(c => {
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this class?")) return;
+    try {
+      await classService.deleteClass(id);
+      setClasses(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      console.error("Failed to delete class", err);
+      alert("Failed to delete class. Please try again.");
+    }
+  };
+
+  const active    = classes.filter(c => c.status === 'active');
+  const pending   = classes.filter(c => c.status === 'pending');
+  const completed = classes.filter(c => c.status === 'completed');
+
+  const filtered = classes.filter(c => {
     const matchStatus = statusFilter === 'all' || c.status === statusFilter;
     const matchSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         c.subject.toLowerCase().includes(searchQuery.toLowerCase());
@@ -53,7 +77,7 @@ export default function MyClassesPage() {
       {/* Stats */}
       <div style={{ display:'flex', gap:16, marginBottom:24, flexWrap:'wrap' }}>
         {[
-          { label:'Total Classes',    v:MY_CLASSES.length, color:'#8B5CF6', bg:'#F5F3FF', border:'#DDD6FE' },
+          { label:'Total Classes',    v:classes.length, color:'#8B5CF6', bg:'#F5F3FF', border:'#DDD6FE' },
           { label:'Active Classes',   v:active.length,     color:'#10B981', bg:'#ECFDF5', border:'#A7F3D0' },
           { label:'Pending Approval', v:pending.length,    color:'#F59E0B', bg:'#FFFBEB', border:'#FDE68A' },
           { label:'Completed',        v:completed.length,  color:'#6B7280', bg:'#F3F4F6', border:'#E5E7EB' },
@@ -69,7 +93,7 @@ export default function MyClassesPage() {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:22 }}>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {[
-            { key:'all',       label:`All (${MY_CLASSES.length})` },
+            { key:'all',       label:`All (${classes.length})` },
             { key:'active',    label:`Active (${active.length})` },
             { key:'pending',   label:`Pending (${pending.length})` },
             { key:'completed', label:'Completed' },
@@ -128,8 +152,10 @@ export default function MyClassesPage() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <span style={{ fontSize:13, fontWeight:700, color:'#10B981' }}>Rs. {cls.fee.toLocaleString()}/mo</span>
                   <div style={{ display:'flex', gap:6 }}>
-                    <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
-                    <button style={{ fontSize:11, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Delete</button>
+                    <Link href={`/dashboard/tutor/edit-ad/${cls.id}`}>
+                      <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
+                    </Link>
+                    <button onClick={() => handleDelete(cls.id)} style={{ fontSize:11, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Delete</button>
                   </div>
                 </div>
               </div>
@@ -147,8 +173,10 @@ export default function MyClassesPage() {
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <p style={{ fontSize:14, fontWeight:700, color:'#10B981', marginBottom:6 }}>Rs. {cls.fee.toLocaleString()}</p>
                 <div style={{ display:'flex', gap:6 }}>
-                  <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
-                  <button style={{ fontSize:11, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Delete</button>
+                  <Link href={`/dashboard/tutor/edit-ad/${cls.id}`}>
+                    <button style={{ fontSize:11, fontWeight:600, color:'#6366F1', background:'#EEF2FF', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Edit</button>
+                  </Link>
+                  <button onClick={() => handleDelete(cls.id)} style={{ fontSize:11, fontWeight:600, color:'#DC2626', background:'#FEF2F2', border:'none', borderRadius:7, padding:'4px 10px', cursor:'pointer' }}>Delete</button>
                 </div>
               </div>
             </div>
