@@ -62,7 +62,62 @@ export const updateRequestStatus = async (membershipId: string | number, status:
 };
 
 // 3. Content Publishing
-export const createPost = async (communityId: string, data: { type: string; content: string; media_url?: string; is_pinned?: boolean }) => {
+export const createPost = async (communityId: string, data: { type: string; content: string; media_url?: string; is_pinned?: boolean; pollOptions?: string[] }, file?: File) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    
+    if (file) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append('type', data.type);
+        formData.append('content', data.content);
+        formData.append('is_pinned', String(data.is_pinned || false));
+        if (data.pollOptions && data.pollOptions.length > 0) {
+            formData.append('poll_options', JSON.stringify(data.pollOptions));
+        }
+        formData.append('material', file);
+        
+        console.log('\n════════════════════════════════════════');
+        console.log('📨 SENDING FormData to API');
+        console.log('════════════════════════════════════════');
+        console.log('  Community ID:', communityId);
+        console.log('  Type:', data.type, '(type: ' + typeof data.type + ')');
+        console.log('  Content:', data.content);
+        console.log('  Poll options:', data.pollOptions);
+        console.log('  File name:', file.name);
+        console.log('  File size:', file.size);
+        console.log('  File type:', file.type);
+        
+        // Log FormData contents
+        console.log('  FormData entries:');
+        for (let [key, value] of formData.entries()) {
+            if (value instanceof File) {
+                console.log(`    ${key}: [File: ${value.name}]`);
+            } else {
+                console.log(`    ${key}: ${value}`);
+            }
+        }
+                try {
+            // Use unified apiCall which handles FormData correctly and adds auth headers
+            const result = await apiCall<any>(`/api/tutor/communities/${communityId}/posts`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: formData
+            });
+            console.log('✅ Success response:', result);
+            return result;
+          } catch (error: any) {
+            console.error('❌ Network error:', error);
+            return { status: 'error', message: error.message || 'Failed to create post' };
+          }
+    }
+    
+    // For text-only posts (without file)
+    console.log('\n════════════════════════════════════════');
+    console.log('📨 SENDING JSON post (no file)');
+    console.log('════════════════════════════════════════');
+    console.log('  Type:', data.type);
+    console.log('  Content:', data.content);
+    
     return apiCall<any>(`/api/tutor/communities/${communityId}/posts`, { 
         method: "POST",
         body: JSON.stringify(data),
