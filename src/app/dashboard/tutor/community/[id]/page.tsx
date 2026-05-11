@@ -1,35 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
+import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunities, createPost } from '@/services/tutorCommunityService';
 
-// ── Community Detail Data ─────────────────────────────────────────────────────
-const COMMUNITY_DATA: Record<string, {
-  name: string; description: string; category: string; color: string; icon: string; members: number;
-}> = {
-  'al-maths-2025': { name: 'A/L Maths 2025', description: 'Study group for A/L Combined Mathematics students.', category: 'Mathematics', color: '#8B5CF6', icon: '📐', members: 342 },
-  'al-physics-hub': { name: 'A/L Physics Hub', description: 'Everything Physics! MCQs, structured questions, and past papers.', category: 'Physics', color: '#3B82F6', icon: '⚡', members: 518 },
-};
-
-const DISCUSSIONS = [
-  { id: 1, author: 'Tutor Kasun', avatar: 'K', color: '#10B981', time: '30 min ago', content: 'Here is the recording for yesterday\'s live session on Integration.', likes: 8, replies: 4, pinned: true, isTutor: true, type: 'video', mediaName: 'Integration Seminar Recording', duration: '1h 45m' },
-  { id: 2, author: 'Sanduni Silva', avatar: 'S', color: '#EC4899', time: '2 hours ago', content: 'Could someone help me with question 5 from the assignment? I\'m stuck on the integration part. 📝', likes: 23, replies: 7, pinned: false, isTutor: false, type: 'text' },
-  { id: 4, author: 'Tutor Kasun', avatar: 'K', color: '#10B981', time: '1 day ago', content: 'Please review these syllabus guidelines before our next class.', likes: 45, replies: 5, pinned: false, isTutor: true, type: 'pdf', mediaName: '2025 Syllabus Updates.pdf', size: '2.1 MB' },
-];
-
-const FILES = [
-  { id: 1, name: 'Differential Equations Notes.pdf', type: 'pdf', size: '2.4 MB', uploadedBy: 'Tutor Kasun', date: '2 hours ago', downloads: 45 },
-  { id: 2, name: 'Past Paper 2024 Solutions.pdf', type: 'pdf', size: '5.1 MB', uploadedBy: 'Tutor Kasun', date: '3 days ago', downloads: 128 },
-  { id: 3, name: 'Integration Formulas Cheat Sheet.png', type: 'image', size: '890 KB', uploadedBy: 'Tutor Kasun', date: '1 week ago', downloads: 234 },
-];
-
-const MEMBERS = [
-  { name: 'Tutor Kasun', role: 'Admin', avatar: 'K', color: '#10B981', school: 'Mentora.lk', joined: '3 months ago' },
-  { name: 'Sanduni Silva', role: 'Student', avatar: 'S', color: '#EC4899', school: 'Visakha Vidyalaya', joined: '2 months ago' },
-  { name: 'Kavindu Jayawardena', role: 'Student', avatar: 'K', color: '#8B5CF6', school: 'Ananda College', joined: '1 month ago' },
-];
+// Fallback colors/icons for communities without them in DB
+const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
+const ICONS = ['📐', '⚡', '💻', '🧪', '📚'];
 
 // ── File type icon helper ─────────────────────────────────────────────────────
 function FileIcon({ type }: { type: string }) {
@@ -47,19 +26,120 @@ function FileIcon({ type }: { type: string }) {
 export default function TutorCommunityDetailPage() {
   const params = useParams();
   const communityId = params.id as string;
-  const community = COMMUNITY_DATA[communityId] || COMMUNITY_DATA['al-maths-2025'];
+  
+  const [loading, setLoading] = useState(true);
+  const [community, setCommunity] = useState<any>(null);
+  const [allCommunities, setAllCommunities] = useState<any[]>([]);
+  const [discussions, setDiscussions] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [files, setFiles] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState<'discussions' | 'files' | 'members'>('discussions');
-  const [discussions, setDiscussions] = useState(DISCUSSIONS);
   const [newMessage, setNewMessage] = useState('');
 
-  const submitPost = () => {
+  useEffect(() => {
+    fetchData();
+  }, [communityId]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [commRes, postsRes, membersRes, allCommRes] = await Promise.all([
+        getCommunityById(communityId),
+        getCommunityPosts(communityId),
+        getCommunityMembers(communityId),
+        getCommunities()
+      ]);
+
+      if (commRes.status === 'success') {
+        const c = commRes.data;
+        // Determine fallback color/icon by id string length or hash
+        const hash = c.id ? String(c.id).length : 0;
+        setCommunity({
+          ...c,
+          color: c.color || COLORS[hash % COLORS.length],
+          icon: c.icon || ICONS[hash % ICONS.length],
+          members: c.members_count || 0,
+          category: c.tags?.[0] || 'General'
+        });
+      }
+
+      if (postsRes.status === 'success') {
+        const fetchedPosts = postsRes.data.map((p: any) => ({
+          id: p.id,
+          author: p.author_name,
+          avatar: p.author_name ? p.author_name[0] : 'U',
+          color: '#10B981', // we could randomize or base on ID
+          time: new Date(p.created_at).toLocaleString(),
+          content: p.content,
+          likes: 0,
+          replies: 0,
+          pinned: p.is_pinned,
+          isTutor: p.author_role === 'tutor',
+          type: p.type || 'text',
+          mediaName: p.media_url ? p.media_url.split('/').pop() : '',
+          size: 'Unknown'
+        }));
+        setDiscussions(fetchedPosts);
+        
+        // Populate files tab from posts that are not text
+        setFiles(fetchedPosts.filter((p: any) => p.type !== 'text').map((p: any) => ({
+          id: p.id,
+          name: p.mediaName || 'File',
+          type: p.type,
+          size: p.size,
+          uploadedBy: p.author,
+          date: p.time,
+          downloads: 0
+        })));
+      }
+
+      if (membersRes.status === 'success') {
+        const fetchedMembers = membersRes.data.map((m: any, i: number) => ({
+          name: m.name,
+          role: m.role,
+          avatar: m.name ? m.name[0] : 'U',
+          color: COLORS[i % COLORS.length],
+          school: 'Mentora.lk', // fallback
+          joined: new Date(m.joined_at).toLocaleDateString()
+        }));
+        setMembers(fetchedMembers);
+      }
+      
+      if (allCommRes.status === 'success') {
+        const enrichedCommunities = allCommRes.data.communities.map((c: any, index: number) => ({
+          ...c,
+          color: COLORS[index % COLORS.length],
+          icon: ICONS[index % ICONS.length],
+        }));
+        setAllCommunities(enrichedCommunities);
+      }
+    } catch (err: any) {
+      console.warn('Expected error fetching data:', err.message || err);
+      setError('Community could not be found');
+    } finally { setLoading(false); }
+  };
+
+  const submitPost = async () => {
     if (!newMessage.trim()) return;
-    setDiscussions(prev => [{
-      id: Date.now(), author: 'Tutor Kasun', avatar: 'K', color: '#10B981',
-      time: 'Just now', content: newMessage.trim(), likes: 0, replies: 0, pinned: false, isTutor: true, type: 'text'
-    }, ...prev]);
-    setNewMessage('');
+    try {
+      const res = await createPost(communityId, {
+        type: 'announcement',
+        content: newMessage.trim()
+      });
+      if (res.status === 'success') {
+        const p = res.data;
+        const newPost = {
+          id: p.id, author: 'Tutor (You)', avatar: 'T', color: '#10B981',
+          time: 'Just now', content: p.content, likes: 0, replies: 0, pinned: false, isTutor: true, type: 'text'
+        };
+        setDiscussions([newPost, ...discussions]);
+        setNewMessage('');
+      }
+    } catch (error) {
+      console.error('Error submitting post:', error);
+      alert('Failed to post');
+    }
   };
 
   const toggleLike = (id: number) => {
@@ -68,9 +148,17 @@ export default function TutorCommunityDetailPage() {
 
   const tabs = [
     { key: 'discussions' as const, label: 'Feed & Discussions', count: discussions.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
-    { key: 'files' as const, label: 'Materials', count: FILES.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
-    { key: 'members' as const, label: 'Members', count: MEMBERS.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> },
+    { key: 'files' as const, label: 'Materials', count: files.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+    { key: 'members' as const, label: 'Members', count: members.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> },
   ];
+
+  if (loading) {
+    return <TutorDashboardLayout title="Loading..." subtitle="Fetching community details"><div style={{ padding: 40, textAlign: 'center' }}>Loading...</div></TutorDashboardLayout>;
+  }
+
+  if (!community) {
+    return <TutorDashboardLayout title="Not Found" subtitle="Community could not be found"><div style={{ padding: 40, textAlign: 'center' }}>Community not found.</div></TutorDashboardLayout>;
+  }
 
   return (
     <TutorDashboardLayout title={community.name} subtitle={community.description}>
@@ -166,7 +254,7 @@ export default function TutorCommunityDetailPage() {
               {/* New post */}
               <div style={{ background: 'white', borderRadius: 18, padding: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 20 }}>
                 <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#3B82F6,#2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>K</div>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#3B82F6,#2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>T</div>
                   <textarea
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
@@ -207,7 +295,7 @@ export default function TutorCommunityDetailPage() {
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
                         {post.author}
-                        {post.isTutor && <span style={{ background: '#ECFDF5', color: '#059669', fontSize: 9, padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>TUTOR (YOU)</span>}
+                        {post.isTutor && <span style={{ background: '#ECFDF5', color: '#059669', fontSize: 9, padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>TUTOR</span>}
                       </p>
                       <p style={{ fontSize: 11, color: '#9CA3AF' }}>{post.time}</p>
                     </div>
@@ -228,10 +316,10 @@ export default function TutorCommunityDetailPage() {
                         </div>
                         <div>
                           <p style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{post.mediaName}</p>
-                          <p style={{ color: '#9CA3AF', fontSize: 12 }}>Video • {post.duration}</p>
+                          <p style={{ color: '#9CA3AF', fontSize: 12 }}>Video</p>
                         </div>
                       </div>
-                      <button style={{ background: '#3B82F6', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Play / Edit</button>
+                      <button style={{ background: '#3B82F6', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Play</button>
                     </div>
                   )}
 
@@ -243,7 +331,7 @@ export default function TutorCommunityDetailPage() {
                         </div>
                         <div>
                           <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
-                          <p style={{ color: '#6B7280', fontSize: 12 }}>PDF • {post.size}</p>
+                          <p style={{ color: '#6B7280', fontSize: 12 }}>PDF</p>
                         </div>
                       </div>
                       <button style={{ background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -265,6 +353,9 @@ export default function TutorCommunityDetailPage() {
                   </div>
                 </div>
               ))}
+              {discussions.length === 0 && (
+                <div style={{ padding: 20, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>No discussions yet. Start one above!</div>
+              )}
             </div>
           )}
 
@@ -284,10 +375,10 @@ export default function TutorCommunityDetailPage() {
               </div>
 
               <div style={{ background: 'white', borderRadius: 18, boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                {FILES.map((file, i) => (
+                {files.map((file, i) => (
                   <div key={file.id} className="file-row" style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px',
-                    borderBottom: i < FILES.length - 1 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer',
+                    borderBottom: i < files.length - 1 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer',
                   }}>
                     <FileIcon type={file.type} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -303,6 +394,9 @@ export default function TutorCommunityDetailPage() {
                     </button>
                   </div>
                 ))}
+                {files.length === 0 && (
+                  <div style={{ padding: 20, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>No files uploaded yet.</div>
+                )}
               </div>
             </div>
           )}
@@ -310,7 +404,7 @@ export default function TutorCommunityDetailPage() {
           {/* ── MEMBERS TAB ──────────────────────────────────────────────────────── */}
           {activeTab === 'members' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-              {MEMBERS.map((member, i) => (
+              {members.map((member, i) => (
                 <div key={i} className="member-card" style={{
                   background: 'white', borderRadius: 18, padding: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
                   border: '1px solid rgba(0,0,0,0.04)', textAlign: 'center', position: 'relative'
@@ -349,10 +443,10 @@ export default function TutorCommunityDetailPage() {
           <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 16 }}>
             <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>My Communities</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {Object.entries(COMMUNITY_DATA).map(([id, ac]) => {
-                const isActive = id === communityId;
+              {allCommunities.map((ac) => {
+                const isActive = ac.id.toString() === communityId;
                 return (
-                  <Link href={`/dashboard/tutor/community/${id}`} key={id} style={{ textDecoration: 'none' }}>
+                  <Link href={`/dashboard/tutor/community/${ac.id}`} key={ac.id} style={{ textDecoration: 'none' }}>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? '#EFF6FF' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#1D4ED8' : '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB' }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
                       {ac.icon}
                       {ac.name}
@@ -363,7 +457,7 @@ export default function TutorCommunityDetailPage() {
             </div>
           </div>
 
-          {/* Deadlines Widget */}
+          {/* Deadlines Widget (Static for now as no API for fetching deadlines) */}
           <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -385,35 +479,7 @@ export default function TutorCommunityDetailPage() {
                   <p style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, marginTop: 2 }}>Due Tomorrow, 11:59 PM</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: 4, borderRadius: 4, background: '#F59E0B' }} />
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Submit Past Paper 2023</p>
-                  <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>Friday, 6:00 PM</p>
-                </div>
-              </div>
             </div>
-          </div>
-
-          {/* Pending Requests */}
-          <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>
-            <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
-              Pending Join Requests
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>Dinuka Bandara</p>
-                  <p style={{ fontSize: 12, color: '#6B7280' }}>Requested 2 hrs ago</p>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button style={{ flex: 1, background: '#3B82F6', color: 'white', border: 'none', padding: '6px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Accept</button>
-                  <button style={{ flex: 1, background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '6px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Decline</button>
-                </div>
-              </div>
-            </div>
-            <button style={{ background: 'none', border: 'none', color: '#3B82F6', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left', padding: 0, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>View all requests &rarr;</button>
           </div>
 
         </div>
