@@ -108,14 +108,82 @@ function Stars({ rating, size=14, light=false }: { rating:number; size?:number; 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ClassDetailPage() {
   const params = useParams();
-  const id     = Number(params?.id ?? 2);
-  const course = COURSES_DB[id] ?? COURSES_DB[2];
-  const tutor  = course.tutor;
-
+  const id     = params?.id;
+  
   const [scrollY, setScrollY] = useState(0);
   const [activeTab,  setActiveTab]  = useState<'about'|'schedule'|'reviews'>('about');
   const [imgLoaded,  setImgLoaded]  = useState(false);
   const [showModal,  setShowModal]  = useState(false);
+  const [course,     setCourse]     = useState<any>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(false);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:5000/api/courses/${id}`);
+        if (!res.ok) throw new Error("Course not found");
+        const data = await res.json();
+        
+        let parsedSchedule = {};
+        try {
+          parsedSchedule = typeof data.schedule === 'string' && data.schedule.startsWith('{') 
+            ? JSON.parse(data.schedule) 
+            : { 'General Schedule': [data.schedule || 'Schedule TBD'] };
+        } catch (e) {
+          parsedSchedule = { 'General Schedule': [data.schedule || 'Schedule TBD'] };
+        }
+
+        let parsedWhatYouLearn = ['Complete syllabus coverage', 'Exam strategies', 'Practical sessions', 'Weekly assessments'];
+        try {
+          if (data.what_you_learn && typeof data.what_you_learn === 'string' && data.what_you_learn.startsWith('[')) {
+            parsedWhatYouLearn = JSON.parse(data.what_you_learn);
+          } else if (Array.isArray(data.what_you_learn)) {
+            parsedWhatYouLearn = data.what_you_learn;
+          }
+        } catch (e) {
+          // Keep default
+        }
+
+        const mapped = {
+          id: data.id,
+          title: data.title,
+          subject: data.subject,
+          location: data.location,
+          mode: data.mode,
+          fee: Number(data.fee),
+          rating: Number(data.average_rating) || 4.5,
+          reviews: Number(data.review_count) || 12,
+          badge: data.badge,
+          enrolled: data.enrolled_count || 0,
+          maxStudents: data.max_students || 20,
+          image: data.image || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80',
+          description: data.description,
+          whatYouLearn: parsedWhatYouLearn,
+          schedule: parsedSchedule,
+          tutor: {
+            name: data.tutor_name || 'Verified Tutor',
+            avatar: data.tutor_avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80',
+            bio: data.tutor_bio || 'Expert educator dedicated to student success with years of experience in the field.',
+            qualifications: data.tutor_qualifications || 'Certified Professional',
+            rating: Number(data.tutor_rating) || 4.8,
+            students: Number(data.tutor_students_count) || 150,
+            classes: Number(data.tutor_classes_count) || 12,
+            verified: true
+          }
+        };
+        setCourse(mapped);
+      } catch (err) {
+        console.error(err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourse();
+  }, [id]);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -123,11 +191,31 @@ export default function ClassDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dummy reviews
+  if (loading) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#F4F6F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ width:50, height:50, border:'5px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#F4F6F5', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:20, textAlign:'center' }}>
+        <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:32, marginBottom:16 }}>Course Not Found</h1>
+        <p style={{ color:'#6B7280', marginBottom:24 }}>The course you are looking for doesn't exist or has been removed.</p>
+        <Link href="/classes/search">
+          <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer' }}>Back to Search</button>
+        </Link>
+      </div>
+    );
+  }
+
+  const tutor  = course.tutor;
   const REVIEWS = [
     { name:'Amal Perera', rating:5, text:'Excellent teaching style. My grades improved significantly after just 2 months.', date:'March 2026' },
     { name:'Nimal Silva', rating:5, text:'Very patient and explains concepts clearly. Highly recommend!', date:'February 2026' },
-    { name:'Sonal Fernando', rating:4, text:'Great content coverage. Sometimes classes run a bit long but overall excellent.', date:'January 2026' },
   ];
 
   return (

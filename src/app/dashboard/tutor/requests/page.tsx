@@ -99,9 +99,30 @@ export default function RequestsPage() {
                     <span style={{ fontSize:11, color:'#9CA3AF', marginLeft:'auto' }}>{r.time}</span>
                   </div>
                   <p style={{ fontSize:12, color:'#6366F1', fontWeight:600, marginBottom:8 }}>📚 {r.class}</p>
-                  <p style={{ fontSize:13, color:'#6B7280', lineHeight:1.5, background:'#F9FAFB', borderRadius:10, padding:'10px 14px', borderLeft:'3px solid #E5E7EB' }}>&ldquo;{r.message}&rdquo;</p>
+                  
+                  {/* Expanded details */}
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginBottom:12, padding:'12px', background:'#F9FAFB', borderRadius:12 }}>
+                    <div>
+                      <p style={{ fontSize:10, color:'#9CA3AF', textTransform:'uppercase', fontWeight:700 }}>Contact</p>
+                      <p style={{ fontSize:12, color:'#374151', fontWeight:600 }}>{r.email}</p>
+                      <p style={{ fontSize:12, color:'#374151' }}>{r.phone}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:10, color:'#9CA3AF', textTransform:'uppercase', fontWeight:700 }}>Education</p>
+                      <p style={{ fontSize:12, color:'#374151', fontWeight:600 }}>{r.grade}</p>
+                      <p style={{ fontSize:12, color:'#374151' }}>{r.school || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:10, color:'#9CA3AF', textTransform:'uppercase', fontWeight:700 }}>Preferred Schedule</p>
+                      <p style={{ fontSize:12, color:'#059669', fontWeight:700 }}>{r.selectedDay} · {r.selectedTime}</p>
+                      <p style={{ fontSize:12, color:'#059669' }}>Mode: {r.preferredMode}</p>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize:13, color:'#6B7280', lineHeight:1.5, background:'#fff', borderRadius:10, padding:'10px 14px', borderLeft:'3px solid #E5E7EB', marginBottom:12 }}>&ldquo;{r.message}&rdquo;</p>
+                  
                   {r.status === 'pending' && (
-                    <div style={{ display:'flex', gap:10, marginTop:14 }}>
+                    <div style={{ display:'flex', gap:10 }}>
                       <button className="approve-btn" onClick={() => approve(r.id)}>✓ Approve</button>
                       <button className="reject-btn"  onClick={() => reject(r.id)}>✕ Decline</button>
                     </div>

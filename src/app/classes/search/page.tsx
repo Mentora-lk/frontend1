@@ -144,6 +144,11 @@ export default function ClassSearchPage() {
   const [sortBy,    setSortBy]    = useState('rating');
   const [view,      setView]      = useState<'grid'|'list'>('grid');
   const [page,      setPage]      = useState(1);
+  const [courses,   setCourses]   = useState<any[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -151,30 +156,56 @@ export default function ClassSearchPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  useEffect(() => { setPage(1); }, [query, subject, mode, location, minRating, maxFee, sortBy]);
 
-  const filtered = ALL_COURSES.filter(c => {
-    const q = query.toLowerCase();
-    return (
-      (!q || c.title.toLowerCase().includes(q) || c.tutor.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q))
-      && (subject === 'All' || c.subject === subject)
-      && (mode === 'All' || c.mode === mode)
-      && (location === 'All Locations' || c.location === location)
-      && (minRating === 0 || c.rating >= minRating)
-      && (c.fee <= maxFee)
-    );
-  });
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: ITEMS_PER_PAGE.toString(),
+          sortBy,
+          maxFee: maxFee.toString(),
+          minRating: minRating.toString(),
+          q: query
+        });
+        if (subject !== 'All') params.append('subject', subject);
+        if (mode !== 'All') params.append('mode', mode.toLowerCase());
+        if (location !== 'All Locations') params.append('location', location);
 
-  const sorted = [...filtered].sort((a,b) => {
-    if (sortBy==='rating')   return b.rating - a.rating;
-    if (sortBy==='fee_asc')  return a.fee - b.fee;
-    if (sortBy==='fee_desc') return b.fee - a.fee;
-    if (sortBy==='reviews')  return b.reviews - a.reviews;
-    return 0;
-  });
+        const res = await fetch(`http://localhost:5000/api/courses?${params.toString()}`);
+        const data = await res.json();
+        
+        if (data.courses) {
+          // Map backend fields to frontend names if needed
+          const mapped = data.courses.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            tutor: c.tutor_name || 'Tutor', // This might need a join in backend, let's check courseController
+            subject: c.subject,
+            location: c.location,
+            mode: c.mode,
+            fee: Number(c.fee),
+            rating: Number(c.average_rating) || 0,
+            reviews: Number(c.review_count) || 0,
+            badge: c.badge,
+            image: c.image || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
+            desc: c.description
+          }));
+          setCourses(mapped);
+          setTotalPages(data.totalPages);
+          setTotalCount(data.total);
+        }
+      } catch (err) {
+        console.error("Failed to fetch courses", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE);
-  const paginated  = sorted.slice((page-1)*ITEMS_PER_PAGE, page*ITEMS_PER_PAGE);
+    fetchCourses();
+  }, [page, sortBy, maxFee, minRating, query, subject, mode, location]);
+
   const clearAll   = () => { setQuery(''); setSubject('All'); setMode('All'); setLocation('All Locations'); setMinRating(0); setMaxFee(6000); };
   const activeCount = [subject!=='All', mode!=='All', location!=='All Locations', minRating>0, maxFee<6000].filter(Boolean).length;
   const scrollTop  = () => topRef.current?.scrollIntoView({ behavior:'smooth' });
@@ -323,7 +354,7 @@ export default function ClassSearchPage() {
             {/* Top bar */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:12 }}>
               <span style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827' }}>
-                {filtered.length} <span style={{ fontWeight:400, fontSize:16, color:'#6B7280' }}>classes found</span>
+                {totalCount} <span style={{ fontWeight:400, fontSize:16, color:'#6B7280' }}>classes found</span>
                 {query && <span style={{ fontSize:13, color:'#9CA3AF', marginLeft:10 }}>for "<span style={{ color:'#10B981', fontWeight:600 }}>{query}</span>"</span>}
               </span>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -355,10 +386,15 @@ export default function ClassSearchPage() {
             )}
 
             {/* Cards */}
-            {paginated.length>0 ? (
+            {loading ? (
+              <div style={{ display:'flex', justifyContent:'center', padding:'80px 0' }}>
+                <div style={{ width:40, height:40, border:'4px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
+                <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+              </div>
+            ) : courses.length > 0 ? (
               <>
                 <div style={{ display:view==='grid'?'grid':'flex', gridTemplateColumns:view==='grid'?'repeat(auto-fill,minmax(275px,1fr))':undefined, flexDirection:view==='list'?'column':undefined, gap:22 }}>
-                  {paginated.map((c,i)=>(
+                  {courses.map((c,i)=>(
                     <div key={c.id} className="card-appear" style={{ animationDelay:`${i*0.06}s` }}>
                       <CourseCard course={c} view={view}/>
                     </div>
@@ -379,7 +415,7 @@ export default function ClassSearchPage() {
                   </div>
                 )}
                 <p style={{ textAlign:'center', fontSize:12, color:'#9CA3AF', marginTop:12 }}>
-                  Showing {(page-1)*ITEMS_PER_PAGE+1}–{Math.min(page*ITEMS_PER_PAGE,filtered.length)} of {filtered.length} results
+                  Showing {(page-1)*ITEMS_PER_PAGE+1}–{Math.min(page*ITEMS_PER_PAGE, totalCount)} of {totalCount} results
                 </p>
               </>
             ) : (

@@ -20,5 +20,15 @@ export const tutorService = {
       },
       body: JSON.stringify({ status }),
     });
+  },
+
+  async getProfile() {
+    const token = localStorage.getItem("token");
+    return apiCall<any>("/api/tutors/profile", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 };

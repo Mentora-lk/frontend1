@@ -101,12 +101,25 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EnrollPage() {
   const params = useParams();
-  const id     = Number(params?.id ?? 2);
-  const course = COURSES_DB[id] ?? COURSES_DB[2];
-  const tutor  = course.tutor;
+  const id     = params?.id;
 
   const [scrollY, setScrollY] = useState(0);
   const [step, setStep] = useState(1);
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [dashboardLink, setDashboardLink] = useState('/dashboard/student');
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.role === 'tutor') setDashboardLink('/dashboard/tutor');
+        if (user.role === 'admin') setDashboardLink('/dashboard/admin');
+      }
+    } catch (e) {}
+  }, []);
 
   // Step 1 state
   const [fullName, setFullName] = useState('');
@@ -117,7 +130,7 @@ export default function EnrollPage() {
   const [message,  setMessage]  = useState('');
 
   // Step 2 state
-  const [preferredMode, setPreferredMode] = useState(course.mode === 'both' ? '' : course.mode);
+  const [preferredMode, setPreferredMode] = useState('');
   const [selectedDay,   setSelectedDay]   = useState('');
   const [selectedTime,  setSelectedTime]  = useState('');
 
@@ -127,11 +140,66 @@ export default function EnrollPage() {
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   useEffect(() => {
+    const fetchCourse = async () => {
+      if (!id) return;
+      try {
+        const res = await fetch(`http://localhost:5000/api/courses/${id}`);
+        const data = await res.json();
+        let parsedSchedule = {};
+        try {
+          parsedSchedule = typeof data.schedule === 'string' && data.schedule.startsWith('{') 
+            ? JSON.parse(data.schedule) 
+            : { 'General Schedule': [data.schedule || 'Schedule TBD'] };
+        } catch (e) {
+          parsedSchedule = { 'General Schedule': [data.schedule || 'Schedule TBD'] };
+        }
+
+        const mapped = {
+          id: data.id,
+          title: data.title,
+          subject: data.subject,
+          location: data.location,
+          mode: data.mode,
+          fee: Number(data.fee),
+          enrolled: data.enrolled_count || 0,
+          maxStudents: data.max_students || 20,
+          image: data.image || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
+          schedule: parsedSchedule,
+          tutor: {
+            name: data.tutor_name || 'Verified Tutor',
+            avatar: data.tutor_avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80'
+          }
+        };
+        setCourse(mapped);
+        if (mapped.mode !== 'both') setPreferredMode(mapped.mode);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourse();
+  }, [id]);
+
+  useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   useEffect(() => { window.scrollTo({ top:0, behavior:'smooth' }); }, [step]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#F4F6F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ width:40, height:40, border:'4px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+    );
+  }
+
+  if (!course) return <div style={{ padding: 100, textAlign: 'center' }}>Course not found</div>;
+
+  const tutor = course.tutor;
 
   const focus = (e: React.FocusEvent<any>) => { e.target.style.borderColor='#10B981'; e.target.style.boxShadow='0 0 0 3px rgba(16,185,129,0.12)'; };
   const blur  = (e: React.FocusEvent<any>, hasErr: boolean) => { e.target.style.borderColor=hasErr?'#FCA5A5':'#E5E7EB'; e.target.style.boxShadow='none'; };
@@ -159,7 +227,31 @@ export default function EnrollPage() {
 
   const handleNext   = () => { if (step===1&&!validateStep1()) return; if (step===2&&!validateStep2()) return; setErrors({}); setStep(s=>s+1); };
   const handleBack   = () => { setErrors({}); setStep(s=>s-1); };
-  const handleSubmit = () => { if (!validateStep3()) return; setStep(4); };
+  
+  const handleSubmit = async () => {
+    if (!validateStep3()) return;
+    setSubmitting(true);
+    try {
+      const { enrollmentService } = await import('@/services/enrollmentService');
+      await enrollmentService.createEnrollment({
+        classId: Number(course.id),
+        fullName,
+        email,
+        phone,
+        school,
+        grade,
+        message,
+        preferredMode: preferredMode || course.mode,
+        selectedDay,
+        selectedTime
+      });
+      setStep(4);
+    } catch (err: any) {
+      alert(err.message || "Failed to submit enrollment request");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const displayMode = preferredMode || course.mode;
 
@@ -443,7 +535,7 @@ export default function EnrollPage() {
                 </div>
 
                 <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-                  <Link href="/dashboard/student">
+                  <Link href={dashboardLink}>
                     <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:13, padding:'13px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 22px rgba(16,185,129,0.38)', transition:'all 0.25s' }}
                       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';}}
                       onMouseLeave={e=>{e.currentTarget.style.transform='none';}}>View My Classes →</button>
