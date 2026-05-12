@@ -26,17 +26,16 @@ export default function AdminAuthPage() {
     }
     setLoading(true);
     try {
-      // Uses adminApi.ts → POST /api/auth/login
-      await adminLogin(loginForm.email, loginForm.password);
-document.cookie = 'user_role=admin; path=/; max-age=604800';
-router.push('/dashboard/admin');
+      const result = await adminLogin(loginForm.email, loginForm.password);
+      document.cookie = 'user_role=admin; path=/; max-age=604800; SameSite=Lax';
+      localStorage.setItem('adminToken', result.token);
+      window.location.href = '/dashboard/admin';
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   }
-
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
