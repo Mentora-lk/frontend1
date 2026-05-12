@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from './Sidebar';
 
@@ -8,6 +9,18 @@ export default function DashboardLayout({ children, title, subtitle }: {
   title: string;
   subtitle?: string;
 }) {
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem('unread_notifications') || '0', 10);
+    setNotifCount(count);
+  }, []);
+
+  const handleClearNotifications = () => {
+    localStorage.setItem('unread_notifications', '0');
+    setNotifCount(0);
+  };
+
   return (
     <>
       <style>{`
@@ -18,7 +31,9 @@ export default function DashboardLayout({ children, title, subtitle }: {
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 99px; }
         @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes bellRing { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-15deg); } 40% { transform: rotate(15deg); } 60% { transform: rotate(-10deg); } 80% { transform: rotate(10deg); } }
         .fade-up { animation: fadeUp 0.55s cubic-bezier(.22,1,.36,1) both; }
+        .bell-ring { animation: bellRing 0.6s ease; }
         @media(max-width:900px) { .dash-layout { flex-direction:column !important; } }
       `}</style>
 
@@ -36,13 +51,24 @@ export default function DashboardLayout({ children, title, subtitle }: {
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {/* Notification bell */}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+            <div
+              onClick={handleClearNotifications}
+              style={{ position: 'relative', cursor: 'pointer' }}
+              title={notifCount > 0 ? `${notifCount} new notification${notifCount > 1 ? 's' : ''}` : 'Notifications'}
+            >
+              <div
+                className={notifCount > 0 ? 'bell-ring' : ''}
+                style={{ width: 38, height: 38, borderRadius: 11, background: notifCount > 0 ? '#ECFDF5' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.3s' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? '#10B981' : '#6B7280'} strokeWidth="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </div>
-              <span style={{ position: 'absolute', top: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
+              {notifCount > 0 && (
+                <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: '99px', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
             </div>
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
@@ -73,4 +99,4 @@ export default function DashboardLayout({ children, title, subtitle }: {
       </div>
     </>
   );
-}
+}
