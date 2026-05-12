@@ -14,7 +14,7 @@ const ALL_TAGS = ['All', 'Mathematics', 'Physics', 'A/L', 'O/L', 'Science'];
 export default function TutorCommunityPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
-  
+
   const [communities, setCommunities] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_students: 0, total_resources: 0, communities_managed: 0 });
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -37,7 +37,7 @@ export default function TutorCommunityPage() {
         getCommunities(),
         getPendingRequests()
       ]);
-      
+
       if (commRes.status === 'success') {
         const enrichedCommunities = commRes.data.communities.map((c: any, index: number) => ({
           ...c,
@@ -54,7 +54,7 @@ export default function TutorCommunityPage() {
           communities_managed: enrichedCommunities.length
         });
       }
-      
+
       if (reqRes.status === 'success') {
         setPendingRequests(reqRes.data);
       }
@@ -158,7 +158,7 @@ export default function TutorCommunityPage() {
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* Main Content Area */}
           <div style={{ flex: 1, minWidth: 300 }}>
-            
+
             {/* Discover Header & Search */}
             <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
