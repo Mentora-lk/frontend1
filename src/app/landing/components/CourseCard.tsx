@@ -1,4 +1,3 @@
-// @ts-nocheck
 type Course = {
   id: number;
   title: string;

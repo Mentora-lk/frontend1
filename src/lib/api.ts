@@ -11,7 +11,12 @@ export const api = axios.create({
 });
 
 // Request interceptor - inject auth token
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: any) => {
+  // Normalize url to prevent duplicate /api prefix
+  if (config.url && config.url.startsWith('/api/')) {
+    config.url = config.url.substring(4);
+  }
+
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
     if (token) {
@@ -23,8 +28,8 @@ api.interceptors.request.use((config) => {
 
 // Response interceptor - handle 401 & errors
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: any) => response,
+  (error: any) => {
     if (typeof window !== 'undefined' && error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/auth/login';
@@ -40,7 +45,8 @@ export async function apiCall<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const normalizedEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
   
   const headers: Record<string, string> = {
     ...((options?.headers as Record<string, string>) || {}),

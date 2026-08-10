@@ -83,9 +83,9 @@ export default function EnrollPage() {
   const id     = Number(params?.id);
 
   // Course data from backend
-  const [course,   setCourse]   = useState<any>(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState('');
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -93,9 +93,6 @@ export default function EnrollPage() {
 
   // Step state
   const [step, setStep] = useState(1);
-  const [course, setCourse] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [dashboardLink, setDashboardLink] = useState('/dashboard/student');
 
   useEffect(() => {

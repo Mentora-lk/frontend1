@@ -24,16 +24,6 @@ export default function StudentCommunityPage() {
   // Modal state
   const [pendingCommunities, setPendingCommunities] = useState<number[]>([]);
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedActiveCommunity) {
-      loadCommunityFeed(selectedActiveCommunity.id);
-    }
-  }, [selectedActiveCommunity]);
-
   const loadInitialData = async () => {
     try {
       const [discRes, classesRes, deadRes] = await Promise.all([
@@ -58,6 +48,17 @@ export default function StudentCommunityPage() {
     }
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedActiveCommunity) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadCommunityFeed(selectedActiveCommunity.id);
+    }
+  }, [selectedActiveCommunity]);
 
   const toggleLike = async (id: number) => {
     try {

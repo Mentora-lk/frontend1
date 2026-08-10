@@ -19,6 +19,9 @@ type Course = {         //!TypeScript type declaration:creating a blueprint of c
   title: string;
   image: string;
   tutor: string;
+  tutor_name?: string;
+  average_rating?: number;
+  review_count?: number;
   subject: string;
   rating: number;
   reviews: number;
@@ -74,9 +77,9 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
               <p style={{ fontSize:13, color:'#10B981', fontWeight:600, marginBottom:4 }}>By {course.tutor_name || "Tutor"}</p>
               <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:8 }}>{course.desc}</p>
               <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                <Stars rating={course.average_rating}/>
-                <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating}</span>
-                <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.review_count})</span>
+                <Stars rating={course.average_rating || course.rating || 0}/>
+                <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating || course.rating}</span>
+                <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.review_count || course.reviews || 0})</span>
               </div>
             </div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
@@ -114,9 +117,9 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
           <h3 style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:15, color:'#111827', lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{course.title}</h3>
           <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:7 }}>By <span style={{ fontWeight:600, color:'#10B981' }}>{course.tutor_name || "Tutor"}</span></p>
           <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:10 }}>
-            <Stars rating={course.average_rating}/>
-            <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating}</span>
-            <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.review_count})</span>
+            <Stars rating={course.average_rating || course.rating || 0}/>
+            <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating || course.rating}</span>
+            <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.review_count || course.reviews || 0})</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid #F3F4F6' }}>
             <span style={{ fontSize:14, fontWeight:800, color:'#059669' }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:10, fontWeight:400, color:'#9CA3AF' }}>/mo</span></span>
