@@ -3,93 +3,9 @@
 import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import Navbar from "../../../components/navbar/Navbar";
+import { searchCourses, getPlatformStats } from "@/services/classService";
 
-const COURSES = [
-  {
-    id: 1,
-    title: "Advanced Level : Physics",
-    tutor: "Thilak Perera",
-    location: "Moratuwa",
-    rating: 4.8,
-    reviews: 94,
-    badge: null,
-    subject: "Physics",
-    mode: "offline",
-    fee: 2500,
-    image: "https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80",
-    desc: "Government teacher, BSc Graduate with 10+ years of experience.",
-  },
-  {
-    id: 2,
-    title: "Advanced Level : ICT",
-    tutor: "Nimesh Dissanayake",
-    location: "Piliyandala",
-    rating: 4.6,
-    reviews: 110,
-    badge: null,
-    subject: "ICT",
-    mode: "online",
-    fee: 3000,
-    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80",
-    desc: "An enthusiastic ICT teacher who teaches coding, technology skills and inspires.",
-  },
-  {
-    id: 3,
-    title: "IT : Web Development From Basics",
-    tutor: "Isaac Rudansky",
-    location: "Piliyandala",
-    rating: 4.9,
-    reviews: 121,
-    badge: "Best Seller",
-    subject: "ICT",
-    mode: "online",
-    fee: 4500,
-    image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80",
-    desc: "Full-stack web development from HTML to React and Node.js.",
-  },
-  {
-    id: 4,
-    title: "Music : Guitar For Beginners",
-    tutor: "Manoj Kumara",
-    location: "Matale",
-    rating: 4.7,
-    reviews: 638,
-    badge: "Best Seller",
-    subject: "Music",
-    mode: "offline",
-    fee: 1500,
-    image: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80",
-    desc: "A passionate guitar teacher who inspires students, teaches techniques.",
-  },
-  {
-    id: 5,
-    title: "උසස් පෙළ : භෞතික විද්‍යාව",
-    tutor: "Saman Kumara",
-    location: "Moratuwa",
-    rating: 4.5,
-    reviews: 360,
-    badge: "Best Seller",
-    subject: "Physics",
-    mode: "both",
-    fee: 2000,
-    image: "https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80",
-    desc: "A knowledgeable physics teacher who explains concepts clearly.",
-  },
-  {
-    id: 6,
-    title: "Personal Branding: Creating A Strong Online Presence",
-    tutor: "Dennis Yu",
-    location: "Online",
-    rating: 4.8,
-    reviews: 81,
-    badge: null,
-    subject: "Business",
-    mode: "online",
-    fee: 5000,
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&q=80",
-    desc: "Build your personal brand and dominate social media.",
-  },
-];
+
 
 const POPULAR_TAGS = ["IT", "Music", "Physics", "Accounting", "English"];
 
@@ -136,8 +52,19 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   );
 }
 
-function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
+function CourseCard({ course }: { course: any }) {
   const [hov, setHov] = useState(false);
+  
+  // Handle both real backend data structure and missing fields
+  const tutorName = (course.tutor?.name || course.tutor_name || course.tutor || 'Unknown Tutor').toString();
+  const location  = (course.location || 'Sri Lanka').toString();
+  const rating    = course.average_rating || course.rating || 0;
+  const reviews   = course.review_count   || course.reviews || 0;
+  const fee       = Number(course.fee)    || 0;
+  const image     = (course.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80').toString();
+  const badge     = course.badge || null;
+  const subject   = (course.subject || 'Course').toString();
+  const mode      = (course.mode || 'online').toString().toLowerCase();
 
   return (
     <Link href={`/classes/${course.id}`} style={{ textDecoration: "none" }}>
@@ -159,8 +86,8 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
       >
         <div style={{ position: "relative", overflow: "hidden", height: 185 }}>
           <img
-            src={course.image}
-            alt={course.title}
+            src={image}
+            alt={course.title || 'Course'}
             style={{
               width: "100%",
               height: "100%",
@@ -189,7 +116,7 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
                 border: "1px solid rgba(255,255,255,0.25)",
               }}
             >
-              Course
+              {subject}
             </span>
             {course.badge && (
               <span
@@ -202,7 +129,7 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
                   background: "linear-gradient(135deg,#F59E0B,#EF4444)",
                 }}
               >
-                {course.badge}
+                {(course.badge || '').toString()}
               </span>
             )}
           </div>
@@ -214,9 +141,9 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
                 padding: "3px 8px",
                 borderRadius: 6,
                 color:
-                  course.mode === "online"
+                  mode === "online"
                     ? "#34D399"
-                    : course.mode === "offline"
+                    : mode === "offline"
                     ? "#60A5FA"
                     : "#FBBF24",
                 background: "rgba(0,0,0,0.55)",
@@ -225,7 +152,7 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
                 letterSpacing: "0.07em",
               }}
             >
-              {course.mode}
+              {mode}
             </span>
           </div>
         </div>
@@ -245,17 +172,17 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
               overflow: "hidden",
             }}
           >
-            {course.title}
+            {(course.title || 'Course').toString()}
           </h3>
 
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-            <Stars rating={course.rating} size={13} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>{course.rating}</span>
-            <span style={{ fontSize: 11, color: "#9CA3AF" }}>({course.reviews})</span>
+            <Stars rating={rating} size={13} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>{rating}</span>
+            <span style={{ fontSize: 11, color: "#9CA3AF" }}>({reviews})</span>
           </div>
 
           <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>
-            By <span style={{ fontWeight: 600, color: "#10B981" }}>{course.tutor}</span>
+            By <span style={{ fontWeight: 600, color: "#10B981" }}>{(tutorName || 'Unknown').toString()}</span>
           </p>
 
           <p
@@ -269,7 +196,7 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
               overflow: "hidden",
             }}
           >
-            {course.desc}
+            {(course.description || course.desc || 'Learn from a verified tutor.').toString()}
           </p>
 
           <div
@@ -295,9 +222,9 @@ function CourseCard({ course }: { course: (typeof COURSES)[0] }) {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              {course.location}
+              {(location || 'Sri Lanka').toString()}
             </span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: "#059669" }}>LKR {course.fee.toLocaleString()}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#059669" }}>LKR {fee.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -313,6 +240,40 @@ export default function LandingPage() {
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [priceRange, setPriceRange] = useState(5000);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeTutors:      0,
+    studentsEnrolled:  0,
+    subjectsAvailable: 0,
+  });
+
+  // Fetch top 6 courses and platform stats on mount
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [coursesData, statsData] = await Promise.all([
+          searchCourses({
+            sortBy: 'rating',
+            limit:  6,
+            page:   1,
+          }),
+          getPlatformStats(),
+        ]);
+        // Ensure courses is always an array
+        const coursesList = Array.isArray(coursesData?.courses) ? coursesData.courses : [];
+        setCourses(coursesList);
+        setStats(statsData);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        setCourses([]); // Set empty array on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);
@@ -325,16 +286,21 @@ export default function LandingPage() {
     return () => clearInterval(t);
   }, []);
 
-  const filteredCourses = COURSES.filter((c) => {
+  const filteredCourses = (Array.isArray(courses) ? courses : [])
+    .filter((c) => c && typeof c === 'object' && c.id) // Filter out empty/invalid objects
+    .filter((c) => {
+    const tutorNameStr = (c.tutor?.name || c.tutor_name || c.tutor || '').toString().toLowerCase();
+    const titleStr = (c.title || '').toString().toLowerCase();
+    const subjectStr = (c.subject || '').toString().toLowerCase();
     const matchSearch =
       searchQuery.trim() === "" ||
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.tutor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchTag = activeTag === "IT" ? true : c.subject.toLowerCase().includes(activeTag.toLowerCase());
+      titleStr.includes(searchQuery.toLowerCase()) ||
+      tutorNameStr.includes(searchQuery.toLowerCase()) ||
+      subjectStr.includes(searchQuery.toLowerCase());
+    const matchTag = activeTag === "IT" ? true : subjectStr.includes(activeTag.toLowerCase());
     const matchSubject = filterSubject === "All" || c.subject === filterSubject;
-    const matchRating = filterRating === 0 || c.rating >= filterRating;
-    const matchFee = c.fee <= priceRange;
+    const matchRating = filterRating === 0 || (c.average_rating || c.rating || 0) >= filterRating;
+    const matchFee = (c.fee || 0) <= priceRange;
     return matchSearch && matchTag && matchSubject && matchRating && matchFee;
   });
 
@@ -358,6 +324,7 @@ export default function LandingPage() {
         @keyframes floatA   { 0%,100% { transform:translateY(0) rotate(0deg); } 50% { transform:translateY(-14px) rotate(2deg); } }
         @keyframes floatB   { 0%,100% { transform:translateY(0) rotate(0deg); } 50% { transform:translateY(-10px) rotate(-2deg); } }
         @keyframes pulseDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.8); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         .anim-fade-up   { animation: fadeUp  0.85s cubic-bezier(.22,1,.36,1) both; }
         .delay-1  { animation-delay: 0.15s; }
@@ -628,7 +595,12 @@ export default function LandingPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <button className="btn-green" style={{ borderRadius: 0, padding: "18px 26px", fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}>
+                <button className="btn-green" style={{ borderRadius: 0, padding: "18px 26px", fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}
+                  onClick={() => {
+                    if (searchQuery.trim()) {
+                      window.location.href = `/classes/search?q=${encodeURIComponent(searchQuery)}`;
+                    }
+                  }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -657,9 +629,9 @@ export default function LandingPage() {
 
             <div className="hero-stats-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { label: "Active Tutors", val: "1,200+", icon: "👨‍🏫", cls: "float-a" },
-                { label: "Students Enrolled", val: "25,000+", icon: "🎓", cls: "float-b" },
-                { label: "Subjects Available", val: "50+", icon: "📚", cls: "float-c" },
+                { label: "Active Tutors", val: stats.activeTutors > 0 ? `${stats.activeTutors.toLocaleString()}+` : "1,200+", icon: "👨‍🏫", cls: "float-a" },
+                { label: "Students Enrolled", val: stats.studentsEnrolled > 0 ? `${stats.studentsEnrolled.toLocaleString()}+` : "25,000+", icon: "🎓", cls: "float-b" },
+                { label: "Subjects Available", val: stats.subjectsAvailable > 0 ? `${stats.subjectsAvailable.toLocaleString()}+` : "50+", icon: "📚", cls: "float-c" },
               ].map((s, i) => (
                 <div key={i} className={`stat-float ${s.cls} anim-fade-up`} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>
                   <span style={{ fontSize: 30 }}>{s.icon}</span>
@@ -850,20 +822,47 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {filteredCourses.length > 0 ? (
-                <div className="courses-grid">{filteredCourses.map((c) => <CourseCard key={c.id} course={c} />)}</div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "60px 0", color: "#9CA3AF" }}>
-                  <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-                  <p style={{ fontSize: 16, fontWeight: 600 }}>No classes match your filters</p>
-                  <p style={{ fontSize: 13, marginTop: 6 }}>Try adjusting your filters</p>
-                </div>
-              )}
+              <div className="courses-grid">
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} style={{
+                      background: 'white', borderRadius: 20, overflow: 'hidden',
+                      boxShadow: '0 4px 18px rgba(0,0,0,0.06)',
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                    }}>
+                      <div style={{ height: 185, background: '#F3F4F6' }}/>
+                      <div style={{ padding: '16px 18px' }}>
+                        <div style={{ height: 16, background: '#F3F4F6', borderRadius: 8, marginBottom: 10 }}/>
+                        <div style={{ height: 12, background: '#F3F4F6', borderRadius: 8, width: '60%', marginBottom: 8 }}/>
+                        <div style={{ height: 12, background: '#F3F4F6', borderRadius: 8, width: '40%' }}/>
+                      </div>
+                    </div>
+                  ))
+                ) : filteredCourses.length > 0 ? (
+                  filteredCourses
+                    .filter(c => c && c.id && c.title)  // Extra validation
+                    .map((c) => {
+                      try {
+                        return <CourseCard key={c.id} course={c} />;
+                      } catch (err) {
+                        console.error('Error rendering course:', c, err);
+                        return null;
+                      }
+                    })
+                    .filter(Boolean)  // Remove null entries
+                ) : (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
+                    <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
+                    <p style={{ fontSize: 16, fontWeight: 600 }}>No classes match your filters</p>
+                    <p style={{ fontSize: 13, marginTop: 6 }}>Try adjusting your filters</p>
+                  </div>
+                )}
+              </div>
 
               <div style={{ textAlign: "center", marginTop: 52 }}>
-                <Link href="/tutors/list">
+                <Link href="classes/search">
                   <button className="btn-outline-green" style={{ padding: "14px 44px", fontSize: 15 }}>
-                    View All Tutors -&gt;
+                    View All Classes -&gt;
                   </button>
                 </Link>
               </div>

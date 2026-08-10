@@ -1,10 +1,9 @@
-// @ts-nocheck
 type Course = {
   id: number;
   title: string;
-  tutor: string;
+  tutor_name: string;
   location: string;
-  rating: number;
+  average_rating: number;
   fee: number;
   mode: "online" | "offline" | "both";
 };
@@ -25,13 +24,13 @@ export default function CourseCard({ course }: CourseCardProps) {
     >
       <h3 style={{ margin: 0, fontSize: 16 }}>{course.title}</h3>
       <p style={{ margin: "8px 0 0", color: "#4b5563", fontSize: 14 }}>
-        Tutor: {course.tutor}
+        Tutor: {course.tutor_name || "Tutor"}
       </p>
       <p style={{ margin: "4px 0 0", color: "#4b5563", fontSize: 14 }}>
         Location: {course.location}
       </p>
       <p style={{ margin: "4px 0 0", color: "#4b5563", fontSize: 14 }}>
-        Rating: {course.rating} | Mode: {course.mode}
+        Rating: {course.average_rating} | Mode: {course.mode}
       </p>
       <p style={{ margin: "8px 0 0", fontWeight: 700, color: "#059669" }}>
         LKR {course.fee.toLocaleString()}

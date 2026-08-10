@@ -45,6 +45,7 @@ export default function TutorCommunityDetailPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [communityId]);
 
   const fetchData = async () => {

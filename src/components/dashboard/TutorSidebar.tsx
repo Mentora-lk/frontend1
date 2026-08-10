@@ -5,11 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
   {
-    label: 'Dashboard', href: '/dashboard/tutor',
-    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
-  },
-  {
-    label: 'My Classes', href: '/dashboard/tutor/my-classes',
+    label: 'Dashboard', href: '/dashboard/tutor/my-classes',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
   },
   {
@@ -34,8 +30,12 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function TutorSidebar() {
+export default function TutorSidebar({ profile }: { profile?: any }) {
   const pathname = usePathname();
+
+  const name = profile?.name || 'Tutor';
+  const initial = name.charAt(0).toUpperCase();
+  const subject = profile?.subject || 'Mathematics';
 
   return (
     <div style={{
@@ -47,15 +47,15 @@ export default function TutorSidebar() {
       {/* Tutor profile mini */}
       <div style={{ padding: '0 20px 20px', borderBottom: '1px solid #F3F4F6', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
+            <div style={{
             width: 44, height: 44, borderRadius: '50%',
             background: 'linear-gradient(135deg,#10B981,#059669)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', fontWeight: 700, fontSize: 18, flexShrink: 0,
-          }}>K</div>
+          }}>{initial}</div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>Kasun Fernando</p>
-            <p style={{ fontSize: 11, color: '#9CA3AF' }}>Tutor · Mathematics</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>{name}</p>
+            <p style={{ fontSize: 11, color: '#9CA3AF' }}>Tutor · {subject}</p>
           </div>
         </div>
       </div>
@@ -100,8 +100,18 @@ export default function TutorSidebar() {
         })}
       </div>
 
-      {/* Post New Class CTA */}
+      {/* Browse Classes CTA */}
       <div style={{ padding: '16px 20px', margin: '8px 12px 0', background: '#ECFDF5', borderRadius: 14, border: '1px solid #A7F3D0' }}>
+        <p style={{ fontSize: 12, color: '#065F46', marginBottom: 10, lineHeight: 1.5 }}>Find more classes to expand your skills</p>
+        <Link href="/classes/search">
+          <button style={{ width: '100%', background: 'linear-gradient(135deg,#10B981,#059669)', color: 'white', border: 'none', borderRadius: 10, padding: '9px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+            Browse Classes
+          </button>
+        </Link>
+      </div>
+
+      {/* Post New Class CTA */}
+      <div style={{ padding: '16px 20px', margin: '8px 12px 16px', background: '#ECFDF5', borderRadius: 14, border: '1px solid #A7F3D0' }}>
         <p style={{ fontSize: 12, color: '#065F46', marginBottom: 10, lineHeight: 1.5 }}>Reach more students by posting a new class</p>
         <Link href="/dashboard/tutor/post-ad">
           <button style={{ width: '100%', background: 'linear-gradient(135deg,#10B981,#059669)', color: 'white', border: 'none', borderRadius: 10, padding: '9px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>

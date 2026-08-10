@@ -97,15 +97,12 @@ const FEATURES = [
 
 export default function ContactClient() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
-  const [focused, setFocused] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const counterRef = useRef<HTMLDivElement>(null);
   const [counted, setCounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting && !counted) setCounted(true); },
       { threshold: 0.3 }
@@ -172,7 +169,6 @@ export default function ContactClient() {
           from { transform: scale(1) translate(0,0); }
           to   { transform: scale(1.18) translate(25px,-18px); }
         }
-        /* animated grid lines */
         .cc-hero-grid {
           position: absolute; inset: 0; pointer-events: none; overflow: hidden;
           background-image:
@@ -250,18 +246,10 @@ export default function ContactClient() {
           transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease, border-color 0.3s;
           position: relative; overflow: hidden;
         }
-        .cc-pillar::before {
-          content: ''; position: absolute; inset: 0; border-radius: 22px;
-          background: linear-gradient(135deg, rgba(255,255,255,0) 60%, rgba(255,255,255,0));
-          transition: background 0.3s;
-        }
         .cc-pillar:hover {
           transform: translateY(-8px) scale(1.01);
           box-shadow: 0 24px 60px rgba(0,0,0,0.09);
         }
-        .cc-pillar:hover:nth-child(1) { border-color: rgba(13,148,136,0.4); box-shadow: 0 24px 60px rgba(13,148,136,0.14); }
-        .cc-pillar:hover:nth-child(2) { border-color: rgba(99,102,241,0.4); box-shadow: 0 24px 60px rgba(99,102,241,0.12); }
-        .cc-pillar:hover:nth-child(3) { border-color: rgba(245,158,11,0.4); box-shadow: 0 24px 60px rgba(245,158,11,0.12); }
         .cc-pillar-icon {
           width: 56px; height: 56px; border-radius: 16px;
           display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
@@ -315,13 +303,6 @@ export default function ContactClient() {
           background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
           padding: 80px 40px; text-align: center; position: relative; overflow: hidden;
         }
-        .cc-contact-hero::before {
-          content: ''; position: absolute; inset: 0; pointer-events: none;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-          background-size: 50px 50px;
-        }
         .cc-contact-hero-inner { position: relative; }
         .cc-contact-hero h2 {
           font-family: var(--font-d); font-size: clamp(2rem,4vw,3.2rem);
@@ -333,7 +314,6 @@ export default function ContactClient() {
         /* ══ CONTACT SECTION ══ */
         .cc-contact-section { max-width: 1100px; margin: 0 auto; padding: 64px 40px 80px; display: grid; grid-template-columns: 1fr 1.5fr; gap: 44px; align-items: start; }
 
-        /* ── INFO CARDS ── */
         .cc-info-list { display: flex; flex-direction: column; gap: 14px; }
         .cc-info-card {
           background: white; border-radius: 18px; padding: 18px 20px;
@@ -350,7 +330,6 @@ export default function ContactClient() {
         .cc-info-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
         .cc-info-value { font-size: 0.9rem; font-weight: 600; color: var(--ink); margin-top: 3px; }
 
-        /* ── FORM ── */
         .cc-form-card {
           background: white; border-radius: 24px; padding: 36px;
           border: 1px solid var(--border); box-shadow: 0 4px 40px rgba(13,148,136,0.08);
@@ -358,7 +337,6 @@ export default function ContactClient() {
         .cc-form-title { font-family: var(--font-d); font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 28px; }
         .cc-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
         .cc-field { position: relative; margin-bottom: 14px; }
-        .cc-field:last-of-type { margin-bottom: 0; }
         .cc-label {
           display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em;
           text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
@@ -370,7 +348,6 @@ export default function ContactClient() {
           outline: none; transition: border-color 0.25s, box-shadow 0.25s, background 0.2s;
           resize: none;
         }
-        .cc-input::placeholder, .cc-textarea::placeholder { color: #94a3b8; }
         .cc-input:focus, .cc-textarea:focus {
           border-color: var(--teal);
           box-shadow: 0 0 0 3px rgba(13,148,136,0.14);
@@ -387,22 +364,10 @@ export default function ContactClient() {
           display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         .cc-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(13,148,136,0.45); }
-        .cc-submit:active { transform: translateY(0) scale(0.98); }
         .cc-submit:disabled { opacity: 0.7; cursor: not-allowed; }
-        .cc-submit::after {
-          content: ''; position: absolute; inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-          opacity: 0; transition: opacity 0.2s;
-        }
-        .cc-submit:hover::after { opacity: 1; }
 
         .cc-success {
           text-align: center; padding: 32px 20px;
-          animation: success-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
-        }
-        @keyframes success-pop {
-          from { opacity:0; transform: scale(0.8); }
-          to   { opacity:1; transform: scale(1);   }
         }
         .cc-success-icon {
           width: 68px; height: 68px; border-radius: 50%; margin: 0 auto 16px;
@@ -413,33 +378,12 @@ export default function ContactClient() {
         .cc-success-title { font-family: var(--font-d); font-size: 1.4rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
         .cc-success-sub { font-size: 0.875rem; color: var(--muted); }
 
-        /* spinner */
         .cc-spinner {
           width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3);
           border-top-color: white; border-radius: 50%;
           animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* entrance animations */
-        .cc-fade-up {
-          opacity: 0; transform: translateY(28px);
-          transition: opacity 0.65s ease, transform 0.65s ease;
-        }
-        .cc-fade-up.vis { opacity: 1; transform: translateY(0); }
-
-        @media (max-width: 900px) {
-          .cc-pillars { grid-template-columns: 1fr; }
-          .cc-split, .cc-contact-section { grid-template-columns: 1fr; }
-          .cc-stats-inner { grid-template-columns: repeat(2,1fr); }
-          .cc-hero { padding: 80px 24px 60px; }
-          .cc-section { padding: 60px 24px; }
-          .cc-form-row { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 480px) {
-          .cc-stats-inner { grid-template-columns: 1fr 1fr; }
-          .cc-form-card { padding: 24px 18px; }
-        }
       `}</style>
 
       <div className="cc-wrap">

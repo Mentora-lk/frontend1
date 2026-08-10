@@ -47,7 +47,7 @@ export default function Navbar({ scrollY }: NavbarProps) {
         </Link>
 
         <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          {['HOME', 'COURSES', 'BECOME A TUTOR', 'ABOUT US', 'CONTACT US'].map((item) => (
+          {['HOME', 'COURSES', 'ABOUT US', 'CONTACT US'].map((item) => (
             <Link
               key={item}
               href={

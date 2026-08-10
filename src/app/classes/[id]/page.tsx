@@ -4,90 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/navbar/Navbar';
-
-// ── All course data self-contained ────────────────────────────────────────────
-const COURSES_DB: Record<number, any> = {
-  1: {
-    id:1, title:'A/L Combined Mathematics', subject:'Mathematics', location:'Moratuwa',
-    mode:'online', fee:2500, rating:4.8, reviews:94, badge:'Best Seller',
-    enrolled:12, maxStudents:20,
-    image:'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80',
-    description:'A comprehensive A/L Combined Maths course covering pure and applied mathematics. Past paper practice, exam techniques, and weekly assessments.',
-    whatYouLearn:['Complete A/L syllabus coverage','Past paper practice (2010–2024)','Exam strategies and time management','Weekly mock tests with feedback','Individual doubt clearing sessions'],
-    schedule:{ Monday:['4:00 PM','6:00 PM'], Wednesday:['4:00 PM','6:00 PM'], Saturday:['9:00 AM','11:00 AM','2:00 PM'] },
-    tutor:{ name:'Kasun Fernando', avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80', bio:'BSc Mathematics from University of Colombo. 8 years of teaching experience with 95% student pass rate.', qualifications:'BSc Mathematics, University of Colombo', rating:4.8, students:320, classes:48, verified:true },
-  },
-  2: {
-    id:2, title:'Advanced Level : ICT', subject:'ICT', location:'Piliyandala',
-    mode:'online', fee:3000, rating:4.6, reviews:110, badge:null,
-    enrolled:18, maxStudents:25,
-    image:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80',
-    description:'A/L ICT full syllabus including hardware, software, networking, databases, and programming. Aligned with the current national curriculum.',
-    whatYouLearn:['Computer hardware & software','Networking fundamentals','Database design & SQL','Programming with Python','IT project management'],
-    schedule:{ Tuesday:['5:00 PM','7:00 PM'], Thursday:['5:00 PM','7:00 PM'], Sunday:['10:00 AM','2:00 PM'] },
-    tutor:{ name:'Nimesh Dissanayake', avatar:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80', bio:'Enthusiastic ICT teacher and software developer. Teaches coding, technology skills and inspires students to pursue careers in tech.', qualifications:'BSc IT, University of Moratuwa', rating:4.6, students:180, classes:24, verified:true },
-  },
-  3: {
-    id:3, title:'IT : Web Development From Basics', subject:'ICT', location:'Online',
-    mode:'online', fee:4500, rating:4.9, reviews:121, badge:'Best Seller',
-    enrolled:8, maxStudents:15,
-    image:'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80',
-    description:'Complete web development from scratch. Learn HTML, CSS, JavaScript, React and Node.js through hands-on projects.',
-    whatYouLearn:['HTML5 & CSS3 fundamentals','JavaScript & ES6+','React.js and component design','Node.js backend basics','Building and deploying full projects'],
-    schedule:{ Monday:['6:00 PM','8:00 PM'], Friday:['6:00 PM','8:00 PM'], Saturday:['10:00 AM','1:00 PM'] },
-    tutor:{ name:'Isaac Rudansky', avatar:'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&q=80', bio:'Full-stack developer and educator with 12 years of industry experience. Passionate about making web development accessible.', qualifications:'MSc Computer Science', rating:4.9, students:1200, classes:96, verified:true },
-  },
-  4: {
-    id:4, title:'Music : Guitar For Beginners', subject:'Music', location:'Matale',
-    mode:'offline', fee:1500, rating:4.7, reviews:638, badge:'Best Seller',
-    enrolled:15, maxStudents:12,
-    image:'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&q=80',
-    description:'Learn guitar from zero to hero! This beginner-friendly course covers basic chords, strumming patterns, and popular songs. A passionate guitar teacher who inspires students.',
-    whatYouLearn:['Basic chord progressions','Strumming and fingerpicking techniques','Popular song repertoire','Music theory fundamentals','Performance skills'],
-    schedule:{ Monday:['6:00 PM','7:30 PM'], Wednesday:['6:00 PM','7:30 PM'], Saturday:['10:00 AM','11:30 AM','3:00 PM'] },
-    tutor:{ name:'Manoj Kumara', avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80', bio:'A passionate guitar teacher with 15 years of experience. Specializes in teaching beginners and creating a love for music.', qualifications:'Guitar Performance Diploma, Royal Music Academy', rating:4.7, students:450, classes:72, verified:true },
-  },
-  5: {
-    id:5, title:'A/L Physics Full Syllabus', subject:'Physics', location:'Moratuwa',
-    mode:'offline', fee:2000, rating:4.8, reviews:94, badge:null,
-    enrolled:10, maxStudents:18,
-    image:'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=800&q=80',
-    description:'Government teacher with BSc and 10+ years of experience. Complete A/L Physics syllabus covering mechanics, electricity, waves, and modern physics. Hands-on experiments and practical demonstrations.',
-    whatYouLearn:['Mechanics and motion','Electricity and magnetism','Waves and oscillations','Modern physics & quantum concepts','Lab practicals and experiments'],
-    schedule:{ Tuesday:['4:00 PM','6:00 PM'], Thursday:['4:00 PM','6:00 PM'], Sunday:['9:00 AM','11:00 AM'] },
-    tutor:{ name:'Thilak Perera', avatar:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80', bio:'Government school teacher with BSc Physics. 10+ years of teaching experience with a focus on practical understanding and exam preparation.', qualifications:'BSc Physics, University of Colombo', rating:4.8, students:280, classes:56, verified:true },
-  },
-  6: {
-    id:6, title:'A/L Chemistry', subject:'Chemistry', location:'Colombo',
-    mode:'both', fee:3500, rating:4.5, reviews:77, badge:null,
-    enrolled:14, maxStudents:20,
-    image:'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=800&q=80',
-    description:'A/L Chemistry full syllabus with comprehensive coverage of organic, inorganic, and physical chemistry. MCQ training and essay writing techniques for exam success.',
-    whatYouLearn:['Organic chemistry structures & reactions','Inorganic chemistry & periodic trends','Physical chemistry & calculations','MCQ solving strategies','Essay writing techniques'],
-    schedule:{ Monday:['5:00 PM','7:00 PM'], Wednesday:['5:00 PM','7:00 PM'], Friday:['6:00 PM','8:00 PM'], Saturday:['10:00 AM','12:00 PM'] },
-    tutor:{ name:'Dilshan Rajapaksa', avatar:'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&q=80', bio:'Expert chemistry educator specializing in A/L exam preparation. Known for making complex concepts simple and improving student grades dramatically.', qualifications:'BSc Chemistry, University of Sri Jayewardenepura', rating:4.5, students:220, classes:40, verified:true },
-  },
-  7: {
-    id:7, title:'Personal Branding Online', subject:'Business', location:'Online',
-    mode:'online', fee:5000, rating:4.8, reviews:81, badge:null,
-    enrolled:22, maxStudents:30,
-    image:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
-    description:'Build your personal brand and dominate social media! Learn social media strategy, content creation, audience engagement, and monetization techniques from an expert marketer.',
-    whatYouLearn:['Personal branding essentials','Social media strategy & planning','Content creation & copywriting','Audience engagement & growth','Monetization & entrepreneurship'],
-    schedule:{ Tuesday:['7:00 PM','9:00 PM'], Thursday:['7:00 PM','9:00 PM'], Sunday:['2:00 PM','4:00 PM'] },
-    tutor:{ name:'Dennis Yu', avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80', bio:'Digital marketing expert with 20+ years of experience. Founder of multiple successful brands. Passionate about helping others build powerful personal brands.', qualifications:'MBA Marketing, Digital Strategy Certification', rating:4.8, students:890, classes:84, verified:true },
-  },
-  8: {
-    id:8, title:'O/L English Literature', subject:'English', location:'Kandy',
-    mode:'both', fee:2000, rating:4.4, reviews:52, badge:null,
-    enrolled:16, maxStudents:22,
-    image:'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80',
-    description:'O/L English literature and language mastery. Study prescribed texts, poetry, and prose with focus on comprehension, analysis, and essay writing skills.',
-    whatYouLearn:['Literature analysis & interpretation','Poetry & prose comprehension','Essay writing techniques','Grammar & language skills','Exam strategies & paper patterns'],
-    schedule:{ Monday:['3:30 PM','5:00 PM'], Wednesday:['3:30 PM','5:00 PM'], Saturday:['9:00 AM','10:30 AM','2:00 PM'] },
-    tutor:{ name:'Priya Wickramasinghe', avatar:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80', bio:'English language and literature specialist with 8 years of teaching experience. Helps students appreciate literature while achieving top grades.', qualifications:'BA English Literature, University of Peradeniya', rating:4.4, students:160, classes:32, verified:true },
-  },
-};
+import { getCourseById, getCourseReviews } from '@/services/classService';
 
 const BADGE_COLORS: Record<string,string> = { 'Best Seller':'#10B981', 'Top Rated':'#8B5CF6', 'New':'#3B82F6' };
 const MODE_COLOR: Record<string,string> = { online:'#10B981', offline:'#3B82F6', both:'#F59E0B' };
@@ -105,17 +22,62 @@ function Stars({ rating, size=14, light=false }: { rating:number; size?:number; 
   );
 }
 
+// All course data now comes from the backend API
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ClassDetailPage() {
   const params = useParams();
-  const id     = Number(params?.id ?? 2);
-  const course = COURSES_DB[id] ?? COURSES_DB[2];
-  const tutor  = course.tutor;
+  const id     = Number(params?.id);
 
+  const [course, setCourse] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [scrollY, setScrollY] = useState(0);
-  const [activeTab,  setActiveTab]  = useState<'about'|'schedule'|'reviews'>('about');
-  const [imgLoaded,  setImgLoaded]  = useState(false);
-  const [showModal,  setShowModal]  = useState(false);
+  const [activeTab, setActiveTab] = useState<'about'|'schedule'|'reviews'>('about');
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  // Map flat tutor fields from backend into a tutor object
+  const tutor = course?.tutor_name ? {
+    name:           course.tutor_name,
+    avatar:         course.tutor_avatar || 'https://via.placeholder.com/72',
+    bio:            course.tutor_bio || '',
+    qualification:  course.tutor_qualifications
+                    ? `${course.tutor_qualifications}, ${course.tutor_university || ''}`
+                    : course.tutor_university || 'Professional Tutor',
+    average_rating: Number(course.tutor_average_rating) || 0,
+    total_students: course.tutor_total_students || 0,
+    total_classes:  0,
+    is_verified:    course.tutor_is_verified,
+    experience:     course.tutor_experience,
+    medium:         course.tutor_medium,
+    city:           course.tutor_city,
+  } : null;
+
+  // Fetch course data and reviews
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const [courseData, reviewsData] = await Promise.all([
+          getCourseById(id),
+          getCourseReviews(id),
+        ]);
+        console.log('Course from DB:', courseData);
+        setCourse(courseData);
+        setReviews(reviewsData);
+      } catch (err: any) {
+        console.error('API failed:', err.response?.data || err.message);
+        setError('Failed to load class details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchData();
+  }, [id]);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -123,12 +85,39 @@ export default function ClassDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dummy reviews
-  const REVIEWS = [
-    { name:'Amal Perera', rating:5, text:'Excellent teaching style. My grades improved significantly after just 2 months.', date:'March 2026' },
-    { name:'Nimal Silva', rating:5, text:'Very patient and explains concepts clearly. Highly recommend!', date:'February 2026' },
-    { name:'Sonal Fernando', rating:4, text:'Great content coverage. Sometimes classes run a bit long but overall excellent.', date:'January 2026' },
-  ];
+  // Loading state
+  if (loading) return (
+    <>
+      <Navbar scrollY={scrollY} />
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ width:48, height:48, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+          <p style={{ color:'#9CA3AF', fontSize:15 }}>Loading class details...</p>
+        </div>
+      </div>
+    </>
+  );
+
+  // Error state
+  if (error) return (
+    <>
+      <Navbar scrollY={scrollY} />
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:52, marginBottom:16 }}>⚠️</div>
+          <p style={{ fontSize:16, fontWeight:600, color:'#EF4444', marginBottom:20 }}>{error}</p>
+          <Link href="/classes/search">
+            <button style={{ background:'#10B981', color:'white', border:'none', borderRadius:12, padding:'11px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+              Back to Search
+            </button>
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+
+  // No course found
+  if (!course) return null;
 
   return (
     <>
@@ -142,6 +131,7 @@ export default function ClassDetailPage() {
         @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
         @keyframes scaleIn{from{opacity:0;transform:scale(0.94);}to{opacity:1;transform:scale(1);}}
         @keyframes shimmer{0%{background-position:-600px 0;}100%{background-position:600px 0;}}
+        @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
         .fade-up{animation:fadeUp 0.6s cubic-bezier(.22,1,.36,1) both;}
         .tab-btn{padding:10px 22px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.22s;}
         .shimmer{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:600px 100%;animation:shimmer 1.4s infinite;}
@@ -176,9 +166,9 @@ export default function ClassDetailPage() {
                 <h1 className="fade-up" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(24px,3.5vw,46px)', fontWeight:900, color:'white', lineHeight:1.1, marginBottom:10, maxWidth:680 }}>{course.title}</h1>
                 <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                    <Stars rating={course.rating} size={15} light/>
-                    <span style={{ fontSize:14, fontWeight:700, color:'#FDE68A' }}>{course.rating}</span>
-                    <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)' }}>({course.reviews} reviews)</span>
+                    <Stars rating={course.average_rating} size={15} light/>
+                    <span style={{ fontSize:14, fontWeight:700, color:'#FDE68A' }}>{course.average_rating}</span>
+                    <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)' }}>({course.review_count} reviews)</span>
                   </div>
                   <span style={{ fontSize:13, color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:5 }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -208,36 +198,39 @@ export default function ClassDetailPage() {
               <img src={course.image} alt={course.title} style={{ width:'100%', height:300, objectFit:'cover', display:'block', transition:'opacity 0.4s', opacity:imgLoaded?1:0 }} onLoad={()=>setImgLoaded(true)}/>
               <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 100%)', padding:'24px 20px 16px', borderRadius:'0 0 22px 22px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ color:'white', fontSize:13 }}>🕐 {Object.keys(course.schedule).join(', ')}</span>
+                  <span style={{ color:'white', fontSize:13 }}>
+                    🕐 {course.schedule ? Object.keys(course.schedule).join(', ') : 'TBA'}
+                  </span>
                   <span style={{ color:'white', fontSize:16, fontWeight:800 }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:11, fontWeight:400, opacity:0.7 }}>/mo</span></span>
                 </div>
               </div>
             </div>
 
             {/* Tutor card */}
+            {tutor && (
             <div style={{ background:'white', borderRadius:20, padding:'24px', marginBottom:24, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)' }}>
               <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
                 <div style={{ position:'relative', flexShrink:0 }}>
                   <img src={tutor.avatar} alt={tutor.name} style={{ width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'3px solid #d1fae5' }}/>
-                  {tutor.verified && <div style={{ position:'absolute', bottom:-2, right:-2, width:22, height:22, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid white' }}>
+                  {tutor.is_verified && <div style={{ position:'absolute', bottom:-2, right:-2, width:22, height:22, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid white' }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>}
                 </div>
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
                     <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827' }}>{tutor.name}</h3>
-                    {tutor.verified && <span style={{ fontSize:11, fontWeight:700, background:'#ECFDF5', color:'#059669', borderRadius:6, padding:'2px 8px', border:'1px solid #A7F3D0' }}>✓ Verified</span>}
+                    {tutor.is_verified && <span style={{ fontSize:11, fontWeight:700, background:'#ECFDF5', color:'#059669', borderRadius:6, padding:'2px 8px', border:'1px solid #A7F3D0' }}>✓ Verified</span>}
                   </div>
-                  <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:8 }}>{tutor.qualifications}</p>
+                  <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:8 }}>{tutor.qualification}</p>
                   <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <Stars rating={tutor.rating}/>
-                    <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{tutor.rating}</span>
+                    <Stars rating={tutor.average_rating}/>
+                    <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{tutor.average_rating}</span>
                   </div>
                 </div>
               </div>
               <p style={{ fontSize:14, color:'#4B5563', lineHeight:1.7, marginBottom:16 }}>{tutor.bio}</p>
               <div style={{ display:'flex', gap:0, borderRadius:12, overflow:'hidden', border:'1px solid #F3F4F6' }}>
-                {[{l:'Rating',v:`${tutor.rating}★`},{l:'Students',v:`${tutor.students}+`},{l:'Classes',v:`${tutor.classes}`}].map((s,i)=>(
+                {[{l:'Rating',v:`${tutor.average_rating}★`},{l:'Students',v:`${tutor.total_students}+`},{l:'Classes',v:`${tutor.total_classes}`}].map((s,i)=>(
                   <div key={i} style={{ flex:1, padding:'14px', textAlign:'center', borderRight:i<2?'1px solid #F3F4F6':'none', background:'#FAFAFA' }}>
                     <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:900, color:'#10B981' }}>{s.v}</div>
                     <div style={{ fontSize:11, color:'#9CA3AF', marginTop:3 }}>{s.l}</div>
@@ -245,6 +238,7 @@ export default function ClassDetailPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Tabs */}
             <div style={{ display:'flex', gap:6, marginBottom:22, background:'white', borderRadius:14, padding:5, boxShadow:'0 2px 12px rgba(0,0,0,0.05)', width:'fit-content', border:'1px solid rgba(0,0,0,0.04)' }}>
@@ -263,7 +257,7 @@ export default function ClassDetailPage() {
                   What You'll Learn
                 </h4>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                  {course.whatYouLearn.map((item: string) => (
+                  {(course.what_you_learn || []).map((item: string) => (
                     <div key={item} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', background:'#F0FDF4', borderRadius:12, border:'1px solid #D1FAE5' }}>
                       <div style={{ width:18, height:18, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
@@ -280,7 +274,7 @@ export default function ClassDetailPage() {
               <div style={{ background:'white', borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)' }}>
                 <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827', marginBottom:20 }}>Available Time Slots</h3>
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                  {Object.entries(course.schedule).map(([day, times]: [string, any]) => (
+                  {course.schedule && Object.entries(course.schedule).map(([day, times]: [string, any]) => (
                     <div key={day} style={{ background:'#F9FAFB', borderRadius:14, padding:'16px 20px', border:'1px solid #F3F4F6' }}>
                       <p style={{ fontWeight:700, fontSize:14, color:'#111827', marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -302,28 +296,38 @@ export default function ClassDetailPage() {
               <div style={{ background:'white', borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:24 }}>
                   <div style={{ textAlign:'center' }}>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize:52, fontWeight:900, color:'#111827', lineHeight:1 }}>{course.rating}</div>
-                    <Stars rating={course.rating} size={18}/>
-                    <p style={{ fontSize:12, color:'#9CA3AF', marginTop:4 }}>{course.reviews} reviews</p>
+                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize:52, fontWeight:900, color:'#111827', lineHeight:1 }}>{course.average_rating || 0}</div>
+                    <Stars rating={course.average_rating || 0} size={18}/>
+                    <p style={{ fontSize:12, color:'#9CA3AF', marginTop:4 }}>{course.review_count || 0} reviews</p>
                   </div>
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-                  {REVIEWS.map((r,i)=>(
-                    <div key={i} style={{ padding:'18px 20px', background:'#F9FAFB', borderRadius:14, border:'1px solid #F3F4F6' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                          <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700 }}>{r.name[0]}</div>
-                          <div>
-                            <p style={{ fontSize:13, fontWeight:700, color:'#111827' }}>{r.name}</p>
-                            <p style={{ fontSize:11, color:'#9CA3AF' }}>{r.date}</p>
+                {reviews.length === 0 ? (
+                  <p style={{ fontSize:14, color:'#9CA3AF', textAlign:'center', padding:'20px 0' }}>
+                    No reviews yet. Be the first to review!
+                  </p>
+                ) : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                    {reviews.map((r: any, i: number) => (
+                      <div key={i} style={{ padding:'18px 20px', background:'#F9FAFB', borderRadius:14, border:'1px solid #F3F4F6' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                            <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700 }}>
+                              {r.student?.name?.[0] || 'S'}
+                            </div>
+                            <div>
+                              <p style={{ fontSize:13, fontWeight:700, color:'#111827' }}>{r.student?.name || 'Student'}</p>
+                              <p style={{ fontSize:11, color:'#9CA3AF' }}>
+                                {new Date(r.createdAt).toLocaleDateString('en-US', { month:'long', year:'numeric' })}
+                              </p>
+                            </div>
                           </div>
+                          <Stars rating={r.rating} size={13}/>
                         </div>
-                        <Stars rating={r.rating} size={13}/>
+                        <p style={{ fontSize:13, color:'#4B5563', lineHeight:1.6 }}>{r.comment}</p>
                       </div>
-                      <p style={{ fontSize:13, color:'#4B5563', lineHeight:1.6 }}>{r.text}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -358,7 +362,7 @@ export default function ClassDetailPage() {
                     {icon:'📚', label:'Subject', val:course.subject},
                     {icon:'📍', label:'Location', val:course.location},
                     {icon:'💻', label:'Mode', val:course.mode.charAt(0).toUpperCase()+course.mode.slice(1)},
-                    {icon:'👥', label:'Students', val:`${course.enrolled}/${course.maxStudents}`},
+                    {icon:'👥', label:'Students', val:`${course.enrolledCount || 0}/${course.max_students || 0}`},
                   ].map((row,i)=>(
                     <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:i<3?'1px solid #F3F4F6':'none' }}>
                       <span style={{ fontSize:16 }}>{row.icon}</span>
@@ -410,7 +414,7 @@ export default function ClassDetailPage() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
             <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:700, marginBottom:8 }}>Message Tutor</h3>
-            <p style={{ fontSize:14, color:'#6B7280', marginBottom:20 }}>Please sign in to message {tutor.name}</p>
+            <p style={{ fontSize:14, color:'#6B7280', marginBottom:20 }}>Please sign in to message {tutor?.name || "Tutor"}</p>
             <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
               <Link href="/auth/login"><button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Sign In</button></Link>
               <button onClick={()=>setShowModal(false)} style={{ background:'white', color:'#6B7280', border:'1.5px solid #E5E7EB', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>

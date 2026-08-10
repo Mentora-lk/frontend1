@@ -42,16 +42,9 @@ export default function EnrollSidebar({
             <span style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>{tutorName}</span>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: '#9CA3AF' }}>Enrollment</span>
-              <span style={{ fontSize: 11, color: spotsLeft <= 3 ? '#EF4444' : '#9CA3AF', fontWeight: spotsLeft <= 3 ? 700 : 400 }}>
-                {spotsLeft <= 3 ? `🔥 ${spotsLeft} spots left!` : `${enrolled}/${maxStudents}`}
-              </span>
-            </div>
-            <div style={{ height: 5, background: '#F3F4F6', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{ height: '100%', borderRadius: 99, width: `${fillPct}%`, background: spotsLeft <= 3 ? 'linear-gradient(90deg,#F59E0B,#EF4444)' : 'linear-gradient(90deg,#10B981,#059669)' }}/>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F0FDF4', padding: '10px 14px', borderRadius: 10, border: '1px solid #D1FAE5' }}>
+            <span style={{ fontSize: 12, color: '#065F46', fontWeight: 600 }}>Status</span>
+            <span style={{ fontSize: 12, color: '#10B981', fontWeight: 800 }}>● Open for Enrollment</span>
           </div>
 
           <Link href={`/classes/${courseId}`}>

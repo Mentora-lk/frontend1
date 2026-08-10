@@ -1,25 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
-
-const REQUESTS = [
-  { id:1, name:'Nimesh Perera',   avatar:'N', color:'#8B5CF6', subject:'Mathematics', class:'A/L Combined Mathematics', date:'28 Apr 2026', time:'2 mins ago',  message:'Hi, I am interested in joining your mathematics class. I am an A/L student.', status:'pending' },
-  { id:2, name:'Dilshan Silva',   avatar:'D', color:'#F59E0B', subject:'ICT',         class:'Advanced Level : ICT',      date:'28 Apr 2026', time:'1 hour ago',  message:'I saw your profile and would love to join your ICT class this semester.',       status:'pending' },
-  { id:3, name:'Amali Fernando',  avatar:'A', color:'#10B981', subject:'Physics',     class:'A/L Physics Full Syllabus', date:'27 Apr 2026', time:'1 day ago',   message:'Please consider my application. I am a hardworking student.',                  status:'pending' },
-  { id:4, name:'Ruwan Bandara',   avatar:'R', color:'#3B82F6', subject:'Mathematics', class:'A/L Combined Mathematics', date:'26 Apr 2026', time:'2 days ago',  message:'I need to improve my math skills for the A/L exam next year.',               status:'approved' },
-  { id:5, name:'Shalini Jayawardene', avatar:'S', color:'#EC4899', subject:'ICT',    class:'Advanced Level : ICT',      date:'25 Apr 2026', time:'3 days ago',  message:'Your reviews are great! Looking forward to joining your class.',              status:'rejected' },
-];
+import { tutorService } from '@/services/tutorService';
 
 export default function RequestsPage() {
   const [filter, setFilter] = useState('all');
-  const [requests, setRequests] = useState(REQUESTS);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const data = await tutorService.getRequests();
+        setRequests(data);
+      } catch (err) {
+        console.error("Failed to fetch requests", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRequests();
+  }, []);
 
   const filtered = requests.filter(r => filter === 'all' || r.status === filter);
   const pending  = requests.filter(r => r.status === 'pending').length;
 
-  const approve = (id: number) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-  const reject  = (id: number) => setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+  const approve = async (id: number) => {
+    try {
+      await tutorService.updateRequestStatus(id, 'approved');
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+    } catch (err) {
+      console.error("Failed to approve request", err);
+    }
+  };
+
+  const reject  = async (id: number) => {
+    try {
+      await tutorService.updateRequestStatus(id, 'rejected');
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+    } catch (err) {
+      console.error("Failed to reject request", err);
+    }
+  };
 
   const statusStyle: Record<string, { color: string; bg: string }> = {
     pending:  { color:'#D97706', bg:'#FFFBEB' },
@@ -64,21 +87,45 @@ export default function RequestsPage() {
       {/* Request list */}
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         {filtered.map(r => {
-          const ss = statusStyle[r.status];
+          const statusKey = r.status?.toLowerCase() || 'pending';
+          const ss = statusStyle[statusKey] || statusStyle['pending'];
+          const avatar = r.avatar || r.name?.charAt(0)?.toUpperCase() || '?';
+          const color = r.color || '#10B981';
           return (
             <div key={r.id} className="req-card" style={{ background:'white', borderRadius:18, padding:'20px 24px', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)' }}>
               <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
-                <div style={{ width:48, height:48, borderRadius:'50%', background:`${r.color}20`, color:r.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:18, flexShrink:0 }}>{r.avatar}</div>
+                <div style={{ width:48, height:48, borderRadius:'50%', background:`${color}20`, color:color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:18, flexShrink:0 }}>{avatar}</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2, flexWrap:'wrap' }}>
-                    <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{r.name}</p>
-                    <span style={{ fontSize:11, fontWeight:700, color:ss.color, background:ss.bg, borderRadius:6, padding:'2px 9px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.status}</span>
-                    <span style={{ fontSize:11, color:'#9CA3AF', marginLeft:'auto' }}>{r.time}</span>
+                    <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{r.name || 'Unknown Student'}</p>
+                    <span style={{ fontSize:11, fontWeight:700, color:ss.color, background:ss.bg, borderRadius:6, padding:'2px 9px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.status || 'Pending'}</span>
+                    <span style={{ fontSize:11, color:'#9CA3AF', marginLeft:'auto' }}>{r.time || ''}</span>
                   </div>
-                  <p style={{ fontSize:12, color:'#6366F1', fontWeight:600, marginBottom:8 }}>📚 {r.class}</p>
-                  <p style={{ fontSize:13, color:'#6B7280', lineHeight:1.5, background:'#F9FAFB', borderRadius:10, padding:'10px 14px', borderLeft:'3px solid #E5E7EB' }}>&ldquo;{r.message}&rdquo;</p>
+                  <p style={{ fontSize:12, color:'#6366F1', fontWeight:600, marginBottom:8 }}>📚 {r.class || r.className || 'Class Request'}</p>
+                  
+                  {/* Expanded details */}
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginBottom:12, padding:'12px', background:'#F9FAFB', borderRadius:12 }}>
+                    <div>
+                      <p style={{ fontSize:10, color:'#9CA3AF', textTransform:'uppercase', fontWeight:700 }}>Contact</p>
+                      <p style={{ fontSize:12, color:'#374151', fontWeight:600 }}>{r.email}</p>
+                      <p style={{ fontSize:12, color:'#374151' }}>{r.phone}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:10, color:'#9CA3AF', textTransform:'uppercase', fontWeight:700 }}>Education</p>
+                      <p style={{ fontSize:12, color:'#374151', fontWeight:600 }}>{r.grade}</p>
+                      <p style={{ fontSize:12, color:'#374151' }}>{r.school || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:10, color:'#9CA3AF', textTransform:'uppercase', fontWeight:700 }}>Preferred Schedule</p>
+                      <p style={{ fontSize:12, color:'#059669', fontWeight:700 }}>{r.selectedDay} · {r.selectedTime}</p>
+                      <p style={{ fontSize:12, color:'#059669' }}>Mode: {r.preferredMode}</p>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize:13, color:'#6B7280', lineHeight:1.5, background:'#fff', borderRadius:10, padding:'10px 14px', borderLeft:'3px solid #E5E7EB', marginBottom:12 }}>&ldquo;{r.message}&rdquo;</p>
+                  
                   {r.status === 'pending' && (
-                    <div style={{ display:'flex', gap:10, marginTop:14 }}>
+                    <div style={{ display:'flex', gap:10 }}>
                       <button className="approve-btn" onClick={() => approve(r.id)}>✓ Approve</button>
                       <button className="reject-btn"  onClick={() => reject(r.id)}>✕ Decline</button>
                     </div>
