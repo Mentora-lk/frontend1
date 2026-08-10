@@ -1,6 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  getInputStyle,
+  getSelectStyle,
+  getStaticInputStyle,
+  formContainerStyle,
+  formGridStyle,
+  getPrimaryButtonStyle,
+  handleButtonHoverEnter,
+  handleButtonHoverLeave,
+  handleLinkHoverEnter,
+  handleLinkHoverLeave,
+} from "@/utils/formStyles";
+import { authService } from "@/services/authService";
 
 type Qualification = {
   id: string;
@@ -18,6 +32,7 @@ type TimeSlot = {
 };
 
 export default function TutorRegistration() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1: About
@@ -27,6 +42,8 @@ export default function TutorRegistration() {
     city: "",
     email: "",
     address: "",
+    password: "",
+    confirmPassword: "",
     // Step 2: Pictures
     profilePicture: null as File | null,
     profileBanner: null as File | null,
@@ -48,6 +65,8 @@ export default function TutorRegistration() {
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [previewPicture, setPreviewPicture] = useState<string | null>(null);
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [newQualification, setNewQualification] = useState<Qualification>({
     id: "",
     university: "",
@@ -72,23 +91,12 @@ export default function TutorRegistration() {
     endTime: "",
   });
 
-  const inputStyle = (field: string) => ({
-    padding: "12px 16px",
-    fontSize: 14,
-    border: hoveredField === field ? "2px solid #10b981" : "1px solid #d1d5db",
-    borderRadius: 10,
-    outline: "none" as const,
-    transition: "all 0.3s ease",
-    boxShadow:
-      hoveredField === field ? "0 0 0 3px rgba(16, 185, 129, 0.1)" : "none",
-    background: "#ffffff",
-  });
-
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
   const handleFileChange = (
@@ -153,16 +161,82 @@ export default function TutorRegistration() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Tutor Registration Complete:", formData);
-    // TODO: Add API call here
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // Validate passwords match
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        setIsLoading(false);
+        return;
+      }
+
+      const submissionData = new FormData();
+      submissionData.append("fullName", formData.fullName);
+      submissionData.append("dob", formData.dateOfBirth);
+      submissionData.append("gender", formData.gender);
+      submissionData.append("city", formData.city);
+      submissionData.append("email", formData.email);
+      submissionData.append("address", formData.address);
+      submissionData.append("password", formData.password);
+      
+      if (formData.profilePicture) {
+        submissionData.append("profilePicture", formData.profilePicture);
+      }
+      if (formData.profileBanner) {
+        submissionData.append("banner", formData.profileBanner);
+      }
+
+      // Extract the first qualification to match backend schema currently
+      if (formData.qualifications.length > 0) {
+        const firstQual = formData.qualifications[0];
+        submissionData.append("university", firstQual.university);
+        submissionData.append("degreeTitle", firstQual.degree);
+        submissionData.append("graduationYear", firstQual.year);
+        submissionData.append("experience", firstQual.experience || "");
+      }
+
+      submissionData.append("subjects", formData.subjects);
+      submissionData.append("gradeRange", formData.gradeRange);
+      submissionData.append("level", formData.level);
+      submissionData.append("medium", formData.medium);
+      submissionData.append("classType", formData.classTypes.join(", "));
+      submissionData.append("description", formData.aboutYourself);
+
+      const response = await authService.registerTutorFormData(submissionData);
+
+      // Guard against missing user data in response
+      if (!response || !response.user || !response.token) {
+        throw new Error("Invalid response from server. Please try again.");
+      }
+
+      // Extract user info from response (backend returns { token, user: { id, email, role }, profile })
+      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+
+      // Store token and user info
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Set user_role cookie so middleware allows dashboard access
+      document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
+
+      // Redirect to tutor dashboard
+      router.push("/dashboard/tutor");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+      console.error("Registration error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const canProceedToNextStep = () => {
     switch (currentStep) {
       case 1:
-        return formData.fullName && formData.dateOfBirth && formData.gender && formData.city && formData.email && formData.address;
+        return formData.fullName && formData.dateOfBirth && formData.gender && formData.city && formData.email && formData.address && formData.password && formData.confirmPassword && formData.password === formData.confirmPassword;
       case 2:
         return true;
       case 3:
@@ -232,60 +306,67 @@ export default function TutorRegistration() {
         <span>Teaching</span>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "#fee2e2",
+            border: "1px solid #fecaca",
+            borderRadius: 10,
+            color: "#991b1b",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 12,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Step 1: About */}
       {currentStep === 1 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Full Name
-            </label>
+        <form style={formContainerStyle}>
+          <input
+            type="text"
+            name="fullName"
+            value={formData.fullName}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("fullName")}
+            onBlur={() => setHoveredField(null)}
+            placeholder="Full Name"
+            style={getInputStyle(hoveredField, "fullName")}
+            required
+          />
+
+          <div style={formGridStyle(2)}>
             <input
               type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("fullName")}
-              onBlur={() => setHoveredField(null)}
-              placeholder="Legal name"
-              style={inputStyle("fullName") as React.CSSProperties}
-              required
-            />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Date of Birth
-            </label>
-            <input
-              type="date"
               name="dateOfBirth"
               value={formData.dateOfBirth}
               onChange={handleInputChange}
-              onFocus={() => setHoveredField("dateOfBirth")}
-              onBlur={() => setHoveredField(null)}
-              style={inputStyle("dateOfBirth") as React.CSSProperties}
+              onFocus={(e) => {
+                setHoveredField("dateOfBirth");
+                e.target.type = "date";
+              }}
+              onBlur={(e) => {
+                setHoveredField(null);
+                if (!e.target.value) e.target.type = "text";
+              }}
+              placeholder="Date of Birth"
+              style={getInputStyle(hoveredField, "dateOfBirth")}
               required
             />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Gender
-            </label>
             <select
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
               onFocus={() => setHoveredField("gender")}
               onBlur={() => setHoveredField(null)}
-              style={{
-                ...inputStyle("gender"),
-                cursor: "pointer",
-                color: formData.gender ? "#111827" : "#9ca3af",
-              } as React.CSSProperties}
+              style={getSelectStyle(hoveredField, "gender", !!formData.gender)}
               required
             >
-              <option value="">Select gender</option>
+              <option value="">Select Gender</option>
               {genders.map((g) => (
                 <option key={g} value={g}>
                   {g}
@@ -294,10 +375,7 @@ export default function TutorRegistration() {
             </select>
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              City
-            </label>
+          <div style={formGridStyle(2)}>
             <input
               type="text"
               name="city"
@@ -305,16 +383,10 @@ export default function TutorRegistration() {
               onChange={handleInputChange}
               onFocus={() => setHoveredField("city")}
               onBlur={() => setHoveredField(null)}
-              placeholder="Current city"
-              style={inputStyle("city") as React.CSSProperties}
+              placeholder="City"
+              style={getInputStyle(hoveredField, "city")}
               required
             />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Email
-            </label>
             <input
               type="email"
               name="email"
@@ -322,25 +394,45 @@ export default function TutorRegistration() {
               onChange={handleInputChange}
               onFocus={() => setHoveredField("email")}
               onBlur={() => setHoveredField(null)}
-              placeholder="Contact email"
-              style={inputStyle("email") as React.CSSProperties}
+              placeholder="Email Address"
+              style={getInputStyle(hoveredField, "email")}
               required
             />
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Address
-            </label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("address")}
+            onBlur={() => setHoveredField(null)}
+            placeholder="Full Residential Address"
+            style={getInputStyle(hoveredField, "address")}
+            required
+          />
+
+          <div style={formGridStyle(2)}>
             <input
-              type="text"
-              name="address"
-              value={formData.address}
+              type="password"
+              name="password"
+              value={formData.password}
               onChange={handleInputChange}
-              onFocus={() => setHoveredField("address")}
+              onFocus={() => setHoveredField("password")}
               onBlur={() => setHoveredField(null)}
-              placeholder="Full residential address"
-              style={inputStyle("address") as React.CSSProperties}
+              placeholder="Password"
+              style={getInputStyle(hoveredField, "password")}
+              required
+            />
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("confirmPassword")}
+              onBlur={() => setHoveredField(null)}
+              placeholder="Confirm Password"
+              style={getInputStyle(hoveredField, "confirmPassword")}
               required
             />
           </div>
@@ -349,7 +441,7 @@ export default function TutorRegistration() {
 
       {/* Step 2: Pictures & Media */}
       {currentStep === 2 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <form style={formContainerStyle}>
           <div>
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
               Profile Picture (JPG, PNG - Min 400x400px)
@@ -448,7 +540,7 @@ export default function TutorRegistration() {
 
       {/* Step 3: Education */}
       {currentStep === 3 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <form style={formContainerStyle}>
           <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
               Add Qualification
@@ -462,14 +554,7 @@ export default function TutorRegistration() {
                 onChange={(e) =>
                   setNewQualification({ ...newQualification, university: e.target.value })
                 }
-                style={{
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 10,
-                  outline: "none",
-                  background: "#ffffff",
-                }}
+                style={getStaticInputStyle()}
               />
               <input
                 type="text"
@@ -478,28 +563,14 @@ export default function TutorRegistration() {
                 onChange={(e) =>
                   setNewQualification({ ...newQualification, degree: e.target.value })
                 }
-                style={{
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 10,
-                  outline: "none",
-                  background: "#ffffff",
-                }}
+                style={getStaticInputStyle()}
               />
               <select
                 value={newQualification.year}
                 onChange={(e) =>
                   setNewQualification({ ...newQualification, year: e.target.value })
                 }
-                style={{
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  background: "#ffffff",
-                }}
+                style={getStaticInputStyle({ cursor: "pointer" })}
               >
                 <option value="">Year of Graduation</option>
                 {yearOptions.map((year) => (
@@ -514,15 +585,7 @@ export default function TutorRegistration() {
                 onChange={(e) =>
                   setNewQualification({ ...newQualification, experience: e.target.value })
                 }
-                style={{
-                  padding: "12px 16px",
-                  fontSize: 14,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 10,
-                  outline: "none",
-                  minHeight: 80,
-                  background: "#ffffff",
-                }}
+                style={getStaticInputStyle({ minHeight: 80 })}
               />
               <button
                 type="button"
@@ -593,52 +656,34 @@ export default function TutorRegistration() {
 
       {/* Step 4: Teaching Profile */}
       {currentStep === 4 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Subjects You Teach
-            </label>
-            <input
-              type="text"
-              name="subjects"
-              value={formData.subjects}
-              onChange={handleInputChange}
-              placeholder="e.g., Mathematics, Physics, Chemistry"
-              style={inputStyle("subjects") as React.CSSProperties}
-              required
-            />
-          </div>
+        <form style={formContainerStyle}>
+          <input
+            type="text"
+            name="subjects"
+            value={formData.subjects}
+            onChange={handleInputChange}
+            placeholder="Subjects You Teach (e.g., Mathematics, Physics)"
+            style={getInputStyle(hoveredField, "subjects")}
+            required
+          />
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Grade Range
-            </label>
+          <div style={formGridStyle(2)}>
             <input
               type="text"
               name="gradeRange"
               value={formData.gradeRange}
               onChange={handleInputChange}
-              placeholder="e.g., Grade 10-13"
-              style={inputStyle("gradeRange") as React.CSSProperties}
+              placeholder="Grade Range (e.g., Grade 10-13)"
+              style={getInputStyle(hoveredField, "gradeRange")}
               required
             />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Level
-            </label>
             <select
               name="level"
               value={formData.level}
               onChange={handleInputChange}
               onFocus={() => setHoveredField("level")}
               onBlur={() => setHoveredField(null)}
-              style={{
-                ...inputStyle("level"),
-                cursor: "pointer",
-                color: formData.level ? "#111827" : "#9ca3af",
-              } as React.CSSProperties}
+              style={getSelectStyle(hoveredField, "level", !!formData.level)}
               required
             >
               <option value="">Select Level</option>
@@ -650,31 +695,22 @@ export default function TutorRegistration() {
             </select>
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Medium of Instruction
-            </label>
-            <select
-              name="medium"
-              value={formData.medium}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("medium")}
-              onBlur={() => setHoveredField(null)}
-              style={{
-                ...inputStyle("medium"),
-                cursor: "pointer",
-                color: formData.medium ? "#111827" : "#9ca3af",
-              } as React.CSSProperties}
-              required
-            >
-              <option value="">Select Medium</option>
-              {mediums.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            name="medium"
+            value={formData.medium}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("medium")}
+            onBlur={() => setHoveredField(null)}
+            style={getSelectStyle(hoveredField, "medium", !!formData.medium)}
+            required
+          >
+            <option value="">Select Medium</option>
+            {mediums.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
 
           <div>
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
@@ -768,13 +804,7 @@ export default function TutorRegistration() {
                     onChange={(e) =>
                       setNewTimeSlot({ ...newTimeSlot, day: e.target.value })
                     }
-                    style={{
-                      padding: "10px 12px",
-                      fontSize: 13,
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 8,
-                      cursor: "pointer",
-                    }}
+                    style={getStaticInputStyle({ padding: "10px 12px", fontSize: 13, cursor: "pointer", borderRadius: 8 })}
                   >
                     <option value="">Select Day</option>
                     {days.map((d) => (
@@ -789,12 +819,7 @@ export default function TutorRegistration() {
                     onChange={(e) =>
                       setNewTimeSlot({ ...newTimeSlot, startTime: e.target.value })
                     }
-                    style={{
-                      padding: "10px 12px",
-                      fontSize: 13,
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 8,
-                    }}
+                    style={getStaticInputStyle({ padding: "10px 12px", fontSize: 13, borderRadius: 8 })}
                   />
                   <input
                     type="time"
@@ -802,12 +827,7 @@ export default function TutorRegistration() {
                     onChange={(e) =>
                       setNewTimeSlot({ ...newTimeSlot, endTime: e.target.value })
                     }
-                    style={{
-                      padding: "10px 12px",
-                      fontSize: 13,
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 8,
-                    }}
+                    style={getStaticInputStyle({ padding: "10px 12px", fontSize: 13, borderRadius: 8 })}
                   />
                   <button
                     type="button"
@@ -875,12 +895,7 @@ export default function TutorRegistration() {
                   value={formData.instituteName}
                   onChange={handleInputChange}
                   placeholder="Institute name"
-                  style={{
-                    padding: "12px 16px",
-                    fontSize: 14,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 10,
-                  }}
+                  style={getStaticInputStyle()}
                 />
               </div>
               <div>
@@ -893,12 +908,7 @@ export default function TutorRegistration() {
                   value={formData.instituteLocation}
                   onChange={handleInputChange}
                   placeholder="Institute location"
-                  style={{
-                    padding: "12px 16px",
-                    fontSize: 14,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 10,
-                  }}
+                  style={getStaticInputStyle()}
                 />
               </div>
             </>
@@ -945,50 +955,57 @@ export default function TutorRegistration() {
 
         {currentStep < 4 ? (
           <button
+            type="button"
             onClick={() => {
               if (canProceedToNextStep()) {
                 setCurrentStep(currentStep + 1);
               }
             }}
             disabled={!canProceedToNextStep()}
-            style={{
-              padding: "12px 24px",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "white",
-              background:
-                canProceedToNextStep()
-                  ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                  : "#d1d5db",
-              border: "none",
-              borderRadius: 10,
-              cursor: canProceedToNextStep() ? "pointer" : "not-allowed",
-              transition: "all 0.2s ease",
-            }}
+            style={getPrimaryButtonStyle(!canProceedToNextStep())}
+            onMouseEnter={(e) => canProceedToNextStep() && handleButtonHoverEnter(e, true)}
+            onMouseLeave={(e) => canProceedToNextStep() && handleButtonHoverLeave(e, true)}
           >
             Next →
           </button>
         ) : (
           <button
+            type="button"
             onClick={handleSubmit}
-            style={{
-              padding: "12px 24px",
-              fontSize: 14,
-              fontWeight: 700,
-              color: "white",
-              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-              border: "none",
-              borderRadius: 10,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
+            disabled={isLoading}
+            style={getPrimaryButtonStyle(isLoading)}
+            onMouseEnter={(e) => !isLoading && handleButtonHoverEnter(e, true)}
+            onMouseLeave={(e) => !isLoading && handleButtonHoverLeave(e, true)}
           >
-            Complete Registration
+            {isLoading ? "Completing Registration..." : "Complete Registration"}
           </button>
         )}
       </div>
+
+      {/* Login Link */}
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: 14,
+          color: "#6b7280",
+          margin: "12px 0 0",
+        }}
+      >
+        Already have an account?{" "}
+        <a
+          href="/auth/login"
+          style={{
+            color: "#10b981",
+            textDecoration: "none",
+            fontWeight: 600,
+            transition: "color 0.2s ease",
+          }}
+          onMouseEnter={handleLinkHoverEnter}
+          onMouseLeave={handleLinkHoverLeave}
+        >
+          Sign in
+        </a>
+      </p>
     </div>
   );
 }
