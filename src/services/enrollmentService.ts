@@ -1,6 +1,7 @@
-import { apiCall } from "@/lib/api";
+// src/services/enrollmentService.ts
+import api from '@/lib/api';
 
-export interface EnrollmentRequest {
+export interface EnrollmentData {
   classId: number;
   fullName: string;
   email: string;
@@ -13,25 +14,27 @@ export interface EnrollmentRequest {
   selectedTime: string;
 }
 
-export const enrollmentService = {
-  async createEnrollment(data: EnrollmentRequest) {
-    const token = localStorage.getItem("token");
-    return apiCall("/api/enrollments", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-  },
+// POST /api/enrollments — submit enrollment request
+export const submitEnrollment = async (data: EnrollmentData) => {
+  const response = await api.post('/enrollments', data);
+  return response.data;
+};
 
-  async getMyEnrollments(status: string = "all") {
-    const token = localStorage.getItem("token");
-    return apiCall<any[]>(`/api/enrollments/mine?status=${status}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
+// GET /api/enrollments/me — get my enrolled classes
+export const getMyEnrollments = async (status?: string) => {
+  const params = status && status !== 'all' ? { status } : {};
+  const { data } = await api.get('/enrollments/me', { params });
+  return data;
+};
+
+// DELETE /api/enrollments/:id — cancel enrollment
+export const cancelEnrollment = async (enrollmentId: number) => {
+  const { data } = await api.delete(`/enrollments/${enrollmentId}`);
+  return data;
+};
+
+// GET /api/enrollments/me/schedule — get my schedule
+export const getMySchedule = async () => {
+  const { data } = await api.get('/enrollments/me/schedule');
+  return data;
 };
