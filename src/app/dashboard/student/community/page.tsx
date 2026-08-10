@@ -122,32 +122,53 @@ export default function StudentCommunityPage() {
           <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 16 }}>{post.content}</p>
 
           {/* Media Content */}
-          {post.type === 'announcement' && post.media_url && (
-            <div style={{ position: 'relative', width: '100%', height: 240, background: '#111827', borderRadius: 12, marginBottom: 16, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <video src={post.media_url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {post.type === 'image' && post.media_url && (
+            <div style={{ marginBottom: 16, padding: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <img src={post.media_url} alt="Post media" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12, display: 'block' }} />
+                <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                  <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                    Download Image
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
-          {post.type === 'announcement' && post.media_url && (
-                        console.log('Rendering image post with media URL:', post.type, post.media_url),
+          {['document', 'pdf', 'doc'].includes(post.type) && post.media_url && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>Attached Document</p>
-                <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>PDF</p>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: 0, textTransform: 'uppercase' }}>{post.type}</p>
               </div>
               <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               </a>
             </div>
           )}
-          {/* nisiya */}
+
+          {post.type === 'video' && post.media_url && (
+            <div style={{ position: 'relative', width: '100%', height: 240, background: '#111827', borderRadius: 12, marginBottom: 16, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <video src={post.media_url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
+
           {post.type === 'announcement' && post.media_url && (
-            console.log('Rendering image post with media URL:', post.type, post.media_url),
-            <div style={{ position: 'relative', width: '100%', borderRadius: 12, marginBottom: 16, overflow: 'hidden' }}>
-              <img src={post.media_url} alt="Post media" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>Attached File</p>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>Attachment</p>
+              </div>
+              <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              </a>
             </div>
           )}
 

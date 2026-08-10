@@ -10,10 +10,9 @@ import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunitie
 const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
 const ICONS = ['📐', '⚡', '💻', '🧪', '📚'];
 
-// ── File type icon helper ─────────────────────────────────────────────────────
 function FileIcon({ type }: { type: string }) {
-  const colors: Record<string, string> = { pdf: '#EF4444', doc: '#3B82F6', image: '#F59E0B' };
-  const labels: Record<string, string> = { pdf: 'PDF', doc: 'DOC', image: 'IMG' };
+  const colors: Record<string, string> = { pdf: '#EF4444', doc: '#3B82F6', image: '#F59E0B', video: '#8B5CF6', document: '#10B981', announcement: '#6B7280' };
+  const labels: Record<string, string> = { pdf: 'PDF', doc: 'DOC', image: 'IMG', video: 'VID', document: 'FILE', announcement: 'ATCH' };
   const c = colors[type] || '#6B7280';
   return (
     <div style={{ width: 42, height: 42, borderRadius: 10, background: `${c}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -100,8 +99,8 @@ export default function TutorCommunityDetailPage() {
         });
         setDiscussions(fetchedPosts);
 
-        // Populate files tab from posts that are not text
-        setFiles(fetchedPosts.filter((p: any) => p.type !== 'text' && p.type !== 'poll').map((p: any) => ({
+        // Populate files tab from posts that have an attachment
+        setFiles(fetchedPosts.filter((p: any) => !!p.media_url).map((p: any) => ({
           id: p.id,
           name: p.mediaName || 'File',
           type: p.type,
@@ -188,7 +187,8 @@ export default function TutorCommunityDetailPage() {
           replies: 0,
           pinned: false,
           isTutor: true,
-          type: postType,
+          type: p.type || postType,
+          media_url: p.media_url,
           mediaName: attachedFile ? attachedFile.name : '',
           size: 'Unknown',
           pollOptions: pollOptionsData
@@ -485,38 +485,51 @@ export default function TutorCommunityDetailPage() {
                     </div>
                   )}
 
-                  {post.type === 'image' && (
-                    console.log("photo type eka :", post.type, post.media_url),
+                  {post.type === 'image' && post.media_url && (
                     <div style={{ marginBottom: 16, padding: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12 }}>
-                      <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />
+                        <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12 }} />
                         <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
-                        <p style={{ color: '#6B7280', fontSize: 12 }}>Image</p>
+                        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            Download Image
+                          </a>
+                        </div>
                       </div>
-                      <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600 }}>
-                        Download
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                      </a>
                     </div>
                   )}
 
-                  {post.type === 'announcement' && (
+                  {['document', 'pdf', 'doc'].includes(post.type) && post.media_url && (
                     <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                      {/* Render image if media_url exists */}
-                      {post.media_url && (
-                        <div style={{ marginBottom: 12, textAlign: 'center' }}>
-                          <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 8 }} />
-                        </div>
-                      )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                         </div>
-                        <div>
-                          <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
-                          <p style={{ color: '#6B7280', fontSize: 12 }}>{post.media_url ? 'Image' : 'PDF'}</p>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached Document'}</p>
+                          <p style={{ color: '#6B7280', fontSize: 12, textTransform: 'uppercase' }}>{post.type}</p>
                         </div>
+                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#3B82F6', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {post.type === 'announcement' && post.media_url && (
+                    <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached File'}</p>
+                          <p style={{ color: '#6B7280', fontSize: 12 }}>Attachment</p>
+                        </div>
+                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#4F46E5', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                          Download
+                        </a>
                       </div>
                     </div>
                   )}
