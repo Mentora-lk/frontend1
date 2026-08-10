@@ -66,7 +66,7 @@ export default function MyClassesPage() {
   });
 
   return (
-    <TutorDashboardLayout title="My Classes" subtitle="All the classes you teach on Mentora.lk.">
+    <TutorDashboardLayout title="Dashboard" subtitle="All the classes you teach on Mentora.lk.">
       <style>{`
         .cls-card{transition:all 0.25s cubic-bezier(.22,1,.36,1);} .cls-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,0.12)!important;}
         .filter-tab{padding:7px 18px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
