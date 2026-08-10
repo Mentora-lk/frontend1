@@ -1,36 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-
-const POSTS = [
-  { id: 5, type: 'video', author: 'Kasun Fernando', avatar: 'K', color: '#3B82F6', role: 'Tutor', time: '2 hours ago', content: 'Seminar Recording: Vectors Part 1. Make sure to watch this before the weekend quiz!', videoDuration: '1h 45m', likes: 120, comments: 34, liked: false },
-  { id: 6, type: 'pdf', author: 'Dr. Aris', avatar: 'A', color: '#0F766E', role: 'Tutor', time: 'Pinned • 2 days ago', content: 'Welcome everyone to the Advanced Physics community! Here you\'ll find all the lecture recordings, extra reading materials, and weekly assignments. Feel free to ask questions anytime.', fileName: 'Course Syllabus 2024.pdf', fileSize: '1.2 MB', likes: 124, comments: 12, liked: false },
-];
-
-const ACTIVE_COMMUNITIES = [
-  { id: 101, name: 'Advanced Physics', activeStudents: 42, topics: 12, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v7.31" /><path d="M14 9.3V1.99" /><path d="M8.5 2h7" /><path d="M14 9.3a6.5 6.5 0 1 1-4 0" /><path d="M5.52 16h12.96" /></svg> },
-  { id: 102, name: 'ICT Fundamentals', activeStudents: 15, topics: 5, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" /><line x1="21.17" y1="8" x2="12" y2="8" /><line x1="3.95" y1="6.06" x2="8.54" y2="14" /><line x1="10.88" y1="21.94" x2="15.46" y2="14" /></svg> },
-  { id: 103, name: 'Applied Mathematics', activeStudents: 89, topics: 34, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3" /><path d="M9 20h6" /><path d="M12 4v16" /></svg> },
-];
-
-const COMMUNITIES = [
-  { id: 1, name: 'A/L Physics 2025', tutor: 'Amila Silva', members: '1.2k', tags: ['Physics', 'A/L', 'Science'], color: '#8B5CF6' },
-  { id: 2, name: 'Combined Maths Masters', tutor: 'Kasun Fernando', members: '850', tags: ['Maths', 'A/L'], color: '#3B82F6' },
-  { id: 3, name: 'O/L ICT Warriors', tutor: 'Nishantha Perera', members: '2.1k', tags: ['ICT', 'O/L', 'Technology'], color: '#10B981' },
-  { id: 4, name: 'Web Dev Basics', tutor: 'Ruwan Kumara', members: '430', tags: ['Technology', 'Design'], color: '#EC4899' },
-  { id: 5, name: 'Backend Masters', tutor: 'Supun Silva', members: '320', tags: ['Technology', 'Backend'], color: '#F59E0B' },
-];
-
-const DEADLINES = [
-  { id: 1, title: 'Physics Vectors Quiz', date: 'Oct 15, 2024', time: '08:00 PM', color: '#EF4444' },
-  { id: 2, title: 'Maths Integration Assignment', date: 'Oct 18, 2024', time: '11:59 PM', color: '#F59E0B' },
-];
+import { discoverCommunities, getMyClasses, getMyDeadlines, getCommunityFeed, requestCommunityAccess, togglePostReaction } from '@/services/studentCommunityService';
 
 const ALL_TAGS = ['All', 'Physics', 'Maths', 'ICT', 'Technology', 'Design', 'Backend', 'Science'];
 
 export default function StudentCommunityPage() {
-  const [posts, setPosts] = useState(POSTS);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [activeCommunities, setActiveCommunities] = useState<any[]>([]);
+  const [deadlines, setDeadlines] = useState<any[]>([]);
 
   // Discover state
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,15 +24,64 @@ export default function StudentCommunityPage() {
   // Modal state
   const [pendingCommunities, setPendingCommunities] = useState<number[]>([]);
 
-  const toggleLike = (id: number) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p));
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedActiveCommunity) {
+      loadCommunityFeed(selectedActiveCommunity.id);
+    }
+  }, [selectedActiveCommunity]);
+
+  const loadInitialData = async () => {
+    try {
+      const [discRes, classesRes, deadRes] = await Promise.all([
+        discoverCommunities(),
+        getMyClasses(),
+        getMyDeadlines()
+      ]);
+      if (discRes) setCommunities(discRes);
+      if (classesRes) setActiveCommunities(classesRes);
+      if (deadRes) setDeadlines(deadRes);
+    } catch (err) {
+      console.error("Failed to load community data", err);
+    }
+  };
+
+  const loadCommunityFeed = async (communityId: string | number) => {
+    try {
+      const res = await getCommunityFeed(communityId);
+      if (res) setPosts(res);
+    } catch (err) {
+      console.error("Failed to load community feed", err);
+    }
   };
 
 
+  const toggleLike = async (id: number) => {
+    try {
+      const res = await togglePostReaction(id);
+      if (res) {
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, has_reacted: res.reacted, reaction_count: res.reactionCount } : p));
+      }
+    } catch (err) {
+      console.error("Failed to toggle reaction", err);
+    }
+  };
 
-  const filteredCommunities = COMMUNITIES.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.tutor.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedTag === 'All' || c.tags.includes(selectedTag);
+  const handleRequestAccess = async (id: number) => {
+    try {
+      await requestCommunityAccess(id);
+      setPendingCommunities(prev => [...prev, id]);
+    } catch (err) {
+      console.error("Failed to request access", err);
+    }
+  };
+
+  const filteredCommunities = communities.filter(c => {
+    const matchesSearch = c.name?.toLowerCase().includes(searchQuery.toLowerCase()) || c.tutor_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag = selectedTag === 'All' || (c.tags && c.tags.includes(selectedTag));
     return matchesSearch && matchesTag;
   });
 
@@ -62,21 +91,21 @@ export default function StudentCommunityPage() {
         <div key={post.id} className="post-card" style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 16px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${post.color}20`, color: post.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17, flexShrink: 0 }}>
-                {post.avatar}
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: `#3B82F620`, color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17, flexShrink: 0, overflow: 'hidden' }}>
+                {post.author_avatar ? <img src={post.author_avatar} alt={post.author_name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : post.author_name?.charAt(0)}
               </div>
               <div>
                 <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>
-                  {post.author}
+                  {post.author_name}
                   {post.role === 'Tutor' && <span style={{ marginLeft: 6, color: '#4B5563', fontSize: 13, fontWeight: 600 }}>(Lead Tutor)</span>}
                 </p>
                 <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {post.role === 'Tutor' && post.time.includes('Pinned') && (
+                  {post.is_pinned && (
                     <span style={{ color: '#0F766E', display: 'flex' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="#0F766E" stroke="#0F766E" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                     </span>
                   )}
-                  {post.time}
+                  {new Date(post.created_at).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -92,40 +121,44 @@ export default function StudentCommunityPage() {
           <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 16 }}>{post.content}</p>
 
           {/* Media Content */}
-          {post.type === 'video' && (
+          {post.type === 'announcement' && post.media_url && (
             <div style={{ position: 'relative', width: '100%', height: 240, background: '#111827', borderRadius: 12, marginBottom: 16, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(45deg, rgba(59,130,246,0.2), rgba(16,185,129,0.2))' }} />
-              <button style={{ width: 60, height: 60, borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', zIndex: 1, transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#111827" stroke="#111827" strokeWidth="2" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-              </button>
-              <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.7)', color: 'white', padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>{post.videoDuration}</div>
+              <video src={post.media_url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 
-          {post.type === 'pdf' && (
+          {post.type === 'announcement' && post.media_url && (
+                        console.log('Rendering image post with media URL:', post.type, post.media_url),
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>{post.fileName}</p>
-                <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>PDF • {post.fileSize}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>Attached Document</p>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>PDF</p>
               </div>
-              <button style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
+              <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-              </button>
+              </a>
+            </div>
+          )}
+          {/* nisiya */}
+          {post.type === 'announcement' && post.media_url && (
+            console.log('Rendering image post with media URL:', post.type, post.media_url),
+            <div style={{ position: 'relative', width: '100%', borderRadius: 12, marginBottom: 16, overflow: 'hidden' }}>
+              <img src={post.media_url} alt="Post media" style={{ width: '100%', height: 'auto', display: 'block' }} />
             </div>
           )}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 4, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
-            <button className="like-btn" onClick={() => toggleLike(post.id)} style={{ color: post.liked ? '#EF4444' : '#6B7280' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={post.liked ? '#EF4444' : 'none'} stroke={post.liked ? '#EF4444' : '#6B7280'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-              {post.likes}
+            <button className="like-btn" onClick={() => toggleLike(post.id)} style={{ color: post.has_reacted ? '#EF4444' : '#6B7280' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={post.has_reacted ? '#EF4444' : 'none'} stroke={post.has_reacted ? '#EF4444' : '#6B7280'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+              {post.reaction_count || 0}
             </button>
             <button className="like-btn" style={{ color: '#6B7280' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-              {post.comments}
+              Reply
             </button>
           </div>
         </div>
@@ -149,7 +182,6 @@ export default function StudentCommunityPage() {
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', paddingTop: 24 }}>
         {/* Main Content Area */}
         <div style={{ flex: 1, minWidth: 0 }}>
-
           {selectedActiveCommunity ? (
             <>
               {/* Community Detail Header */}
@@ -163,7 +195,7 @@ export default function StudentCommunityPage() {
                       </span>
                     )}
                   </h2>
-                  <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>{selectedActiveCommunity.activeStudents} Students active • {selectedActiveCommunity.topics} Topics discussed</p>
+                  <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>{selectedActiveCommunity.member_count || 0} Students active • Tutor: {selectedActiveCommunity.tutor_name}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
                   <button onClick={() => setSelectedActiveCommunity(null)} style={{ background: '#ECFDF5', color: '#0F766E', border: '1px solid #CCFBF1', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>Discover Communities</button>
@@ -224,16 +256,16 @@ export default function StudentCommunityPage() {
                 {filteredCommunities.map(c => (
                   <div key={c.id} className="post-card" style={{ background: 'white', borderRadius: 20, padding: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 12, background: `${c.color}15`, color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 20, flexShrink: 0 }}>
-                        {c.name.charAt(0)}
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: `#8B5CF615`, color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 20, flexShrink: 0, overflow: 'hidden' }}>
+                        {c.tutor_avatar ? <img src={c.tutor_avatar} alt={c.tutor_name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : c.name.charAt(0)}
                       </div>
                       <div>
                         <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 4px 0' }}>{c.name}</h4>
-                        <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>{c.tutor} • {c.members} members</p>
+                        <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>{c.tutor_name} • {c.member_count || 0} members</p>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
-                      {c.tags.map(tag => (
+                      {c.tags?.map((tag: string) => (
                         <span key={tag} style={{ background: '#F3F4F6', color: '#4B5563', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{tag}</span>
                       ))}
                     </div>
@@ -258,7 +290,7 @@ export default function StudentCommunityPage() {
                         </div>
                       ) : (
                         <button
-                          onClick={() => setPendingCommunities(prev => [...prev, c.id])}
+                          onClick={() => handleRequestAccess(c.id)}
                           style={{ width: '100%', background: 'white', border: '1.5px solid #10B981', color: '#10B981', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}
                           onMouseOver={e => { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; }}
                           onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#10B981'; }}
@@ -282,11 +314,11 @@ export default function StudentCommunityPage() {
           <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>
             <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Active Communities</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {ACTIVE_COMMUNITIES.map(ac => {
+              {activeCommunities.map(ac => {
                 const isActive = selectedActiveCommunity?.id === ac.id;
                 return (
                   <button key={ac.id} onClick={() => setSelectedActiveCommunity(ac)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? '#E0F2FE' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#0F766E' : '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB' }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
-                    {ac.icon}
+                    <div style={{ width: 18, height: 18, borderRadius: 4, background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 10, fontWeight: 'bold' }}>{ac.name.charAt(0)}</div>
                     {ac.name}
                   </button>
                 );
@@ -301,12 +333,13 @@ export default function StudentCommunityPage() {
               Upcoming Deadlines
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {DEADLINES.map(d => (
+              {deadlines.map(d => (
                 <div key={d.id} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
-                  <div style={{ width: 4, background: d.color, borderRadius: 2 }} />
+                  <div style={{ width: 4, background: '#EF4444', borderRadius: 2 }} />
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>{d.title}</p>
-                    <p style={{ fontSize: 12, color: '#6B7280' }}>{d.date} at {d.time}</p>
+                    <p style={{ fontSize: 12, color: '#6B7280' }}>{new Date(d.due_date).toLocaleString()}</p>
+                    <p style={{ fontSize: 11, color: '#10B981', marginTop: 4 }}>{d.community_name}</p>
                   </div>
                 </div>
               ))}
