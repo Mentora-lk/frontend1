@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { adminSignup } from '@/services/adminApi';
 
 export default function AdminSignupPage() {
   const router = useRouter();
@@ -42,11 +43,17 @@ export default function AdminSignupPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setAdminRoleCookie();
-      setLoading(false);
-      router.push('/dashboard/admin');
-    }, 1500);
+    adminSignup(form.fullName, form.email, form.password, form.adminCode)
+      .then(() => {
+        setAdminRoleCookie();
+        router.push('/dashboard/admin');
+      })
+      .catch((err: any) => {
+        setError(err.response?.data?.message || 'Signup failed. Please try again.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }
 
   return (

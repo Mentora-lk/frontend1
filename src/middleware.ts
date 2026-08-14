@@ -12,13 +12,10 @@ const PUBLIC_ROUTES = [
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  // Allow dedicated admin auth page before dashboard role checks.
-  if (
-    pathname === "/dashboard/admin/auth" ||
-    pathname.startsWith("/dashboard/admin/auth/") ||
-    pathname === "/dashboard/admin/signup" ||
-    pathname.startsWith("/dashboard/admin/signup/")
-  ) {
+  const isAdminAuthRoute = pathname === "/dashboard/admin/auth" || pathname.startsWith("/dashboard/admin/auth/");
+  const isAdminSignupRoute = pathname === "/dashboard/admin/signup" || pathname.startsWith("/dashboard/admin/signup/");
+
+  if (isAdminAuthRoute || isAdminSignupRoute) {
     return NextResponse.next();
   }
 

@@ -140,8 +140,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const cookies = document.cookie.split(';');
     const roleCookie = cookies.find(c => c.trim().startsWith('user_role='));
     const role = roleCookie?.split('=')[1]?.trim();
+    const adminToken = window.localStorage.getItem('adminToken');
 
-    if (role !== 'admin') {
+    if (role !== 'admin' || !adminToken) {
       window.location.replace('/dashboard/admin/auth');
     } else {
       setAuthorized(true);
