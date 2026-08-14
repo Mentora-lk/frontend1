@@ -239,8 +239,7 @@ export default function TutorDashboard() {
               <Link href="/dashboard/tutor/requests"><span style={{ fontSize:12, color:'#10B981', fontWeight:600, cursor:'pointer' }}>View all</span></Link>
             </div>
             {RECENT_REQUESTS.map((r, i) => (
-              <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom: i < RECENT_REQUESTS.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-                <div style={{ width:36, height:36, borderRadius:'50%', background:`${r.color}20`, color:r.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:14, flexShrink:0 }}>{r.avatar}</div>
+              <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom: i < RECENT_REQUESTS.length - 1 ? '1px solid #F3F4F6' : 'none' }}                <div style={{ width:36, height:36, borderRadius:'50%', background:`${r.color}20`, color:r.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:14, flexShrink:0 }}>{r.avatar}</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:13, fontWeight:600, color:'#111827', marginBottom:1 }}>{r.name}</p>
                   <p style={{ fontSize:11, color:'#9CA3AF' }}>{r.subject}</p>
