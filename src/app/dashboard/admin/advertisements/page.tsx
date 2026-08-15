@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getAds, updateAdStatus } from '@/services/adminApi';
 import { pendingAds } from '@/data/adminData';
+import Spinner from '@/components/ui/Spinner';
 
 function MetricCard({ title, value, detail, accent = '#0f766e' }: { title: string; value: string; detail?: string; accent?: string }) {
   return (
@@ -109,8 +110,8 @@ export default function AdvertisementsPage() {
 
       {/* Ad cards */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 48, color: '#9CA3AF' }}>Loading advertisements...</div>
-      ) : ads.length === 0 ? (
+       <div style={{ textAlign: 'center', padding: 48 }}><Spinner size={30} /></div>
+        ) : ads.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 48, color: '#9CA3AF' }}>No advertisements found.</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 16 }}>
