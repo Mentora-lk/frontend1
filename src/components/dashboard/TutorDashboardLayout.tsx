@@ -1,13 +1,31 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TutorSidebar from './TutorSidebar';
+import { tutorService } from '@/services/tutorService';
 
 export default function TutorDashboardLayout({ children, title, subtitle }: {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
 }) {
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await tutorService.getProfile();
+        setProfile(data);
+      } catch (err) {
+        console.error("Failed to fetch profile in layout", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const displayName = profile?.name || 'Tutor';
+  const displayInitial = displayName.charAt(0).toUpperCase();
   return (
     <>
       <style>{`
@@ -46,9 +64,9 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
             </div>
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>K</div>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{displayInitial}</div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>Kasun Fernando</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>{displayName}</p>
                 <p style={{ fontSize: 11, color: '#9CA3AF' }}>Tutor</p>
               </div>
             </div>
@@ -59,7 +77,7 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
       {/* Body */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '88px 5% 48px' }}>
         <div className="dash-layout" style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
-          <TutorSidebar />
+          <TutorSidebar profile={profile} />
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Page header */}
             <div className="fade-up" style={{ marginBottom: 28 }}>

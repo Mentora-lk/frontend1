@@ -6,11 +6,13 @@ import {
   getInputStyle,
   getSelectStyle,
   getStaticInputStyle,
-  cardStyle,
-  cardLightStyle,
-  fileUploadAreaStyle,
+  formContainerStyle,
+  formGridStyle,
+  getPrimaryButtonStyle,
   handleButtonHoverEnter,
   handleButtonHoverLeave,
+  handleLinkHoverEnter,
+  handleLinkHoverLeave,
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
 
@@ -324,44 +326,37 @@ export default function TutorRegistration() {
 
       {/* Step 1: About */}
       {currentStep === 1 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Full Name
-            </label>
+        <form style={formContainerStyle}>
+          <input
+            type="text"
+            name="fullName"
+            value={formData.fullName}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("fullName")}
+            onBlur={() => setHoveredField(null)}
+            placeholder="Full Name"
+            style={getInputStyle(hoveredField, "fullName")}
+            required
+          />
+
+          <div style={formGridStyle(2)}>
             <input
               type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("fullName")}
-              onBlur={() => setHoveredField(null)}
-              placeholder="Legal name"
-              style={getInputStyle(hoveredField, "fullName")}
-              required
-            />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Date of Birth
-            </label>
-            <input
-              type="date"
               name="dateOfBirth"
               value={formData.dateOfBirth}
               onChange={handleInputChange}
-              onFocus={() => setHoveredField("dateOfBirth")}
-              onBlur={() => setHoveredField(null)}
+              onFocus={(e) => {
+                setHoveredField("dateOfBirth");
+                e.target.type = "date";
+              }}
+              onBlur={(e) => {
+                setHoveredField(null);
+                if (!e.target.value) e.target.type = "text";
+              }}
+              placeholder="Date of Birth"
               style={getInputStyle(hoveredField, "dateOfBirth")}
               required
             />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Gender
-            </label>
             <select
               name="gender"
               value={formData.gender}
@@ -371,7 +366,7 @@ export default function TutorRegistration() {
               style={getSelectStyle(hoveredField, "gender", !!formData.gender)}
               required
             >
-              <option value="">Select gender</option>
+              <option value="">Select Gender</option>
               {genders.map((g) => (
                 <option key={g} value={g}>
                   {g}
@@ -380,10 +375,7 @@ export default function TutorRegistration() {
             </select>
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              City
-            </label>
+          <div style={formGridStyle(2)}>
             <input
               type="text"
               name="city"
@@ -391,16 +383,10 @@ export default function TutorRegistration() {
               onChange={handleInputChange}
               onFocus={() => setHoveredField("city")}
               onBlur={() => setHoveredField(null)}
-              placeholder="Current city"
+              placeholder="City"
               style={getInputStyle(hoveredField, "city")}
               required
             />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Email
-            </label>
             <input
               type="email"
               name="email"
@@ -408,70 +394,54 @@ export default function TutorRegistration() {
               onChange={handleInputChange}
               onFocus={() => setHoveredField("email")}
               onBlur={() => setHoveredField(null)}
-              placeholder="Contact email"
+              placeholder="Email Address"
               style={getInputStyle(hoveredField, "email")}
               required
             />
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Address
-            </label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("address")}
+            onBlur={() => setHoveredField(null)}
+            placeholder="Full Residential Address"
+            style={getInputStyle(hoveredField, "address")}
+            required
+          />
+
+          <div style={formGridStyle(2)}>
             <input
-              type="text"
-              name="address"
-              value={formData.address}
+              type="password"
+              name="password"
+              value={formData.password}
               onChange={handleInputChange}
-              onFocus={() => setHoveredField("address")}
+              onFocus={() => setHoveredField("password")}
               onBlur={() => setHoveredField(null)}
-              placeholder="Full residential address"
-              style={getInputStyle(hoveredField, "address")}
+              placeholder="Password"
+              style={getInputStyle(hoveredField, "password")}
               required
             />
-          </div>
-
-          {/* Password Fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div>
-              <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                onFocus={() => setHoveredField("password")}
-                onBlur={() => setHoveredField(null)}
-                placeholder="Create a password"
-                style={getInputStyle(hoveredField, "password")}
-                required
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                onFocus={() => setHoveredField("confirmPassword")}
-                onBlur={() => setHoveredField(null)}
-                placeholder="Confirm password"
-                style={getInputStyle(hoveredField, "confirmPassword")}
-                required
-              />
-            </div>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              onFocus={() => setHoveredField("confirmPassword")}
+              onBlur={() => setHoveredField(null)}
+              placeholder="Confirm Password"
+              style={getInputStyle(hoveredField, "confirmPassword")}
+              required
+            />
           </div>
         </form>
       )}
 
       {/* Step 2: Pictures & Media */}
       {currentStep === 2 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <form style={formContainerStyle}>
           <div>
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
               Profile Picture (JPG, PNG - Min 400x400px)
@@ -570,7 +540,7 @@ export default function TutorRegistration() {
 
       {/* Step 3: Education */}
       {currentStep === 3 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <form style={formContainerStyle}>
           <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
             <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
               Add Qualification
@@ -686,41 +656,27 @@ export default function TutorRegistration() {
 
       {/* Step 4: Teaching Profile */}
       {currentStep === 4 && (
-        <form style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Subjects You Teach
-            </label>
-            <input
-              type="text"
-              name="subjects"
-              value={formData.subjects}
-              onChange={handleInputChange}
-              placeholder="e.g., Mathematics, Physics, Chemistry"
-              style={getInputStyle(hoveredField, "subjects")}
-              required
-            />
-          </div>
+        <form style={formContainerStyle}>
+          <input
+            type="text"
+            name="subjects"
+            value={formData.subjects}
+            onChange={handleInputChange}
+            placeholder="Subjects You Teach (e.g., Mathematics, Physics)"
+            style={getInputStyle(hoveredField, "subjects")}
+            required
+          />
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Grade Range
-            </label>
+          <div style={formGridStyle(2)}>
             <input
               type="text"
               name="gradeRange"
               value={formData.gradeRange}
               onChange={handleInputChange}
-              placeholder="e.g., Grade 10-13"
+              placeholder="Grade Range (e.g., Grade 10-13)"
               style={getInputStyle(hoveredField, "gradeRange")}
               required
             />
-          </div>
-
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Level
-            </label>
             <select
               name="level"
               value={formData.level}
@@ -739,27 +695,22 @@ export default function TutorRegistration() {
             </select>
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-              Medium of Instruction
-            </label>
-            <select
-              name="medium"
-              value={formData.medium}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("medium")}
-              onBlur={() => setHoveredField(null)}
-              style={getSelectStyle(hoveredField, "medium", !!formData.medium)}
-              required
-            >
-              <option value="">Select Medium</option>
-              {mediums.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            name="medium"
+            value={formData.medium}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("medium")}
+            onBlur={() => setHoveredField(null)}
+            style={getSelectStyle(hoveredField, "medium", !!formData.medium)}
+            required
+          >
+            <option value="">Select Medium</option>
+            {mediums.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
 
           <div>
             <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
@@ -1004,53 +955,57 @@ export default function TutorRegistration() {
 
         {currentStep < 4 ? (
           <button
+            type="button"
             onClick={() => {
               if (canProceedToNextStep()) {
                 setCurrentStep(currentStep + 1);
               }
             }}
             disabled={!canProceedToNextStep()}
-            style={{
-              padding: "12px 24px",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "white",
-              background:
-                canProceedToNextStep()
-                  ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                  : "#d1d5db",
-              border: "none",
-              borderRadius: 10,
-              cursor: canProceedToNextStep() ? "pointer" : "not-allowed",
-              transition: "all 0.2s ease",
-            }}
+            style={getPrimaryButtonStyle(!canProceedToNextStep())}
+            onMouseEnter={(e) => canProceedToNextStep() && handleButtonHoverEnter(e, true)}
+            onMouseLeave={(e) => canProceedToNextStep() && handleButtonHoverLeave(e, true)}
           >
             Next →
           </button>
         ) : (
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={isLoading}
-            style={{
-              padding: "12px 24px",
-              fontSize: 14,
-              fontWeight: 700,
-              color: "white",
-              background: isLoading
-                ? "#d1d5db"
-                : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-              border: "none",
-              borderRadius: 10,
-              cursor: isLoading ? "not-allowed" : "pointer",
-              transition: "all 0.2s ease",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
+            style={getPrimaryButtonStyle(isLoading)}
+            onMouseEnter={(e) => !isLoading && handleButtonHoverEnter(e, true)}
+            onMouseLeave={(e) => !isLoading && handleButtonHoverLeave(e, true)}
           >
             {isLoading ? "Completing Registration..." : "Complete Registration"}
           </button>
         )}
       </div>
+
+      {/* Login Link */}
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: 14,
+          color: "#6b7280",
+          margin: "12px 0 0",
+        }}
+      >
+        Already have an account?{" "}
+        <a
+          href="/auth/login"
+          style={{
+            color: "#10b981",
+            textDecoration: "none",
+            fontWeight: 600,
+            transition: "color 0.2s ease",
+          }}
+          onMouseEnter={handleLinkHoverEnter}
+          onMouseLeave={handleLinkHoverLeave}
+        >
+          Sign in
+        </a>
+      </p>
     </div>
   );
 }

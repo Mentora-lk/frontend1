@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
+import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
 
 type MyClassStatus = 'active' | 'requested' | 'approved';
 type MyClassMode = 'online' | 'offline' | 'both';
@@ -24,7 +25,7 @@ type MyClass = {
   image: string;
 };
 
-function MyClassCard({ cls, view }: { cls: MyClass; view: 'grid' | 'list' }) {
+function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void }) {
   const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
   const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
 
@@ -210,9 +211,6 @@ export default function StudentDashboard() {
   // These now calculated from real backend data
   const activeClasses  = classes.filter(c => c.status === 'active');
   const pendingClasses  = classes.filter(c => c.status === 'requested');
-  const totalSpend      = classes
-    .filter(c => ['active','approved'].includes(c.status))
-    .reduce((s, c) => s + Number(c.fee || 0), 0);
 
   // Filter by search query on the frontend (status filter is done by backend)
   const filtered = classes.filter(c => {
@@ -326,7 +324,7 @@ export default function StudentDashboard() {
                 { label: 'Total Classes',    value: classes.length,        icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
                 { label: 'Active Classes',   value: activeClasses.length,  icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
                 { label: 'Pending Approval', value: pendingClasses.length, icon: '⏳', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', shadow: 'rgba(245,158,11,0.1)'  },
-                { label: 'Monthly Spend',    value: `LKR ${totalSpend.toLocaleString()}`, icon: '💰', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', shadow: 'rgba(59,130,246,0.1)' },
+
               ].map((s, i) => (
                 <div key={i} className="stat-card" style={{ boxShadow: `0 4px 20px ${s.shadow}`, border: `1px solid ${s.border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

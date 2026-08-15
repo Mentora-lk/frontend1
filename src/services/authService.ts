@@ -47,13 +47,9 @@ export interface StudentDashboardResponse {
 }
 
 export interface TutorDashboardResponse {
-  tutorId: string;
-  name: string;
-  email: string;
   classes: any[];
-  students: any[];
-  earnings: number;
-  rating: number;
+  recentRequests: any[];
+  upcomingSessions: any[];
 }
 
 export const authService = {
@@ -97,7 +93,7 @@ export const authService = {
 
   async getTutorDashboard(): Promise<TutorDashboardResponse> {
     const token = localStorage.getItem("token");
-    return apiCall<TutorDashboardResponse>("/api/auth/tutor-dashboard", {
+    return apiCall<TutorDashboardResponse>("/api/tutors/dashboard", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

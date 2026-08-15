@@ -23,7 +23,7 @@ export const submitEnrollment = async (data: EnrollmentData) => {
 // GET /api/enrollments/me — get my enrolled classes
 export const getMyEnrollments = async (status?: string) => {
   const params = status && status !== 'all' ? { status } : {};
-  const { data } = await api.get('/enrollments/me', { params });
+  const { data } = await api.get('/enrollments/mine', { params });
   return data;
 };
 
@@ -35,6 +35,6 @@ export const cancelEnrollment = async (enrollmentId: number) => {
 
 // GET /api/enrollments/me/schedule — get my schedule
 export const getMySchedule = async () => {
-  const { data } = await api.get('/enrollments/me/schedule');
+  const { data } = await api.get('/enrollments/schedule');
   return data;
 };

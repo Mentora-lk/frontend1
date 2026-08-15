@@ -83,9 +83,9 @@ export default function EnrollPage() {
   const id     = Number(params?.id);
 
   // Course data from backend
-  const [course,   setCourse]   = useState<any>(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState('');
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Submission state
   const [submitting, setSubmitting] = useState(false);
@@ -93,6 +93,18 @@ export default function EnrollPage() {
 
   // Step state
   const [step, setStep] = useState(1);
+  const [dashboardLink, setDashboardLink] = useState('/dashboard/student');
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.role === 'tutor') setDashboardLink('/dashboard/tutor');
+        if (user.role === 'admin') setDashboardLink('/dashboard/admin');
+      }
+    } catch (e) {}
+  }, []);
 
   // Step 1 state
   const [fullName, setFullName] = useState('');
@@ -137,6 +149,19 @@ export default function EnrollPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   useEffect(() => { window.scrollTo({ top:0, behavior:'smooth' }); }, [step]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#F4F6F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ width:40, height:40, border:'4px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+    );
+  }
+
+  if (!course) return <div style={{ padding: 100, textAlign: 'center' }}>Course not found</div>;
+
+  const tutor = course.tutor;
 
   const focus = (e: React.FocusEvent<any>) => { e.target.style.borderColor='#10B981'; e.target.style.boxShadow='0 0 0 3px rgba(16,185,129,0.12)'; };
   const blur  = (e: React.FocusEvent<any>, hasErr: boolean) => { e.target.style.borderColor=hasErr?'#FCA5A5':'#E5E7EB'; e.target.style.boxShadow='none'; };
@@ -535,7 +560,7 @@ export default function EnrollPage() {
                 </div>
 
                 <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-                  <Link href="/dashboard/student">
+                  <Link href={dashboardLink}>
                     <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:13, padding:'13px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 22px rgba(16,185,129,0.38)', transition:'all 0.25s' }}
                       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';}}
                       onMouseLeave={e=>{e.currentTarget.style.transform='none';}}>View My Classes →</button>

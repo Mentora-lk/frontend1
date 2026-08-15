@@ -1,125 +1,283 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
+import { getCommunities, getPendingRequests, updateRequestStatus, createCommunity } from '@/services/tutorCommunityService';
 
-const POSTS = [
-  { id:1, author:'Dilshan Perera', avatar:'D', color:'#8B5CF6', role:'Tutor · Physics', time:'2 hours ago', content:'Just finished a productive A/L Physics session! My students are making great progress. Remember: practice makes perfect. 💪 #ALPhysics #TutorLife', likes:24, comments:5, liked:false },
-  { id:2, author:'Amali Wickrama', avatar:'A', color:'#10B981', role:'Tutor · Biology', time:'5 hours ago', content:'Sharing my free revision notes for A/L Biology — Cell Division chapter. Hope this helps all my students! Feel free to share. 📚 Download link in comments.', likes:67, comments:18, liked:false },
-  { id:3, author:'Ruwan Jayasena', avatar:'R', color:'#F59E0B', role:'Tutor · Mathematics', time:'1 day ago', content:'Quick tip for Integration by Parts: Always use the LIATE rule (Logarithmic, Inverse trig, Algebraic, Trig, Exponential) to pick your u. Works every time! 🧮', likes:112, comments:34, liked:false },
-  { id:4, author:'Shalini Fernando', avatar:'S', color:'#EC4899', role:'Tutor · English', time:'2 days ago', content:'Hosting a FREE webinar on Essay Writing techniques this Saturday at 3 PM. All A/L students are welcome! Drop your email in the comments to register. ✍️', likes:89, comments:41, liked:false },
-];
+// Fallback colors/icons for communities without them in DB
+const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
+const ICONS = ['📐', '⚡', '💻', '🧪', '📚'];
 
-const TUTORS_NEARBY = [
-  { name:'Nimesh Gunawardena', subject:'Chemistry', rating:4.9, avatar:'N', color:'#3B82F6' },
-  { name:'Thilak Samarasinghe', subject:'Physics', rating:4.7, avatar:'T', color:'#8B5CF6' },
-  { name:'Madhavi Rajapaksa', subject:'Biology', rating:4.8, avatar:'M', color:'#EC4899' },
-];
+const ALL_TAGS = ['All', 'Mathematics', 'Physics', 'A/L', 'O/L', 'Science'];
 
-export default function CommunityPage() {
-  const [posts, setPosts] = useState(POSTS);
-  const [newPost, setNewPost] = useState('');
+export default function TutorCommunityPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState('All');
 
-  const toggleLike = (id: number) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p));
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total_students: 0, total_resources: 0, communities_managed: 0 });
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newCommName, setNewCommName] = useState('');
+  const [newCommDesc, setNewCommDesc] = useState('');
+  const [newCommTags, setNewCommTags] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [commRes, reqRes] = await Promise.all([
+        getCommunities(),
+        getPendingRequests()
+      ]);
+
+      if (commRes.status === 'success') {
+        const enrichedCommunities = commRes.data.communities.map((c: any, index: number) => ({
+          ...c,
+          tags: c.tags || [],
+          // Give them consistent colors/icons based on index if not provided by backend
+          color: COLORS[index % COLORS.length],
+          icon: ICONS[index % ICONS.length],
+          members: c.members_count || 0 // if members_count is not provided by getCommunities, it might be 0
+        }));
+        setCommunities(enrichedCommunities);
+        setStats({
+          total_students: commRes.data.stats?.total_students || 0,
+          total_resources: commRes.data.stats?.total_resources || 0,
+          communities_managed: enrichedCommunities.length
+        });
+      }
+
+      if (reqRes.status === 'success') {
+        setPendingRequests(reqRes.data);
+      }
+    } catch (err: any) {
+      console.warn('Expected error fetching data:', err.message || err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const submitPost = () => {
-    if (!newPost.trim()) return;
-    setPosts(prev => [{
-      id: Date.now(), author:'Kasun Fernando', avatar:'K', color:'#10B981',
-      role:'Tutor · Mathematics', time:'Just now', content:newPost.trim(),
-      likes:0, comments:0, liked:false,
-    }, ...prev]);
-    setNewPost('');
+  const handleRequestAction = async (membershipId: number, action: 'approved' | 'declined') => {
+    try {
+      const res = await updateRequestStatus(membershipId, action);
+      if (res.status === 'success') {
+        // Remove from pending list
+        setPendingRequests(prev => prev.filter(r => r.membership_id !== membershipId));
+        // If approved, we could potentially refetch communities to update members count
+        if (action === 'approved') {
+          fetchData();
+        }
+      }
+    } catch (error) {
+      console.error('Error updating request:', error);
+      alert('Failed to update request');
+    }
   };
+
+  const handleCreateCommunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommName.trim()) return;
+    try {
+      const tagsArray = newCommTags.split(',').map(t => t.trim()).filter(Boolean);
+      const res = await createCommunity({
+        name: newCommName,
+        description: newCommDesc,
+        tags: tagsArray
+      });
+      if (res.status === 'success') {
+        setShowCreateModal(false);
+        setNewCommName('');
+        setNewCommDesc('');
+        setNewCommTags('');
+        fetchData(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Error creating community:', error);
+      alert('Failed to create community');
+    }
+  };
+
+  const filteredCommunities = communities.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag = selectedTag === 'All' || c.tags?.includes(selectedTag);
+    return matchesSearch && matchesTag;
+  });
 
   return (
-    <TutorDashboardLayout title="Community" subtitle="Connect and share with fellow tutors on Mentora.lk.">
+    <TutorDashboardLayout title="Community Management" subtitle="Manage your communities and connect with students on Mentora.lk.">
       <style>{`
-        .post-card{transition:all 0.22s;} .post-card:hover{box-shadow:0 8px 32px rgba(0,0,0,0.1)!important;}
-        .like-btn{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:7px 14px;border-radius:9px;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
-        .like-btn:hover{background:#F3F4F6;}
+        .post-card { transition: all 0.22s; } 
+        .post-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1)!important; transform: translateY(-2px); }
+        .tag-btn { background: white; border: 1px solid #E5E7EB; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: #374151; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+        .tag-btn:hover, .tag-btn.active { background: #3B82F6; color: white; border-color: #3B82F6; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 32px; border-radius: 24px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .input-field { width: 100%; padding: 12px 16px; border: 1.5px solid #E5E7EB; border-radius: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; margin-top: 8px; outline: none; transition: border-color 0.2s; }
+        .input-field:focus { border-color: #3B82F6; }
       `}</style>
 
-      <div style={{ display:'flex', gap:24, alignItems:'flex-start' }}>
-
-        {/* Main feed */}
-        <div style={{ flex:1, minWidth:0 }}>
-
-          {/* Create post */}
-          <div style={{ background:'white', borderRadius:20, padding:22, boxShadow:'0 4px 20px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', marginBottom:20 }}>
-            <div style={{ display:'flex', gap:12, marginBottom:12 }}>
-              <div style={{ width:40, height:40, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700, fontSize:16, flexShrink:0 }}>K</div>
-              <textarea
-                value={newPost}
-                onChange={e => setNewPost(e.target.value)}
-                placeholder="Share something with the tutor community..."
-                style={{ flex:1, border:'1.5px solid #E5E7EB', borderRadius:12, padding:'11px 14px', fontSize:14, fontFamily:"'DM Sans',sans-serif", color:'#374151', resize:'none', height:80, outline:'none', lineHeight:1.5 }}
-                onFocus={e => { e.target.style.borderColor='#10B981'; }}
-                onBlur={e  => { e.target.style.borderColor='#E5E7EB'; }}
-              />
-            </div>
-            <div style={{ display:'flex', justifyContent:'flex-end' }}>
-              <button onClick={submitPost} style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:10, padding:'9px 22px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Post</button>
-            </div>
-          </div>
-
-          {/* Posts */}
-          {posts.map(post => (
-            <div key={post.id} className="post-card" style={{ background:'white', borderRadius:20, padding:22, boxShadow:'0 4px 16px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', marginBottom:16 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-                <div style={{ width:44, height:44, borderRadius:'50%', background:`${post.color}20`, color:post.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:17, flexShrink:0 }}>{post.avatar}</div>
-                <div style={{ flex:1 }}>
-                  <p style={{ fontSize:14, fontWeight:700, color:'#111827' }}>{post.author}</p>
-                  <p style={{ fontSize:12, color:'#9CA3AF' }}>{post.role} · {post.time}</p>
-                </div>
+      {/* Create Community Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 8px 0' }}>Create New Community</h2>
+            <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24 }}>Set up a new space for your students to learn and discuss.</p>
+            <form onSubmit={handleCreateCommunity}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Community Name *</label>
+                <input required className="input-field" placeholder="e.g. A/L Physics 2025" value={newCommName} onChange={e => setNewCommName(e.target.value)} />
               </div>
-              <p style={{ fontSize:14, color:'#374151', lineHeight:1.7, marginBottom:16 }}>{post.content}</p>
-              <div style={{ display:'flex', gap:4, paddingTop:12, borderTop:'1px solid #F3F4F6' }}>
-                <button className="like-btn" onClick={() => toggleLike(post.id)} style={{ color: post.liked ? '#EF4444' : '#6B7280' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={post.liked ? '#EF4444' : 'none'} stroke={post.liked ? '#EF4444' : '#6B7280'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                  {post.likes}
-                </button>
-                <button className="like-btn" style={{ color:'#6B7280' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  {post.comments}
-                </button>
-                <button className="like-btn" style={{ color:'#6B7280', marginLeft:'auto' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                  Share
-                </button>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Description</label>
+                <textarea className="input-field" placeholder="What is this community about?" value={newCommDesc} onChange={e => setNewCommDesc(e.target.value)} rows={3} style={{ resize: 'none' }} />
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Right panel */}
-        <div style={{ width:240, flexShrink:0 }}>
-          <div style={{ background:'white', borderRadius:20, padding:22, boxShadow:'0 4px 20px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', marginBottom:16 }}>
-            <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:'#111827', marginBottom:16 }}>Tutors Nearby</h3>
-            {TUTORS_NEARBY.map((t, i) => (
-              <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom: i < TUTORS_NEARBY.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-                <div style={{ width:36, height:36, borderRadius:'50%', background:`${t.color}20`, color:t.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:14, flexShrink:0 }}>{t.avatar}</div>
-                <div style={{ flex:1 }}>
-                  <p style={{ fontSize:13, fontWeight:600, color:'#111827' }}>{t.name}</p>
-                  <p style={{ fontSize:11, color:'#9CA3AF' }}>{t.subject} · ⭐ {t.rating}</p>
-                </div>
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Tags (comma separated)</label>
+                <input className="input-field" placeholder="e.g. Physics, A/L, Mechanics" value={newCommTags} onChange={e => setNewCommTags(e.target.value)} />
               </div>
-            ))}
-          </div>
-
-          <div style={{ background:'linear-gradient(135deg,#064E3B,#065F46)', borderRadius:20, padding:22 }}>
-            <p style={{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:'white', marginBottom:8 }}>Community Stats</p>
-            {[{l:'Active Tutors',v:'1,240'},{l:'Posts Today',v:'38'},{l:'Tips Shared',v:'9.4K'}].map((s,i) => (
-              <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
-                <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)' }}>{s.l}</span>
-                <span style={{ fontSize:13, fontWeight:700, color:'white' }}>{s.v}</span>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowCreateModal(false)} style={{ background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+                <button type="submit" style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Create Community</button>
               </div>
-            ))}
+            </form>
           </div>
         </div>
-      </div>
+      )}
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>Loading...</div>
+      ) : (
+        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {/* Main Content Area */}
+          <div style={{ flex: 1, minWidth: 300 }}>
+
+            {/* Discover Header & Search */}
+            <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>My Communities</h2>
+                <button onClick={() => setShowCreateModal(true)} style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg> Create New
+                </button>
+              </div>
+              <div style={{ position: 'relative', marginBottom: 20 }}>
+                <svg style={{ position: 'absolute', left: 14, top: 13, color: '#9CA3AF' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <input
+                  type="text"
+                  placeholder="Search your communities..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ width: '100%', padding: '12px 16px 12px 44px', border: '1px solid #E5E7EB', borderRadius: 12, fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: 'none', transition: 'border-color 0.2s' }}
+                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                  onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {ALL_TAGS.map(tag => (
+                  <button key={tag} className={`tag-btn ${selectedTag === tag ? 'active' : ''}`} onClick={() => setSelectedTag(tag)}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Communities Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+              {filteredCommunities.length > 0 ? filteredCommunities.map(c => (
+                <Link href={`/dashboard/tutor/community/${c.id}`} key={c.id} style={{ textDecoration: 'none' }}>
+                  <div className="post-card" style={{ background: 'white', borderRadius: 20, padding: 20, boxShadow: '0 4px 16px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: `${c.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
+                        {c.icon}
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: '0 0 4px 0' }}>{c.name}</h4>
+                        {/* <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>{c.members} members</p> */}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+                      {c.tags?.map((tag: string) => (
+                        <span key={tag} style={{ background: '#F3F4F6', color: '#4B5563', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{tag}</span>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 'auto' }}>
+                      <div style={{ width: '100%', background: '#EFF6FF', border: `1px solid #DBEAFE`, color: '#1D4ED8', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+                        Manage Community &rarr;
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )) : (
+                <div style={{ padding: 20, color: '#6B7280', fontSize: 14 }}>No communities found. Click "Create New" to start your first community.</div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Right panel */}
+          <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* My Communities Widget */}
+            <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>
+              <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>My Communities</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {communities.map(ac => {
+                  return (
+                    <Link href={`/dashboard/tutor/community/${ac.id}`} key={ac.id} style={{ textDecoration: 'none' }}>
+                      <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => e.currentTarget.style.background = '#F9FAFB'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                        {ac.icon}
+                        {ac.name}
+                      </button>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pending Requests Widget */}
+            <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+                Student Requests
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pendingRequests.length > 0 ? pendingRequests.map(r => (
+                  <div key={r.membership_id} style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 4, lineHeight: 1.3 }}>{r.student_name}</p>
+                      <p style={{ fontSize: 12, color: '#6B7280' }}>Requested for {r.community_name}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => handleRequestAction(r.membership_id, 'approved')} style={{ flex: 1, background: '#10B981', color: 'white', border: 'none', padding: '6px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Accept</button>
+                      <button onClick={() => handleRequestAction(r.membership_id, 'declined')} style={{ flex: 1, background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '6px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Decline</button>
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{ fontSize: 13, color: '#9CA3AF' }}>No pending requests.</div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>
+              <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 }}>My Community Stats</p>
+              {[{ l: 'Total Students', v: stats.total_students }, { l: 'Communities Managed', v: stats.communities_managed }, { l: 'Resources Shared', v: stats.total_resources }].map((s, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 2 ? '1px dashed #E5E7EB' : 'none' }}>
+                  <span style={{ fontSize: 13, color: '#6B7280' }}>{s.l}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{s.v}</span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      )}
     </TutorDashboardLayout>
   );
 }

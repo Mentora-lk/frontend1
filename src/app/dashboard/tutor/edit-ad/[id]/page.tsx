@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, ChangeEvent, DragEvent } from "react";
+import React, { useState, ChangeEvent, DragEvent, useEffect } from "react";
 import { classService } from "@/services/classService";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 interface FormData {
   name: string;
@@ -29,12 +29,43 @@ const EMPTY_FORM: FormData = {
 const GRADES: string[] = ["A/L", "O/L", "Grade 6-9", "University", "Professional"];
 const MEDIUMS: string[] = ["English", "Sinhala", "Tamil"];
 
-export default function PostAdPage() {
+export default function EditAdPage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        const data = await classService.getCourseById(id);
+        setForm({
+          name: data.title || "",
+          subject: data.subject || "",
+          grade: data.grade || "",
+          medium: data.medium || "",
+          fees: data.fee?.toString() || "",
+          description: data.description || "",
+          schedule: data.schedule || "",
+          banner: null,
+        });
+        if (data.image) setBannerUrl(data.image);
+      } catch (err) {
+        console.error("Failed to fetch course", err);
+        alert("Failed to load course details.");
+        router.push("/dashboard/tutor/my-classes");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchCourse();
+  }, [id, router]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -71,13 +102,11 @@ export default function PostAdPage() {
     setBannerUrl(null);
   };
 
-  const [loading, setLoading] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     try {
-      await classService.createClass({
+      await classService.updateClass(id, {
         title: form.name,
         subject: form.subject,
         grade: form.grade,
@@ -85,23 +114,25 @@ export default function PostAdPage() {
         fees: form.fees,
         description: form.description,
         schedule: form.schedule,
-        image: bannerUrl || undefined // Assuming the URL is temporary, usually we'd upload this first and pass the real URL
+        image: bannerUrl || undefined
       });
       setSubmitted(true);
       setTimeout(() => {
         router.push('/dashboard/tutor/my-classes');
       }, 1500);
     } catch (err) {
-      console.error("Failed to post ad", err);
-      alert("Failed to post ad. Please try again.");
+      console.error("Failed to update ad", err);
+      alert("Failed to update ad. Please try again.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   const handleCancel = (): void => {
     router.push('/dashboard/tutor/my-classes');
   };
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading class details...</div>;
 
   return (
     <>
@@ -252,7 +283,7 @@ export default function PostAdPage() {
           background: #fff;
         }
         .field textarea { height: 90px; }
-        .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f8a6d' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+        .field select { background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f8a6d' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
 
         /* ── Chips ── */
         .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -413,10 +444,10 @@ export default function PostAdPage() {
         {/* ── TOP BAR ── */}
         <div className="topbar">
           <div className="topbar-left">
-            <div className="topbar-badge">📢</div>
+            <div className="topbar-badge">✏️</div>
             <div>
-              <div className="topbar-title">Create Class Ad</div>
-              <div className="topbar-sub">Fill in the details — preview updates live</div>
+              <div className="topbar-title">Edit Class Ad</div>
+              <div className="topbar-sub">Update your class details — preview updates live</div>
             </div>
           </div>
           <div className="btn-group">
@@ -573,8 +604,8 @@ export default function PostAdPage() {
                 <button className="btn-cancel" type="button" onClick={handleCancel}>
                   Discard
                 </button>
-                <button className={`btn-submit${submitted ? " done" : ""}`} type="submit" disabled={loading}>
-                  {loading ? "Posting..." : submitted ? "✓ Ad Posted!" : "🚀 Post Ad"}
+                <button className={`btn-submit${submitted ? " done" : ""}`} type="submit" disabled={saving}>
+                  {saving ? "Saving..." : submitted ? "✓ Ad Updated!" : "💾 Save Changes"}
                 </button>
               </div>
 
@@ -644,7 +675,7 @@ export default function PostAdPage() {
 
       {/* TOAST */}
       <div className={`toast${submitted ? " show" : ""}`}>
-        🎉 Your class ad has been posted!
+        🎉 Your class ad has been updated!
       </div>
     </>
   );
