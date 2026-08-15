@@ -33,7 +33,7 @@ export default function AdminActivityPage() {
   const [actorFilter, setActorFilter] = useState('All');
   const [actionFilter, setActionFilter] = useState('All');
   const [page, setPage] = useState(1);
-  const pageSize = 8;
+  const pageSize = 5;
 
   useEffect(() => {
     setLogs(getAuditTrail());
