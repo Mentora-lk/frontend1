@@ -153,9 +153,11 @@ export default function AdminStudentsPage() {
                 <tr key={student.user_id} style={{ borderTop: '1px solid #ecf4ef' }}>
                   <td style={{ padding: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 999, background: '#ecfeff', color: '#0f766e', display: 'grid', placeItems: 'center', fontWeight: 800 }}>
-                        {student.full_name?.charAt(0) ?? 'S'}
-                      </div>
+                      <img
+                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(student.full_name || 'S')}&backgroundColor=ecfeff&textColor=0f766e`}
+                        alt={student.full_name || 'Student'}
+                        style={{ width: 42, height: 42, borderRadius: 999, objectFit: 'cover', border: '1px solid #e5e7eb' }}
+                      />
                       <div>
                         <div style={{ color: '#111827', fontWeight: 700 }}>{student.full_name}</div>
                       </div>
