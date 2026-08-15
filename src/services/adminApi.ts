@@ -102,3 +102,23 @@ export const updateSessionStatus = async (id: number, status: string) => {
   const res = await axios.put(`${API_URL}/admin/sessions/${id}`, { status }, authHeaders());
   return res.data;
 };
+
+export const createTutor = async (data: { fullName: string; email: string; password: string; subject?: string; city?: string; phone?: string }) => {
+  const res = await axios.post(`${API_URL}/admin/tutors`, data, authHeaders());
+  return res.data;
+};
+
+export const createStudent = async (data: { fullName: string; email: string; password: string; gradeLevel?: string; schoolInstitute?: string; phone?: string }) => {
+  const res = await axios.post(`${API_URL}/admin/students`, data, authHeaders());
+  return res.data;
+};
+
+export const createSession = async (data: { fullName: string; phone?: string; school?: string; grade?: string; email?: string; message?: string; preferredMode?: string; selectedDay: string; selectedTime: string }) => {
+  const res = await axios.post(`${API_URL}/admin/sessions`, data, authHeaders());
+  return res.data;
+};
+
+export const createAd = async (data: { tutorId: number; title: string; description?: string; price?: string }) => {
+  const res = await axios.post(`${API_URL}/admin/ads`, data, authHeaders());
+  return res.data;
+};
