@@ -1,11 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CreditCard, GraduationCap, Users, BookOpen } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getAdminStats, getTutors } from '@/services/adminApi';
 import { revenueData, userAcquisitionData } from '@/data/adminData';
 import Spinner from '@/components/ui/Spinner';
+
+function StatCard({ title, value, accent, loading }: { title: string; value: string; accent: string; loading: boolean }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ width: 44, height: 32, borderRadius: 10, background: accent, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
+      </div>
+      <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
+      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6, display: 'flex', alignItems: 'center' }}>
+        {loading ? <Spinner size={22} /> : value}
+      </div>
+    </div>
+  );
+}
 
 export default function AdminDashboardPage() {
   // Backend returns: { totalUsers, totalTutors, totalStudents, totalCourses }
@@ -37,14 +50,6 @@ export default function AdminDashboardPage() {
     fetchData();
   }, []);
 
-  // Backend field names: totalUsers, totalTutors, totalStudents, totalCourses
-  const statCards = [
-    { title: 'Total Users',    value: stats.totalUsers.toString(),    icon: Users         },
-    { title: 'Total Tutors',   value: stats.totalTutors.toString(),   icon: GraduationCap },
-    { title: 'Total Students', value: stats.totalStudents.toString(), icon: CreditCard    },
-    { title: 'Total Courses',  value: stats.totalCourses.toString(),  icon: BookOpen      },
-  ];
-
   return (
     <div className="space-y-6">
       <div>
@@ -61,31 +66,13 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-     {/* Stat Cards — vertical stacked list */}
-<div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-  {statCards.map((card, i) => (
-    <div
-      key={card.title}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '18px 22px',
-        borderBottom: i !== statCards.length - 1 ? '1px solid #F3F4F6' : 'none',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <card.icon size={20} color="#059669" />
-        </div>
-        <p style={{ fontSize: 14, color: '#374151', fontWeight: 600, margin: 0 }}>{card.title}</p>
+      {/* Stat Cards — consistent with Tutors/Students/Sessions style */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+        <StatCard title="Total Users"    value={stats.totalUsers.toString()}    accent="#0f766e" loading={loading} />
+        <StatCard title="Total Tutors"   value={stats.totalTutors.toString()}   accent="#27c3ff" loading={loading} />
+        <StatCard title="Total Students" value={stats.totalStudents.toString()} accent="#1d4ed8" loading={loading} />
+        <StatCard title="Total Courses"  value={stats.totalCourses.toString()}  accent="#7c3aed" loading={loading} />
       </div>
-      <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', display: 'inline-flex', alignItems: 'center' }}>
-        {loading ? <Spinner size={18} /> : card.value}
-      </span>
-    </div>
-  ))}
-</div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -147,7 +134,7 @@ export default function AdminDashboardPage() {
       <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>Recent Tutors</h3>
-          <button style={{ fontSize: 13, color: '#10B981', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>View All</button>
+          <a href="/dashboard/admin/tutors" style={{ fontSize: 13, color: '#10B981', fontWeight: 600, textDecoration: 'none' }}>View All</a>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -176,7 +163,7 @@ export default function AdminDashboardPage() {
                     </div>
                   </td>
                   <td style={{ padding: '14px 24px', color: '#6B7280' }}>{tutor.email}</td>
-                  <td style={{ padding: '14px 24px', color: '#6B7280' }}>{tutor.subjects}</td>
+                  <td style={{ padding: '14px 24px', color: '#6B7280' }}>{tutor.subject}</td>
                   <td style={{ padding: '14px 24px', color: '#6B7280' }}>{tutor.city}</td>
                 </tr>
               ))}
