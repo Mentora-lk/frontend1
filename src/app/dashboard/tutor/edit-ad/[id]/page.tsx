@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, DragEvent, useEffect } from "react";
 import { classService } from "@/services/classService";
 import { useRouter, useParams } from "next/navigation";
 
-interface FormData {
+interface AdFormData {
   name: string;
   subject: string;
   grade: string;
@@ -15,7 +15,7 @@ interface FormData {
   banner: File | null;
 }
 
-const EMPTY_FORM: FormData = {
+const EMPTY_FORM: AdFormData = {
   name: "",
   subject: "",
   grade: "",
@@ -34,7 +34,7 @@ export default function EditAdPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [form, setForm] = useState<AdFormData>(EMPTY_FORM);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
@@ -106,16 +106,22 @@ export default function EditAdPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await classService.updateClass(id, {
-        title: form.name,
-        subject: form.subject,
-        grade: form.grade,
-        medium: form.medium,
-        fees: form.fees,
-        description: form.description,
-        schedule: form.schedule,
-        image: bannerUrl || undefined
-      });
+      const formData = new FormData();
+      formData.append("title", form.name);
+      formData.append("subject", form.subject);
+      formData.append("grade", form.grade);
+      formData.append("medium", form.medium);
+      formData.append("fee", form.fees);
+      formData.append("description", form.description);
+      formData.append("schedule", form.schedule);
+      // Backend also uses mode and location, we can pass them if available
+      formData.append("mode", form.medium); // Assuming medium/mode overlap or backend needs it
+      
+      if (form.banner) {
+        formData.append("banner", form.banner);
+      }
+
+      await classService.updateClass(id, formData);
       setSubmitted(true);
       setTimeout(() => {
         router.push('/dashboard/tutor/my-classes');

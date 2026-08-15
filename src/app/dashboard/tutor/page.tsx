@@ -20,25 +20,7 @@ type TutorClass = {
   image: string;
 };
 
-const FALLBACK_CLASSES: TutorClass[] = [
-  { id: 1, title: 'A/L Combined Mathematics', subject: 'Mathematics', location: 'Moratuwa', mode: 'online', fee: 2500, rating: 4.8, status: 'active', studentsEnrolled: 18, totalSlots: 25, nextSession: 'Monday, 6:00 PM', image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80' },
-  { id: 2, title: 'Advanced Level : ICT', subject: 'ICT', location: 'Colombo', mode: 'online', fee: 3000, rating: 4.6, status: 'active', studentsEnrolled: 12, totalSlots: 20, nextSession: 'Wednesday, 5:00 PM', image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80' },
-  { id: 3, title: 'A/L Physics Full Syllabus', subject: 'Physics', location: 'Moratuwa', mode: 'offline', fee: 2000, rating: 4.9, status: 'active', studentsEnrolled: 8, totalSlots: 15, nextSession: 'Friday, 4:00 PM', image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80' },
-  { id: 4, title: 'Music : Guitar For Beginners', subject: 'Music', location: 'Matale', mode: 'both', fee: 1500, rating: 4.7, status: 'pending', studentsEnrolled: 0, totalSlots: 10, nextSession: 'Awaiting approval', image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80' },
-  { id: 5, title: 'A/L Chemistry', subject: 'Chemistry', location: 'Colombo', mode: 'both', fee: 3500, rating: 4.5, status: 'completed', studentsEnrolled: 22, totalSlots: 22, nextSession: 'Completed', image: 'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80' },
-];
 
-const RECENT_REQUESTS = [
-  { id: 1, name: 'Nimesh Perera',    subject: 'Mathematics', time: '2 mins ago',  avatar: 'N', color: '#8B5CF6' },
-  { id: 2, name: 'Dilshan Silva',    subject: 'ICT',         time: '1 hour ago',  avatar: 'D', color: '#F59E0B' },
-  { id: 3, name: 'Amali Fernando',   subject: 'Physics',     time: '3 hours ago', avatar: 'A', color: '#10B981' },
-];
-
-const UPCOMING_SESSIONS = [
-  { id: 1, subject: 'Mathematics', students: 18, time: 'Mon, 6:00 PM · Tomorrow',  color: '#8B5CF6' },
-  { id: 2, subject: 'ICT',         students: 12, time: 'Wed, 5:00 PM · In 3 days', color: '#F59E0B' },
-  { id: 3, subject: 'Physics',     students: 8,  time: 'Fri, 4:00 PM · In 5 days', color: '#10B981' },
-];
 
 const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }> = {
   active:    { color: '#059669', bg: '#ECFDF5', label: 'ACTIVE' },
@@ -51,9 +33,9 @@ export default function TutorDashboard() {
   const [statusFilter, setStatus] = useState('all');
   const [searchQuery, setSearch]  = useState('');
   
-  const [classes, setClasses] = useState<TutorClass[]>(FALLBACK_CLASSES);
-  const [recentRequests, setRecentRequests] = useState(RECENT_REQUESTS);
-  const [upcomingSessions, setUpcomingSessions] = useState(UPCOMING_SESSIONS);
+  const [classes, setClasses] = useState<TutorClass[]>([]);
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
