@@ -49,10 +49,9 @@ export default function AdminAuthPage() {
     }
     setLoading(true);
     try {
-      // Uses adminApi.ts → POST /api/auth/register  ✅ (fixed from /auth/signup)
       await adminSignup(signupForm.fullName, signupForm.email, signupForm.password, signupForm.adminCode);
-document.cookie = 'user_role=admin; path=/; max-age=604800';
-router.push('/dashboard/admin');
+      document.cookie = 'user_role=admin; path=/; max-age=604800';
+      router.push('/dashboard/admin');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Signup failed. Please try again.');
     } finally {
@@ -151,6 +150,13 @@ router.push('/dashboard/admin');
                       </button>
                     </div>
                   </div>
+
+                  <div style={{ textAlign: 'right', marginTop: -8 }}>
+                    <a href="/dashboard/admin/forgot-password" style={{ fontSize: 12.5, color: '#10B981', fontWeight: 600, textDecoration: 'none' }}>
+                      Forgot Password?
+                    </a>
+                  </div>
+
                   <button type="submit" className="btn-green" disabled={loading}>
                     {loading ? <><span className="spinner" />Signing in...</> : 'Sign In'}
                   </button>
