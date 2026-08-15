@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent, DragEvent } from "react";
 import { classService } from "@/services/classService";
 import { useRouter } from "next/navigation";
 
-interface FormData {
+interface AdFormData {
   name: string;
   subject: string;
   grade: string;
@@ -15,7 +15,7 @@ interface FormData {
   banner: File | null;
 }
 
-const EMPTY_FORM: FormData = {
+const EMPTY_FORM: AdFormData = {
   name: "",
   subject: "",
   grade: "",
@@ -31,7 +31,7 @@ const MEDIUMS: string[] = ["English", "Sinhala", "Tamil"];
 
 export default function PostAdPage() {
   const router = useRouter();
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [form, setForm] = useState<AdFormData>(EMPTY_FORM);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
@@ -77,16 +77,22 @@ export default function PostAdPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await classService.createClass({
-        title: form.name,
-        subject: form.subject,
-        grade: form.grade,
-        medium: form.medium,
-        fees: form.fees,
-        description: form.description,
-        schedule: form.schedule,
-        image: bannerUrl || undefined // Assuming the URL is temporary, usually we'd upload this first and pass the real URL
-      });
+      const formData = new FormData();
+      formData.append("title", form.name);
+      formData.append("subject", form.subject);
+      formData.append("grade", form.grade);
+      formData.append("medium", form.medium);
+      formData.append("fee", form.fees);
+      formData.append("description", form.description);
+      formData.append("schedule", form.schedule);
+      // Backend also uses mode and location, we can pass them if available
+      formData.append("mode", form.medium); // Assuming medium/mode overlap or backend needs it
+      
+      if (form.banner) {
+        formData.append("banner", form.banner);
+      }
+
+      await classService.createClass(formData);
       setSubmitted(true);
       setTimeout(() => {
         router.push('/dashboard/tutor/my-classes');

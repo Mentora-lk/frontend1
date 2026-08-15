@@ -5,10 +5,38 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunities, createPost } from '@/services/tutorCommunityService';
+import { useCommunitySocket } from '@/hooks/useCommunitySocket';
 
 // Fallback colors/icons for communities without them in DB
 const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
 const ICONS = ['📐', '⚡', '💻', '🧪', '📚'];
+
+// Normalizes a raw post row (from getCommunityPosts, createPost's response, or
+// a `new_community_post` Socket.io event — all three share the same
+// author_name/author_role/media_url shape) into the display shape this page renders.
+function mapPost(p: any) {
+  let mediaUrl = p.media_url;
+  if (p.type === 'image' && !mediaUrl) {
+    mediaUrl = '/default-image.png';
+  }
+  return {
+    id: p.id,
+    author: p.author_name || 'Unknown User',
+    avatar: p.author_name ? p.author_name[0] : 'U',
+    color: '#10B981',
+    time: new Date(p.created_at).toLocaleString(),
+    content: p.content,
+    likes: 0,
+    replies: 0,
+    pinned: p.is_pinned,
+    isTutor: p.author_role === 'tutor',
+    type: p.type || 'text',
+    media_url: mediaUrl,
+    mediaName: mediaUrl ? mediaUrl.split('/').pop() : '',
+    size: 'Unknown',
+    pollOptions: p.poll_options ? (typeof p.poll_options === 'string' ? JSON.parse(p.poll_options) : p.poll_options) : null
+  };
+}
 
 function FileIcon({ type }: { type: string }) {
   const colors: Record<string, string> = { pdf: '#EF4444', doc: '#3B82F6', image: '#F59E0B', video: '#8B5CF6', document: '#10B981', announcement: '#6B7280' };
@@ -36,9 +64,6 @@ export default function TutorCommunityDetailPage() {
   const [activeTab, setActiveTab] = useState<'discussions' | 'files' | 'members'>('discussions');
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [showPollModal, setShowPollModal] = useState(false);
-  const [pollQuestionText, setPollQuestionText] = useState('');
-  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
 
@@ -46,6 +71,32 @@ export default function TutorCommunityDetailPage() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [communityId]);
+
+  // Live updates: join the community's Socket.io room so posts/deadlines the
+  // tutor (or a student) creates elsewhere show up here without a refresh.
+  const { status: socketStatus } = useCommunitySocket(
+    communityId,
+    (rawPost) => {
+      setDiscussions(prev => {
+        if (prev.some(d => d.id === rawPost.id)) return prev; // already added optimistically by submitPost, or a duplicate event
+        return [mapPost(rawPost), ...prev];
+      });
+      if (rawPost.media_url) {
+        setFiles(prev => {
+          if (prev.some(f => f.id === rawPost.id)) return prev;
+          return [{
+            id: rawPost.id,
+            name: rawPost.media_url.split('/').pop() || 'File',
+            type: rawPost.type,
+            size: 'Unknown',
+            uploadedBy: rawPost.author_name || 'Tutor',
+            date: new Date(rawPost.created_at).toLocaleString(),
+            downloads: 0
+          }, ...prev];
+        });
+      }
+    }
+  );
 
   const fetchData = async () => {
     try {
@@ -71,32 +122,7 @@ export default function TutorCommunityDetailPage() {
       }
        
       if (postsRes.status === 'success') {
-        const fetchedPosts = postsRes.data.map((p: any) => {
-          // Debug log to check what is coming from backend
-          console.log('Post from API:', p);
-          // Fallback image if media_url is missing and type is image
-          let mediaUrl = p.media_url;
-          if (p.type === 'image' && !mediaUrl) {
-            mediaUrl = '/default-image.png'; // You can set this to any placeholder in public/
-          }
-          return {
-            id: p.id,
-            author: p.author_name,
-            avatar: p.author_name ? p.author_name[0] : 'U',
-            color: '#10B981',
-            time: new Date(p.created_at).toLocaleString(),
-            content: p.content,
-            likes: 0,
-            replies: 0,
-            pinned: p.is_pinned,
-            isTutor: p.author_role === 'tutor',
-            type: p.type || 'text',
-            media_url: mediaUrl,
-            mediaName: mediaUrl ? mediaUrl.split('/').pop() : '',
-            size: 'Unknown',
-            pollOptions: p.poll_options ? (typeof p.poll_options === 'string' ? JSON.parse(p.poll_options) : p.poll_options) : null
-          };
-        });
+        const fetchedPosts = postsRes.data.map(mapPost);
         setDiscussions(fetchedPosts);
 
         // Populate files tab from posts that have an attachment
@@ -141,32 +167,19 @@ export default function TutorCommunityDetailPage() {
     if (!newMessage.trim() && !attachedFile) return;
     try {
       setError('');
-      let postType = 'announcement';
-      let pollOptionsData = undefined;
-
-      if (showPollModal && pollQuestionText.trim()) {
-        postType = 'poll';
-        const validOptions = pollOptions.filter(opt => opt.trim());
-        if (validOptions.length < 2) {
-          setError('Poll must have at least 2 options');
-          return;
-        }
-        pollOptionsData = validOptions;
-      }
+      const postType = 'announcement';
 
       console.log('📤 Submitting post...');
       console.log('  Type:', postType);
-      console.log('  Content:', newMessage.trim() || (showPollModal ? pollQuestionText.trim() : ''));
+      console.log('  Content:', newMessage.trim());
       console.log('  Has file?:', !!attachedFile);
       console.log('  File info:', attachedFile ? { name: attachedFile.name, size: attachedFile.size, type: attachedFile.type } : 'NO FILE');
-      console.log('  Poll options:', pollOptionsData);
 
       const res = await createPost(
         communityId,
         {
           type: postType,
-          content: newMessage.trim() || (showPollModal ? pollQuestionText.trim() : ''),
-          pollOptions: pollOptionsData
+          content: newMessage.trim()
         },
         attachedFile || undefined
       );
@@ -190,15 +203,11 @@ export default function TutorCommunityDetailPage() {
           type: p.type || postType,
           media_url: p.media_url,
           mediaName: attachedFile ? attachedFile.name : '',
-          size: 'Unknown',
-          pollOptions: pollOptionsData
+          size: 'Unknown'
         };
         setDiscussions([newPost, ...discussions]);
         setNewMessage('');
         setAttachedFile(null);
-        setPollQuestionText('');
-        setPollOptions(['', '']);
-        setShowPollModal(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         console.error('❌ Post failed:', res.message);
@@ -219,22 +228,6 @@ export default function TutorCommunityDetailPage() {
     if (file) {
       setAttachedFile(file);
     }
-  };
-
-  const handleAddPollOption = () => {
-    setPollOptions([...pollOptions, '']);
-  };
-
-  const handleRemovePollOption = (index: number) => {
-    if (pollOptions.length > 2) {
-      setPollOptions(pollOptions.filter((_, i) => i !== index));
-    }
-  };
-
-  const handlePollOptionChange = (index: number, value: string) => {
-    const newOptions = [...pollOptions];
-    newOptions[index] = value;
-    setPollOptions(newOptions);
   };
 
   const toggleLike = (id: number) => {
@@ -285,7 +278,13 @@ export default function TutorCommunityDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontSize: 40 }}>{community.icon}</span>
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: "'DM Sans',sans-serif" }}>{community.name}</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 10 }}>
+                {community.name}
+                <span title={`Live updates: ${socketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '3px 9px', fontSize: 10, fontWeight: 700, letterSpacing: '0.03em' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: socketStatus === 'connected' ? '#34D399' : socketStatus === 'connecting' ? '#FBBF24' : '#F87171' }} />
+                  {socketStatus === 'connected' ? 'LIVE' : socketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
+                </span>
+              </h2>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>{community.members} members · {community.category}</p>
             </div>
           </div>
@@ -353,7 +352,7 @@ export default function TutorCommunityDetailPage() {
                   <textarea
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
-                    placeholder={showPollModal ? "Add context for your poll..." : "Make an announcement or start a discussion..."}
+                    placeholder="Make an announcement or start a discussion..."
                     style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 12, padding: '10px 14px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: '#374151', resize: 'none', height: 70, outline: 'none', lineHeight: 1.5 }}
                     onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
                     onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
@@ -379,44 +378,6 @@ export default function TutorCommunityDetailPage() {
                   </div>
                 )}
 
-                {/* Show poll preview */}
-                {showPollModal && (
-                  <div style={{ background: '#F0F9FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1E40AF', margin: 0 }}>📊 Create a Poll</h4>
-                      <button onClick={() => { setShowPollModal(false); setPollQuestionText(''); setPollOptions(['', '']); }} style={{ background: 'none', border: 'none', color: '#1E40AF', cursor: 'pointer', fontSize: 18 }}>✕</button>
-                    </div>
-                    <input
-                      type="text"
-                      value={pollQuestionText}
-                      onChange={(e) => setPollQuestionText(e.target.value)}
-                      placeholder="What is your poll question?"
-                      style={{ width: '100%', border: '1px solid #BFDBFE', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", marginBottom: 12, outline: 'none' }}
-                      onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
-                      onBlur={e => { e.target.style.borderColor = '#BFDBFE'; }}
-                    />
-                    <div style={{ marginBottom: 12 }}>
-                      {pollOptions.map((option, index) => (
-                        <div key={index} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                          <input
-                            type="text"
-                            value={option}
-                            onChange={(e) => handlePollOptionChange(index, e.target.value)}
-                            placeholder={`Option ${index + 1}`}
-                            style={{ flex: 1, border: '1px solid #BFDBFE', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: 'none' }}
-                            onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
-                            onBlur={e => { e.target.style.borderColor = '#BFDBFE'; }}
-                          />
-                          {pollOptions.length > 2 && (
-                            <button onClick={() => handleRemovePollOption(index)} style={{ background: '#FEE2E2', border: 'none', color: '#EF4444', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600 }}>Remove</button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={handleAddPollOption} style={{ background: 'none', border: '1px solid #BFDBFE', color: '#1E40AF', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontWeight: 600, width: '100%' }}>+ Add Option</button>
-                  </div>
-                )}
-
                 {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
@@ -431,10 +392,6 @@ export default function TutorCommunityDetailPage() {
                     <button onClick={handleAttachClick} style={{ background: 'none', border: 'none', color: '#6B7280', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, transition: 'color 0.2s' }} onMouseOver={e => { e.currentTarget.style.color = '#3B82F6'; }} onMouseOut={e => { e.currentTarget.style.color = '#6B7280'; }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                       Attach
-                    </button>
-                    <button onClick={() => setShowPollModal(!showPollModal)} style={{ background: showPollModal ? '#DBEAFE' : 'none', border: showPollModal ? '1px solid #BFDBFE' : 'none', color: showPollModal ? '#1E40AF' : '#6B7280', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, padding: showPollModal ? '6px 12px' : '0px', borderRadius: showPollModal ? 8 : 0, transition: 'all 0.2s' }} onMouseOver={e => { if (!showPollModal) e.currentTarget.style.color = '#3B82F6'; }} onMouseOut={e => { if (!showPollModal) e.currentTarget.style.color = '#6B7280'; }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                      Poll
                     </button>
                   </div>
                   <button onClick={submitPost} style={{ background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: 'white', border: 'none', borderRadius: 10, padding: '8px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Post to Community</button>
