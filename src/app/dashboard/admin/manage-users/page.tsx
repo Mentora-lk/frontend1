@@ -1,10 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { tutorVerifications } from '../../../../data/adminData';
+import { useEffect, useMemo, useState } from 'react';
+import { getTutors } from '@/services/adminApi';
 import { ADMIN_STORAGE_KEYS, appendAudit, downloadFile, loadStoredState, saveStoredState } from '../utils/operations';
+import Spinner from '@/components/ui/Spinner';
 
-type Tutor = (typeof tutorVerifications)[0] & { status: 'Pending' | 'Verified' | 'Missing Docs' };
+type BackendTutor = {
+  id: number;
+  full_name: string;
+  email: string;
+  subjects: string;
+  city: string;
+  created_at: string;
+};
+
+type Tutor = BackendTutor & { status: 'Pending' | 'Verified' | 'Missing Docs' };
 
 function StatusBadge({ status }: { status: string }) {
   const palette =
@@ -21,48 +31,73 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function StatCard({ title, value, accent, trend }: { title: string; value: string; accent: string; trend: string }) {
+function StatCard({ title, value, accent, loading }: { title: string; value: string; accent: string; loading: boolean }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div style={{ width: 44, height: 32, borderRadius: 10, background: accent, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
-        <span style={{ color: '#0f766e', fontSize: 12, fontWeight: 700 }}>{trend}</span>
       </div>
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
-      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
+      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6, display: 'flex', alignItems: 'center' }}>
+        {loading ? <Spinner size={22} /> : value}
+      </div>
     </div>
   );
 }
 
 export default function TutorsPage() {
-  const [tutors, setTutors] = useState<Tutor[]>(() => loadStoredState(ADMIN_STORAGE_KEYS.tutorQueue, tutorVerifications as Tutor[]));
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [subjectFilter, setSubjectFilter] = useState('All');
   const [page, setPage] = useState(1);
   const pageSize = 5;
   const [note, setNote] = useState('');
   const [statusText, setStatusText] = useState('');
 
+  useEffect(() => {
+    async function fetchTutors() {
+      try {
+        const data: BackendTutor[] = await getTutors();
+        const statusMap = loadStoredState<Record<number, Tutor['status']>>(ADMIN_STORAGE_KEYS.tutorQueue, {});
+        const merged: Tutor[] = data.map((t) => ({
+          ...t,
+          status: statusMap[t.id] || 'Pending',
+        }));
+        setTutors(merged);
+      } catch (err: any) {
+        console.error('Failed to fetch tutors:', err);
+        setError('Could not load tutors. Make sure your backend is running.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTutors();
+  }, []);
+
   const filteredTutors = useMemo(() => tutors.filter((tutor) => {
-    const matchesSearch = tutor.name.toLowerCase().includes(searchQuery.toLowerCase()) || tutor.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      tutor.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tutor.email?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'All' || tutor.status === statusFilter;
-    const matchesSubject = subjectFilter === 'All' || tutor.subject === subjectFilter;
-    return matchesSearch && matchesStatus && matchesSubject;
-  }), [tutors, searchQuery, statusFilter, subjectFilter]);
+    return matchesSearch && matchesStatus;
+  }), [tutors, searchQuery, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTutors.length / pageSize));
   const visibleTutors = filteredTutors.slice((page - 1) * pageSize, page * pageSize);
 
-  const persistTutors = (next: Tutor[]) => {
-    setTutors(next);
-    saveStoredState(ADMIN_STORAGE_KEYS.tutorQueue, next);
+  const persistStatus = (tutorId: number, status: Tutor['status']) => {
+    const statusMap = loadStoredState<Record<number, Tutor['status']>>(ADMIN_STORAGE_KEYS.tutorQueue, {});
+    statusMap[tutorId] = status;
+    saveStoredState(ADMIN_STORAGE_KEYS.tutorQueue, statusMap);
+    setTutors((prev) => prev.map((t) => (t.id === tutorId ? { ...t, status } : t)));
   };
 
   const exportQueue = () => {
-    const header = ['Tutor', 'Email', 'Subject', 'Location', 'Status', 'Applied Date'];
-    const rows = filteredTutors.map((tutor) => [tutor.name, tutor.email, tutor.subject, tutor.location, tutor.status, tutor.date]);
+    const header = ['Tutor', 'Email', 'Subjects', 'City', 'Status'];
+    const rows = filteredTutors.map((t) => [t.full_name, t.email, t.subjects, t.city, t.status]);
     const csv = [header, ...rows].map((r) => r.join(',')).join('\n');
     downloadFile('tutor-review-queue.csv', csv, 'text/csv;charset=utf-8;');
     appendAudit('TUTOR_QUEUE_EXPORT', `Exported ${filteredTutors.length} tutor records`);
@@ -71,13 +106,15 @@ export default function TutorsPage() {
 
   const updateTutorStatus = (nextStatus: Tutor['status']) => {
     if (!selectedTutor) return;
-    const updated = tutors.map((item) => (item.id === selectedTutor.id ? { ...item, status: nextStatus } : item));
-    persistTutors(updated);
-    appendAudit('TUTOR_REVIEW', `${selectedTutor.name} marked as ${nextStatus}${note ? ` (${note})` : ''}`);
-    setStatusText(`${selectedTutor.name} updated to ${nextStatus}.`);
+    persistStatus(selectedTutor.id, nextStatus);
+    appendAudit('TUTOR_REVIEW', `${selectedTutor.full_name} marked as ${nextStatus}${note ? ` (${note})` : ''}`);
+    setStatusText(`${selectedTutor.full_name} updated to ${nextStatus}.`);
     setNote('');
     setSelectedTutor(null);
   };
+
+  const pendingCount = tutors.filter((t) => t.status === 'Pending').length;
+  const verifiedCount = tutors.filter((t) => t.status === 'Verified').length;
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
@@ -86,6 +123,12 @@ export default function TutorsPage() {
         <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Tutor review queue.</p>
       </div>
 
+      {error && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {statusText && (
         <div style={{ background: '#ecfeff', border: '1px solid #99f6e4', color: '#0f766e', borderRadius: 12, padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>
           {statusText}
@@ -93,34 +136,27 @@ export default function TutorsPage() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <StatCard title="Pending Review" value="24" trend="+5% from yesterday" accent="#f59e0b" />
-        <StatCard title="Verified Today" value="12" trend="-2% from yesterday" accent="#22c55e" />
-        <StatCard title="Total Tutors" value="1,402" trend="+1% growth" accent="#27c3ff" />
+        <StatCard title="Pending Review" value={pendingCount.toString()} accent="#f59e0b" loading={loading} />
+        <StatCard title="Verified" value={verifiedCount.toString()} accent="#22c55e" loading={loading} />
+        <StatCard title="Total Tutors" value={tutors.length.toString()} accent="#27c3ff" loading={loading} />
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.8fr 0.8fr auto', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.8fr auto', gap: 10 }}>
           <input
             type="text"
-            placeholder="Search by tutor name, email or NIC..."
+            placeholder="Search by tutor name or email..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}
           />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
             <option value="All">Status: All</option>
             <option value="Pending">Pending</option>
             <option value="Verified">Verified</option>
             <option value="Missing Docs">Missing Docs</option>
           </select>
-          <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
-            <option value="All">Subject: All</option>
-            <option value="Science">Subject: Science</option>
-            <option value="Maths">Subject: Maths</option>
-            <option value="IT">Subject: IT</option>
-          </select>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => { setPage(1); }} style={{ borderRadius: 12, border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', padding: '0 14px', cursor: 'pointer' }}>Apply</button>
             <button onClick={exportQueue} style={{ borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#374151', padding: '0 14px', cursor: 'pointer' }}>Export</button>
           </div>
         </div>
@@ -130,28 +166,32 @@ export default function TutorsPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
-                <tr style={{ background: '#f0fdfa', textAlign: 'left' }}>
-                {['Tutor Profile', 'Subjects', 'Location', 'Status', 'Actions'].map((h) => (
-                    <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
+              <tr style={{ background: '#f0fdfa', textAlign: 'left' }}>
+                {['Tutor Profile', 'Subjects', 'City', 'Status', 'Actions'].map((h) => (
+                  <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {visibleTutors.map((tutor) => (
+              {loading ? (
+                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center' }}><Spinner size={26} /></td></tr>
+              ) : visibleTutors.length === 0 ? (
+                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>No tutors found</td></tr>
+              ) : visibleTutors.map((tutor) => (
                 <tr key={tutor.id} style={{ borderTop: '1px solid #ecf4ef' }}>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 999, background: '#ecfeff', color: '#0f766e', display: 'grid', placeItems: 'center', fontWeight: 700 }}>{tutor.name.charAt(0)}</div>
+                      <div style={{ width: 40, height: 40, borderRadius: 999, background: '#ecfeff', color: '#0f766e', display: 'grid', placeItems: 'center', fontWeight: 700 }}>{tutor.full_name?.charAt(0) || 'T'}</div>
                       <div>
-                        <div style={{ color: '#111827', fontWeight: 700 }}>{tutor.name}</div>
+                        <div style={{ color: '#111827', fontWeight: 700 }}>{tutor.full_name}</div>
                         <div style={{ color: '#6b7280', fontSize: 12 }}>{tutor.email}</div>
                       </div>
                     </div>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
-                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfeff', color: '#0f766e', border: '1px solid #99f6e4' }}>{tutor.subject}</span>
+                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfeff', color: '#0f766e', border: '1px solid #99f6e4' }}>{tutor.subjects}</span>
                   </td>
-                  <td style={{ padding: '14px 16px', color: '#374151' }}>📍 {tutor.location}</td>
+                  <td style={{ padding: '14px 16px', color: '#374151' }}>📍 {tutor.city}</td>
                   <td style={{ padding: '14px 16px' }}><StatusBadge status={tutor.status} /></td>
                   <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                     <button onClick={() => setSelectedTutor(tutor)} style={{ border: 'none', background: 'none', color: '#0f766e', fontWeight: 700, cursor: 'pointer' }}>View Details</button>
@@ -162,16 +202,18 @@ export default function TutorsPage() {
           </table>
         </div>
 
-        <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13 }}>
-          <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredTutors.length)} of {filteredTutors.length} applications</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Previous</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-              <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
-            ))}
-            <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Next</button>
+        {!loading && filteredTutors.length > 0 && (
+          <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
+            <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredTutors.length)} of {filteredTutors.length} tutors</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Previous</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
+              ))}
+              <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Next</button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {selectedTutor && (
@@ -184,28 +226,27 @@ export default function TutorsPage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid #ecf4ef', paddingBottom: 16, marginBottom: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: '#ecfeff' }} />
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: '#ecfeff', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#0f766e', fontSize: 20 }}>
+                {selectedTutor.full_name?.charAt(0) || 'T'}
+              </div>
               <div>
-                <div style={{ color: '#111827', fontSize: 18, fontWeight: 800 }}>{selectedTutor.name}</div>
-                <div style={{ color: '#6b7280', fontSize: 13 }}>Applied: {selectedTutor.date}</div>
+                <div style={{ color: '#111827', fontSize: 18, fontWeight: 800 }}>{selectedTutor.full_name}</div>
+                <div style={{ color: '#6b7280', fontSize: 13 }}>{selectedTutor.email}</div>
                 <div style={{ marginTop: 8 }}><StatusBadge status={selectedTutor.status} /></div>
               </div>
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <p style={{ margin: '0 0 8px', color: '#374151', fontWeight: 700, fontSize: 13 }}>Identity Verification</p>
-              <div style={{ borderRadius: 12, height: 180, background: '#0f172a', border: '1px solid rgba(148,163,184,0.08)' }} />
-              <div style={{ marginTop: 8, color: '#6b7280', fontSize: 12 }}>NIC Front</div>
+              <p style={{ margin: '0 0 8px', color: '#374151', fontWeight: 700, fontSize: 13 }}>Subjects</p>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#f8faf9', color: '#111827' }}>
+                {selectedTutor.subjects || 'Not specified'}
+              </div>
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <p style={{ margin: '0 0 8px', color: '#374151', fontWeight: 700, fontSize: 13 }}>Academic Credentials</p>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#f8faf9', color: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{selectedTutor.credentials || 'No document'}</div>
-                  <div style={{ fontSize: 12, color: '#6b7280' }}>University of Colombo • 2.4 MB</div>
-                </div>
-                <span style={{ color: '#0f766e' }}>👁</span>
+              <p style={{ margin: '0 0 8px', color: '#374151', fontWeight: 700, fontSize: 13 }}>City</p>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#f8faf9', color: '#111827' }}>
+                {selectedTutor.city || 'Not specified'}
               </div>
             </div>
 
