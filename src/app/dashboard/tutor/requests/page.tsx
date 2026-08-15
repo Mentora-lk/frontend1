@@ -87,18 +87,21 @@ export default function RequestsPage() {
       {/* Request list */}
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         {filtered.map(r => {
-          const ss = statusStyle[r.status];
+          const statusKey = r.status?.toLowerCase() || 'pending';
+          const ss = statusStyle[statusKey] || statusStyle['pending'];
+          const avatar = r.avatar || r.name?.charAt(0)?.toUpperCase() || '?';
+          const color = r.color || '#10B981';
           return (
             <div key={r.id} className="req-card" style={{ background:'white', borderRadius:18, padding:'20px 24px', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)' }}>
               <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
-                <div style={{ width:48, height:48, borderRadius:'50%', background:`${r.color}20`, color:r.color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:18, flexShrink:0 }}>{r.avatar}</div>
+                <div style={{ width:48, height:48, borderRadius:'50%', background:`${color}20`, color:color, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:18, flexShrink:0 }}>{avatar}</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2, flexWrap:'wrap' }}>
-                    <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{r.name}</p>
-                    <span style={{ fontSize:11, fontWeight:700, color:ss.color, background:ss.bg, borderRadius:6, padding:'2px 9px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.status}</span>
-                    <span style={{ fontSize:11, color:'#9CA3AF', marginLeft:'auto' }}>{r.time}</span>
+                    <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{r.name || 'Unknown Student'}</p>
+                    <span style={{ fontSize:11, fontWeight:700, color:ss.color, background:ss.bg, borderRadius:6, padding:'2px 9px', textTransform:'uppercase', letterSpacing:'0.05em' }}>{r.status || 'Pending'}</span>
+                    <span style={{ fontSize:11, color:'#9CA3AF', marginLeft:'auto' }}>{r.time || ''}</span>
                   </div>
-                  <p style={{ fontSize:12, color:'#6366F1', fontWeight:600, marginBottom:8 }}>📚 {r.class}</p>
+                  <p style={{ fontSize:12, color:'#6366F1', fontWeight:600, marginBottom:8 }}>📚 {r.class || r.className || 'Class Request'}</p>
                   
                   {/* Expanded details */}
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginBottom:12, padding:'12px', background:'#F9FAFB', borderRadius:12 }}>

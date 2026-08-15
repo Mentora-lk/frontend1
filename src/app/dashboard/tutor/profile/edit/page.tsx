@@ -35,7 +35,11 @@ export default function EditProfilePage() {
   const toggleSlot = (key: string): void => {
     setSelectedSlots((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
   };
@@ -43,7 +47,11 @@ export default function EditProfilePage() {
   const toggleLang = (lang: string): void => {
     setSelectedLangs((prev) => {
       const next = new Set(prev);
-      next.has(lang) ? next.delete(lang) : next.add(lang);
+      if (next.has(lang)) {
+        next.delete(lang);
+      } else {
+        next.add(lang);
+      }
       return next;
     });
   };

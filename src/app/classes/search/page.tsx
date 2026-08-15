@@ -3,36 +3,42 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/navbar/Navbar';
+import { searchCourses } from '@/services/classService';
 
-// ── All data self-contained ────────────────────────────────────────────────────
-const ALL_COURSES = [
-  { id:1, title:'A/L Combined Mathematics', tutor:'Kasun Fernando', subject:'Mathematics', location:'Moratuwa', mode:'online', fee:2500, rating:4.8, reviews:94, badge:'Best Seller', image:'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80', desc:'Full A/L syllabus with past paper practice and exam techniques.' },
-  { id:2, title:'Advanced Level : ICT', tutor:'Nimesh Dissanayake', subject:'ICT', location:'Piliyandala', mode:'online', fee:3000, rating:4.6, reviews:110, badge:null, image:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80', desc:'An enthusiastic ICT teacher who teaches coding and technology skills.' },
-  { id:3, title:'IT : Web Development From Basics', tutor:'Isaac Rudansky', subject:'ICT', location:'Online', mode:'online', fee:4500, rating:4.9, reviews:121, badge:'Best Seller', image:'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80', desc:'HTML, CSS, JavaScript and React from scratch.' },
-  { id:4, title:'Music : Guitar For Beginners', tutor:'Manoj Kumara', subject:'Music', location:'Matale', mode:'offline', fee:1500, rating:4.7, reviews:638, badge:'Best Seller', image:'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80', desc:'A passionate guitar teacher who inspires students.' },
-  { id:5, title:'A/L Physics Full Syllabus', tutor:'Thilak Perera', subject:'Physics', location:'Moratuwa', mode:'offline', fee:2000, rating:4.8, reviews:94, badge:null, image:'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80', desc:'Government teacher, BSc Graduate with 10+ years of experience.' },
-  { id:6, title:'A/L Chemistry', tutor:'Dilshan Rajapaksa', subject:'Chemistry', location:'Colombo', mode:'both', fee:3500, rating:4.5, reviews:77, badge:null, image:'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80', desc:'A/L Chemistry full syllabus. MCQ and essay training.' },
-  { id:7, title:'Personal Branding Online', tutor:'Dennis Yu', subject:'Business', location:'Online', mode:'online', fee:5000, rating:4.8, reviews:81, badge:null, image:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&q=80', desc:'Build your personal brand and dominate social media.' },
-  { id:8, title:'O/L English Literature', tutor:'Priya Wickramasinghe', subject:'English', location:'Kandy', mode:'both', fee:2000, rating:4.4, reviews:52, badge:null, image:'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&q=80', desc:'O/L English literature and language mastery.' },
-];
-
+//!Filter Dropdown
 const SUBJECTS  = ['All','Mathematics','Physics','Chemistry','ICT','Music','Business','English'];
 const LOCATIONS = ['All Locations','Moratuwa','Colombo','Kandy','Piliyandala','Matale','Online'];
 const SORT_OPTIONS = [
   { value:'rating',   label:'Top Rated' },
-  { value:'fee_asc',  label:'Price: Low to High' },
+  { value:'fee_asc',  label:'Price: Low to High' },   //!An array of objects:value → used internally:label → shown to user
   { value:'fee_desc', label:'Price: High to Low' },
   { value:'reviews',  label:'Most Reviewed' },
 ];
-const ITEMS_PER_PAGE = 6;
+type Course = {         //!TypeScript type declaration:creating a blueprint of course object
+  id: string;
+  title: string;
+  image: string;
+  tutor: string;
+  tutor_name?: string;
+  average_rating?: number;
+  review_count?: number;
+  subject: string;
+  rating: number;
+  reviews: number;
+  fee: number;
+  location: string;
+  mode: string;
+  desc?: string;
+  badge?: string;
+};
 const SUBJECT_COLORS: Record<string,string> = {
-  Mathematics:'#8B5CF6', Physics:'#3B82F6', Chemistry:'#10B981',
+  Mathematics:'#8B5CF6', Physics:'#3B82F6', Chemistry:'#10B981',  //!colors used for subjects
   ICT:'#F59E0B', Music:'#EC4899', Business:'#F97316', English:'#06B6D4',
 };
 const MODE_COLOR: Record<string,string> = { online:'#10B981', offline:'#3B82F6', both:'#F59E0B' };
 
 // ── Stars ─────────────────────────────────────────────────────────────────────
-function Stars({ rating }: { rating: number }) {
+function Stars({ rating }: { rating: number }) {           //!rating(not yet implemented)
   return (
     <span style={{ display:'inline-flex', gap:1 }}>
       {[1,2,3,4,5].map(s=>(
@@ -45,31 +51,35 @@ function Stars({ rating }: { rating: number }) {
 }
 
 // ── Course Card ───────────────────────────────────────────────────────────────
-function CourseCard({ course, view }: { course: typeof ALL_COURSES[0]; view: 'grid'|'list' }) {
-  const [hov, setHov] = useState(false);
+//!grid view and list view of class cards
+function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
+  const [hov, setHov] = useState(false);//!creating a variable to remember whether the card is hovered or not
   const sc = SUBJECT_COLORS[course.subject] || '#6B7280';
 
   if (view === 'list') {
     return (
       <Link href={`/classes/${course.id}`} style={{ textDecoration:'none' }}>
-        <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+        <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} //!track mouse on/leave
           style={{ display:'flex', background:'white', borderRadius:18, overflow:'hidden', transition:'all 0.3s', transform:hov?'translateX(6px)':'translateX(0)', boxShadow:hov?`0 12px 32px ${sc}18`:'0 2px 12px rgba(0,0,0,0.05)', border:hov?`1px solid ${sc}30`:'1px solid rgba(0,0,0,0.04)' }}>
           <div style={{ width:5, background:sc, flexShrink:0 }}/>
+        {/* course img */}
           <div style={{ width:180, flexShrink:0, overflow:'hidden' }}>
-            <img src={course.image} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.06)':'scale(1)' }}/>
+           <img src={course.image} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.06)':'scale(1)' }}/>
           </div>
+
+           {/* right-side content area */}
           <div style={{ flex:1, padding:'18px 22px', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
                 <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:'#111827', lineHeight:1.35, maxWidth:'70%' }}>{course.title}</h3>
                 {course.badge && <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:99, background:'linear-gradient(135deg,#F59E0B,#EF4444)', color:'white', flexShrink:0 }}>{course.badge}</span>}
               </div>
-              <p style={{ fontSize:13, color:'#10B981', fontWeight:600, marginBottom:4 }}>By {course.tutor}</p>
+              <p style={{ fontSize:13, color:'#10B981', fontWeight:600, marginBottom:4 }}>By {course.tutor_name || "Tutor"}</p>
               <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:8 }}>{course.desc}</p>
               <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                <Stars rating={course.rating}/>
-                <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.rating}</span>
-                <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.reviews})</span>
+                <Stars rating={course.average_rating || course.rating || 0}/>
+                <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating || course.rating}</span>
+                <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.review_count || course.reviews || 0})</span>
               </div>
             </div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
@@ -84,10 +94,11 @@ function CourseCard({ course, view }: { course: typeof ALL_COURSES[0]; view: 'gr
             </div>
           </div>
         </div>
-      </Link>
+      </Link> 
     );
   }
 
+  //!grid view of class cards
   return (
     <Link href={`/classes/${course.id}`} style={{ textDecoration:'none' }}>
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -104,11 +115,11 @@ function CourseCard({ course, view }: { course: typeof ALL_COURSES[0]; view: 'gr
         </div>
         <div style={{ padding:'15px 17px 17px' }}>
           <h3 style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:15, color:'#111827', lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{course.title}</h3>
-          <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:7 }}>By <span style={{ fontWeight:600, color:'#10B981' }}>{course.tutor}</span></p>
+          <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:7 }}>By <span style={{ fontWeight:600, color:'#10B981' }}>{course.tutor_name || "Tutor"}</span></p>
           <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:10 }}>
-            <Stars rating={course.rating}/>
-            <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.rating}</span>
-            <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.reviews})</span>
+            <Stars rating={course.average_rating || course.rating || 0}/>
+            <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating || course.rating}</span>
+            <span style={{ fontSize:11, color:'#9CA3AF' }}>({course.review_count || course.reviews || 0})</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid #F3F4F6' }}>
             <span style={{ fontSize:14, fontWeight:800, color:'#059669' }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:10, fontWeight:400, color:'#9CA3AF' }}>/mo</span></span>
@@ -121,6 +132,7 @@ function CourseCard({ course, view }: { course: typeof ALL_COURSES[0]; view: 'gr
 }
 
 // ── Filter Chip ───────────────────────────────────────────────────────────────
+//!show filter + tell parent to remove it
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:99, padding:'5px 12px', fontSize:12, fontWeight:600, color:'#059669' }}>
@@ -134,8 +146,9 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ClassSearchPage() {
-  const [scrollY,   setScrollY]   = useState(0);
-  const [query,     setQuery]     = useState('');
+  //!These lines store filter values selected by the user
+  const [scrollY,   setScrollY]   = useState(0); //!creates a state variable to store:the current vertical scroll position (Y-axis) of the page.has used in navbar file
+  const [query,     setQuery]     = useState('');//!the value serched by  user saved in usestate and through API call fetch relevant data
   const [subject,   setSubject]   = useState('All');
   const [mode,      setMode]      = useState('All');
   const [location,  setLocation]  = useState('All Locations');
@@ -144,12 +157,45 @@ export default function ClassSearchPage() {
   const [sortBy,    setSortBy]    = useState('rating');
   const [view,      setView]      = useState<'grid'|'list'>('grid');
   const [page,      setPage]      = useState(1);
-  const [courses,   setCourses]   = useState<any[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-
+  const [courses, setCourses] = useState<Course[]>([]);
+const [total, setTotal] = useState(0);
+const [totalPages, setTotalPages] = useState(1);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState('');
   const topRef = useRef<HTMLDivElement>(null);
+
+
+
+//! Fetch courses from backend whenever any filter or page changes
+useEffect(() => {
+  const fetchCourses = async () => {
+    setLoading(true);//!show loading
+    setError('');
+    try { //!errorhandling for if API fails
+      const data = await searchCourses({  //!call api:Sends request like:"subject": "Math","location": "Colombo",
+        q:         query     || undefined,
+        subject:   subject   !== 'All'           ? subject   : undefined,        
+        mode:      mode      !== 'All'           ? mode      : undefined,    
+        location:  location  !== 'All Locations' ? location  : undefined,
+        minRating: minRating > 0                 ? minRating : undefined,
+        maxFee:    maxFee    < 6000              ? maxFee    : undefined,
+        sortBy,
+        page,
+        limit: 6,
+      });
+      setCourses(data.courses);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);  //!Store data.Saves API response into state
+    } catch (err) {
+      setError('Failed to load courses. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchCourses();
+}, [query, subject, mode, location, minRating, maxFee, sortBy, page]);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -157,62 +203,16 @@ export default function ClassSearchPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: ITEMS_PER_PAGE.toString(),
-          sortBy,
-          maxFee: maxFee.toString(),
-          minRating: minRating.toString(),
-          q: query
-        });
-        if (subject !== 'All') params.append('subject', subject);
-        if (mode !== 'All') params.append('mode', mode.toLowerCase());
-        if (location !== 'All Locations') params.append('location', location);
-
-        const res = await fetch(`http://localhost:5000/api/courses?${params.toString()}`);
-        const data = await res.json();
-        
-        if (data.courses) {
-          // Map backend fields to frontend names if needed
-          const mapped = data.courses.map((c: any) => ({
-            id: c.id,
-            title: c.title,
-            tutor: c.tutor_name || 'Tutor', // This might need a join in backend, let's check courseController
-            subject: c.subject,
-            location: c.location,
-            mode: c.mode,
-            fee: Number(c.fee),
-            rating: Number(c.average_rating) || 0,
-            reviews: Number(c.review_count) || 0,
-            badge: c.badge,
-            image: c.image || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-            desc: c.description
-          }));
-          setCourses(mapped);
-          setTotalPages(data.totalPages);
-          setTotalCount(data.total);
-        }
-      } catch (err) {
-        console.error("Failed to fetch courses", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCourses();
-  }, [page, sortBy, maxFee, minRating, query, subject, mode, location]);
-
-  const clearAll   = () => { setQuery(''); setSubject('All'); setMode('All'); setLocation('All Locations'); setMinRating(0); setMaxFee(6000); };
-  const activeCount = [subject!=='All', mode!=='All', location!=='All Locations', minRating>0, maxFee<6000].filter(Boolean).length;
+  const clearAll   = () => { setQuery(''); setSubject('All'); setMode('All'); setLocation('All Locations'); setMinRating(0); setMaxFee(6000); }; //!resets filters back to default values
+  const activeCount = [subject!=='All', mode!=='All', location!=='All Locations', minRating>0, maxFee<6000].filter(Boolean).length;              //!counts how many filters are currently active.
   const scrollTop  = () => topRef.current?.scrollIntoView({ behavior:'smooth' });
 
   return (
     <>
       <style>{`
+
+//!Inline CSS AND Internal CSS used for search pg
+
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'DM Sans',sans-serif;background:#F4F6F5;color:#1a1a1a;}
@@ -220,6 +220,7 @@ export default function ClassSearchPage() {
         ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#10B981;border-radius:99px;}
         input:focus,select:focus{outline:none;} input[type=range]{accent-color:#10B981;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+        @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
         .card-appear{animation:fadeUp 0.42s cubic-bezier(.22,1,.36,1) both;}
         .filter-card{background:white;border-radius:20px;padding:24px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.07);border:1px solid rgba(0,0,0,0.04);position:sticky;top:84px;}
         .filter-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#9CA3AF;display:block;margin-bottom:10px;}
@@ -248,7 +249,7 @@ export default function ClassSearchPage() {
               <span style={{ fontSize:12, color:'#34D399', fontWeight:600 }}>Browse Courses</span>
             </div>
             <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(28px,4vw,50px)', fontWeight:900, color:'white', marginBottom:8, lineHeight:1.1 }}>Browse All Classes</h1>
-            <p style={{ fontSize:15, color:'rgba(255,255,255,0.55)', marginBottom:26, fontWeight:300 }}>{ALL_COURSES.length} classes from verified tutors across Sri Lanka</p>
+            <p style={{ fontSize:15, color:'rgba(255,255,255,0.55)', marginBottom:26, fontWeight:300 }}>{total} classes from verified tutors across Sri Lanka</p>
 
             {/* Search */}
             <div style={{ display:'flex', background:'white', borderRadius:14, overflow:'hidden', boxShadow:'0 4px 24px rgba(0,0,0,0.12)', maxWidth:680, border:'2px solid transparent' }}>
@@ -354,8 +355,8 @@ export default function ClassSearchPage() {
             {/* Top bar */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexWrap:'wrap', gap:12 }}>
               <span style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827' }}>
-                {totalCount} <span style={{ fontWeight:400, fontSize:16, color:'#6B7280' }}>classes found</span>
-                {query && <span style={{ fontSize:13, color:'#9CA3AF', marginLeft:10 }}>for "<span style={{ color:'#10B981', fontWeight:600 }}>{query}</span>"</span>}
+                {total} <span style={{ fontWeight:400, fontSize:16, color:'#6B7280' }}>classes found</span>
+                {query && <span style={{ fontSize:13, color:'#9CA3AF', marginLeft:10 }}>for &quot;<span style={{ color:'#10B981', fontWeight:600 }}>{query}</span>&quot;</span>}
               </span>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{ padding:'8px 28px 8px 12px', borderRadius:10, fontSize:12, fontWeight:500, border:'1.5px solid #E5E7EB', background:'white', color:'#374151', fontFamily:"'DM Sans',sans-serif", cursor:'pointer' }}>
@@ -387,9 +388,17 @@ export default function ClassSearchPage() {
 
             {/* Cards */}
             {loading ? (
-              <div style={{ display:'flex', justifyContent:'center', padding:'80px 0' }}>
-                <div style={{ width:40, height:40, border:'4px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
-                <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+              <div style={{ textAlign:'center', padding:'60px 0' }}>
+                <div style={{ width:40, height:40, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+                <p style={{ color:'#9CA3AF', fontSize:14 }}>Loading courses...</p>
+              </div>
+            ) : error ? (
+              <div style={{ textAlign:'center', padding:'60px 0', color:'#EF4444' }}>
+                <p style={{ fontSize:16, fontWeight:600 }}>{error}</p>
+                <button onClick={() => setError('')}
+                  style={{ marginTop:16, background:'#10B981', color:'white', border:'none', borderRadius:10, padding:'10px 24px', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
+                  Try Again
+                </button>
               </div>
             ) : courses.length > 0 ? (
               <>
@@ -415,7 +424,7 @@ export default function ClassSearchPage() {
                   </div>
                 )}
                 <p style={{ textAlign:'center', fontSize:12, color:'#9CA3AF', marginTop:12 }}>
-                  Showing {(page-1)*ITEMS_PER_PAGE+1}–{Math.min(page*ITEMS_PER_PAGE, totalCount)} of {totalCount} results
+                  Showing {(page-1)*6+1}–{Math.min(page*6,total)} of {total} results
                 </p>
               </>
             ) : (

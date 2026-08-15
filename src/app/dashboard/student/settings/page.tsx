@@ -43,28 +43,15 @@ export default function SettingsPage() {
     sessionReminder:  true,
     enrollmentUpdate: true,
     newMessage:       true,
-    promotions:       false,
     weeklyDigest:     true,
+    darkMode:         false,
   });
-
-  // Privacy settings
-  const [privacy, setPrivacy] = useState({
-    showProfile:   true,
-    showSchedule:  false,
-    allowMessages: true,
-  });
-
-  // Appearance
-  const [language, setLanguage]     = useState('English');
-  const [timezone, setTimezone]     = useState('Asia/Colombo (GMT+5:30)');
-  const [currency, setCurrency]     = useState('LKR (Sri Lankan Rupee)');
 
   // Password form
   const [pwForm, setPwForm] = useState({ current:'', newPw:'', confirm:'' });
   const [pwErrors, setPwErrors] = useState<Record<string,string>>({});
 
   const toggleNotif  = (k: keyof typeof notif)  => setNotif(p=>({...p,[k]:!p[k]}));
-  const togglePrivacy = (k: keyof typeof privacy) => setPrivacy(p=>({...p,[k]:!p[k]}));
 
   const savePassword = () => {
     const e: Record<string,string> = {};
@@ -99,44 +86,13 @@ export default function SettingsPage() {
           {k:'sessionReminder',  l:'Session Reminders',    d:'Get notified 30 minutes before your class'},
           {k:'enrollmentUpdate', l:'Enrollment Updates',   d:'When tutors approve or reject your request'},
           {k:'newMessage',       l:'New Messages',         d:'When a tutor sends you a message'},
-          {k:'promotions',       l:'Promotions & Offers',  d:'Deals, discounts and platform news'},
           {k:'weeklyDigest',     l:'Weekly Digest',        d:'Summary of your learning progress'},
+          {k:'darkMode',         l:'Dark Mode',            d:'Enable dark mode for the interface'},
         ].map(item=>(
           <SettingRow key={item.k} label={item.l} desc={item.d}>
             <Toggle on={notif[item.k as keyof typeof notif]} onChange={()=>toggleNotif(item.k as keyof typeof notif)}/>
           </SettingRow>
         ))}
-      </Section>
-
-      {/* Privacy */}
-      <Section title="Privacy" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}>
-        {[
-          {k:'showProfile',   l:'Public Profile',    d:'Let tutors view your profile information'},
-          {k:'showSchedule',  l:'Show My Schedule',  d:'Allow tutors to see your available times'},
-          {k:'allowMessages', l:'Allow Messages',    d:'Let enrolled tutors message you directly'},
-        ].map(item=>(
-          <SettingRow key={item.k} label={item.l} desc={item.d}>
-            <Toggle on={privacy[item.k as keyof typeof privacy]} onChange={()=>togglePrivacy(item.k as keyof typeof privacy)}/>
-          </SettingRow>
-        ))}
-      </Section>
-
-      {/* Preferences */}
-      <Section title="Preferences" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18, paddingTop:4 }}>
-          {[
-            {l:'Language', val:language, set:setLanguage, opts:['English','Sinhala','Tamil']},
-            {l:'Timezone', val:timezone, set:setTimezone, opts:['Asia/Colombo (GMT+5:30)','Asia/Kolkata (GMT+5:30)','UTC']},
-            {l:'Currency', val:currency, set:setCurrency, opts:['LKR (Sri Lankan Rupee)','USD (US Dollar)']},
-          ].map(f=>(
-            <div key={f.l} style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              <label style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#9CA3AF' }}>{f.l}</label>
-              <select value={f.val} onChange={e=>f.set(e.target.value)} style={selStyle}>
-                {f.opts.map(o=><option key={o}>{o}</option>)}
-              </select>
-            </div>
-          ))}
-        </div>
         <div style={{ marginTop:20, display:'flex', justifyContent:'flex-end' }}>
           <button onClick={()=>{ setSaved(true); setTimeout(()=>setSaved(false),3000); }} style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:11, padding:'11px 26px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 4px 14px rgba(16,185,129,0.38)' }}>
             Save Preferences

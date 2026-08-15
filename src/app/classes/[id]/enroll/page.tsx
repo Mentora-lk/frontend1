@@ -5,30 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/navbar/Navbar';
 import EnrollSidebar from './EnrollSidebar';
-// ── Course data (same as detail page) ─────────────────────────────────────────
-const COURSES_DB: Record<number, any> = {
-  1: {
-    id:1, title:'A/L Combined Mathematics', subject:'Mathematics', location:'Moratuwa',
-    mode:'online', fee:2500, enrolled:12, maxStudents:20,
-    image:'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-    schedule:{ Monday:['4:00 PM','6:00 PM'], Wednesday:['4:00 PM','6:00 PM'], Saturday:['9:00 AM','11:00 AM','2:00 PM'] },
-    tutor:{ name:'Kasun Fernando', avatar:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80' },
-  },
-  2: {
-    id:2, title:'Advanced Level : ICT', subject:'ICT', location:'Piliyandala',
-    mode:'online', fee:3000, enrolled:18, maxStudents:25,
-    image:'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',
-    schedule:{ Tuesday:['5:00 PM','7:00 PM'], Thursday:['5:00 PM','7:00 PM'], Sunday:['10:00 AM','2:00 PM'] },
-    tutor:{ name:'Nimesh Dissanayake', avatar:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&q=80' },
-  },
-  3: {
-    id:3, title:'IT : Web Development From Basics', subject:'ICT', location:'Online',
-    mode:'both', fee:4500, enrolled:8, maxStudents:15,
-    image:'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80',
-    schedule:{ Monday:['6:00 PM','8:00 PM'], Friday:['6:00 PM','8:00 PM'], Saturday:['10:00 AM','1:00 PM'] },
-    tutor:{ name:'Isaac Rudansky', avatar:'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&q=80' },
-  },
-};
+import { getCourseById } from '@/services/classService';
+import { submitEnrollment } from '@/services/enrollmentService';
+
 
 // ── Reusable sub-pieces (small, only used inside this file) ────────────────────
 const inputStyle = (hasErr?: boolean): React.CSSProperties => ({
@@ -101,13 +80,19 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EnrollPage() {
   const params = useParams();
-  const id     = params?.id;
+  const id     = Number(params?.id);
 
-  const [scrollY, setScrollY] = useState(0);
-  const [step, setStep] = useState(1);
+  // Course data from backend
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Submission state
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  // Step state
+  const [step, setStep] = useState(1);
   const [dashboardLink, setDashboardLink] = useState('/dashboard/student');
 
   useEffect(() => {
@@ -137,48 +122,25 @@ export default function EnrollPage() {
   // Step 3 state
   const [agreed, setAgreed] = useState(false);
 
+  const [scrollY, setScrollY] = useState(0);
   const [errors, setErrors] = useState<Record<string,string>>({});
 
   useEffect(() => {
     const fetchCourse = async () => {
-      if (!id) return;
+      setLoading(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/courses/${id}`);
-        const data = await res.json();
-        let parsedSchedule = {};
-        try {
-          parsedSchedule = typeof data.schedule === 'string' && data.schedule.startsWith('{') 
-            ? JSON.parse(data.schedule) 
-            : { 'General Schedule': [data.schedule || 'Schedule TBD'] };
-        } catch (e) {
-          parsedSchedule = { 'General Schedule': [data.schedule || 'Schedule TBD'] };
-        }
-
-        const mapped = {
-          id: data.id,
-          title: data.title,
-          subject: data.subject,
-          location: data.location,
-          mode: data.mode,
-          fee: Number(data.fee),
-          enrolled: data.enrolled_count || 0,
-          maxStudents: data.max_students || 20,
-          image: data.image || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-          schedule: parsedSchedule,
-          tutor: {
-            name: data.tutor_name || 'Verified Tutor',
-            avatar: data.tutor_avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80'
-          }
-        };
-        setCourse(mapped);
-        if (mapped.mode !== 'both') setPreferredMode(mapped.mode);
+        const data = await getCourseById(id);
+        setCourse(data);
+        if (data.mode !== 'both') setPreferredMode(data.mode);
       } catch (err) {
+        setError('Failed to load class details.');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchCourse();
+
+    if (id) fetchCourse();
   }, [id]);
 
   useEffect(() => {
@@ -214,7 +176,7 @@ export default function EnrollPage() {
   };
   const validateStep2 = () => {
     const e: Record<string,string> = {};
-    if (course.mode==='both' && !preferredMode) e.mode = 'Please select a teaching mode';
+    if (course?.mode==='both' && !preferredMode) e.mode = 'Please select a teaching mode';
     if (!selectedDay)                           e.day  = 'Please select a day';
     if (!selectedTime)                          e.time = 'Please select a time slot';
     setErrors(e); return Object.keys(e).length === 0;
@@ -227,14 +189,15 @@ export default function EnrollPage() {
 
   const handleNext   = () => { if (step===1&&!validateStep1()) return; if (step===2&&!validateStep2()) return; setErrors({}); setStep(s=>s+1); };
   const handleBack   = () => { setErrors({}); setStep(s=>s-1); };
-  
   const handleSubmit = async () => {
     if (!validateStep3()) return;
+
     setSubmitting(true);
+    setSubmitError('');
+
     try {
-      const { enrollmentService } = await import('@/services/enrollmentService');
-      await enrollmentService.createEnrollment({
-        classId: Number(course.id),
+      await submitEnrollment({
+        classId:       course.id,
         fullName,
         email,
         phone,
@@ -243,17 +206,49 @@ export default function EnrollPage() {
         message,
         preferredMode: preferredMode || course.mode,
         selectedDay,
-        selectedTime
+        selectedTime,
       });
+
       setStep(4);
     } catch (err: any) {
-      alert(err.message || "Failed to submit enrollment request");
+      setSubmitError(
+        err.response?.data?.message || 'Failed to submit enrollment. Please try again.'
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const displayMode = preferredMode || course.mode;
+  const displayMode = preferredMode || course?.mode;
+
+  if (loading) return (
+    <>
+      <Navbar scrollY={scrollY} />
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ width:48, height:48, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+          <p style={{ color:'#9CA3AF', fontSize:15 }}>Loading enrollment form...</p>
+        </div>
+      </div>
+    </>
+  );
+
+  if (error || !course) return (
+    <>
+      <Navbar scrollY={scrollY} />
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:52, marginBottom:16 }}>⚠️</div>
+          <p style={{ fontSize:16, color:'#EF4444', fontWeight:600, marginBottom:20 }}>{error || 'Course not found'}</p>
+          <Link href="/classes/search">
+            <button style={{ background:'#10B981', color:'white', border:'none', borderRadius:12, padding:'11px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+              Back to Search
+            </button>
+          </Link>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -265,6 +260,7 @@ export default function EnrollPage() {
         ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#10B981;border-radius:99px;}
         input:focus,select:focus,textarea:focus{outline:none;}
         input[type=checkbox]{accent-color:#10B981;}
+        @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
         @keyframes scaleIn{from{opacity:0;transform:scale(0.88);}to{opacity:1;transform:scale(1);}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
         .step-panel{animation:fadeUp 0.4s cubic-bezier(.22,1,.36,1) both;}
@@ -296,7 +292,7 @@ export default function EnrollPage() {
               {step<4 ? 'Enroll in This Class' : 'Enrollment Requested!'}
             </h1>
             <p style={{ fontSize:14, color:'rgba(255,255,255,0.55)', fontWeight:300 }}>
-              {step<4 ? `Joining ${tutor.name}'s class · ${course.title}` : 'Your request has been sent to the tutor'}
+              {step<4 ? `Joining ${course?.tutor_name || 'tutor'}'s class · ${course?.title}` : 'Your request has been sent to the tutor'}
             </p>
           </div>
           <div style={{ position:'absolute', bottom:0, left:0, right:0, lineHeight:0 }}>
@@ -351,7 +347,7 @@ export default function EnrollPage() {
                   </FieldLabel>
                   <div style={{ gridColumn:'1 / -1' }}>
                     <FieldLabel label="Message to Tutor" hint="Optional — introduce yourself or ask a question">
-                      <textarea style={{ ...inputStyle(), resize:'vertical', minHeight:90, lineHeight:1.6 }} placeholder={`Hi ${tutor.name.split(' ')[0]}, I'm interested in joining your class because...`} value={message} onChange={e=>setMessage(e.target.value)} onFocus={focus} onBlur={e=>blur(e,false)}/>
+                      <textarea style={{ ...inputStyle(), resize:'vertical', minHeight:90, lineHeight:1.6 }} placeholder={`Hi ${course?.tutor?.name?.split(' ')[0] || 'Tutor'}, I'm interested in joining your class because...`} value={message} onChange={e=>setMessage(e.target.value)} onFocus={focus} onBlur={e=>blur(e,false)}/>
                     </FieldLabel>
                   </div>
                 </div>
@@ -366,7 +362,7 @@ export default function EnrollPage() {
             {step===2 && (
               <div className="step-panel">
                 {/* Mode selection */}
-                {course.mode==='both' && (
+                {course?.mode==='both' && (
                   <div style={{ background:'white', borderRadius:22, padding:'28px 32px', marginBottom:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)' }}>
                     <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827', marginBottom:6, display:'flex', alignItems:'center', gap:10 }}>
                       <span style={{ width:4, height:20, background:'#10B981', borderRadius:2, display:'inline-block' }}/>Preferred Mode
@@ -375,7 +371,7 @@ export default function EnrollPage() {
                     <div style={{ display:'flex', gap:14 }}>
                       {[
                         { val:'online',  icon:'💻', label:'Online',    desc:'Attend from anywhere via video call', color:'#10B981' },
-                        { val:'offline', icon:'🏫', label:'In-Person', desc:`At ${course.location}`, color:'#3B82F6' },
+                        { val:'offline', icon:'🏫', label:'In-Person', desc:`At ${course?.location}`, color:'#3B82F6' },
                       ].map(m=>(
                         <div key={m.val} onClick={()=>setPreferredMode(m.val)} style={{ flex:1, border:`2px solid ${preferredMode===m.val?m.color:'#E5E7EB'}`, borderRadius:14, padding:20, cursor:'pointer', textAlign:'center', transition:'all 0.22s', background:preferredMode===m.val?(m.val==='online'?'#f0fdf4':'#eff6ff'):'white' }}>
                           <div style={{ fontSize:28, marginBottom:10 }}>{m.icon}</div>
@@ -401,10 +397,10 @@ export default function EnrollPage() {
                   </h2>
                   <p style={{ fontSize:13, color:'#9CA3AF', marginBottom:20 }}>Choose the day that works best for you</p>
                   <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-                    {Object.keys(course.schedule).map(day=>(
+                    {Object.keys(course?.schedule || {}).map(day=>(
                       <div key={day} onClick={()=>{ setSelectedDay(day); setSelectedTime(''); }} style={{ flex:'1', minWidth:80, maxWidth:110, border:`2px solid ${selectedDay===day?'#10B981':'#E5E7EB'}`, borderRadius:14, padding:'14px 8px', cursor:'pointer', textAlign:'center', transition:'all 0.22s', background:selectedDay===day?'linear-gradient(135deg,#f0fdf4,#ecfdf5)':'white', boxShadow:selectedDay===day?'0 6px 20px rgba(16,185,129,0.18)':'none', transform:selectedDay===day?'translateY(-3px)':'none' }}>
                         <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:selectedDay===day?'#10B981':'#9CA3AF', textTransform:'uppercase', marginBottom:4 }}>{day}</div>
-                        <div style={{ fontSize:12, color:'#6B7280' }}>{course.schedule[day].length} slots</div>
+                        <div style={{ fontSize:12, color:'#6B7280' }}>{course?.schedule?.[day]?.length || 0} slots</div>
                         {selectedDay===day && <div style={{ width:20, height:20, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', margin:'8px auto 0' }}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>}
@@ -422,7 +418,7 @@ export default function EnrollPage() {
                     </h2>
                     <p style={{ fontSize:13, color:'#9CA3AF', marginBottom:20 }}>Pick your preferred session time</p>
                     <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-                      {course.schedule[selectedDay].map((t: string)=>(
+                      {course?.schedule?.[selectedDay]?.map((t: string)=>(
                         <button key={t} onClick={()=>setSelectedTime(t)} style={{ padding:'10px 18px', borderRadius:11, fontSize:14, fontWeight:600, cursor:'pointer', border:`1.5px solid ${selectedTime===t?'#10B981':'#E5E7EB'}`, background:selectedTime===t?'#10B981':'white', color:selectedTime===t?'white':'#374151', fontFamily:"'DM Sans',sans-serif", boxShadow:selectedTime===t?'0 4px 12px rgba(16,185,129,0.35)':'none', transition:'all 0.2s' }}>
                           🕐 {t}
                         </button>
@@ -473,9 +469,9 @@ export default function EnrollPage() {
                     </div>
                     {[
                       {l:'Day',v:selectedDay},{l:'Time',v:`🕐 ${selectedTime}`},
-                      {l:'Mode',v:displayMode.charAt(0).toUpperCase()+displayMode.slice(1)},
-                      {l:'Location',v:displayMode==='online'?'Online (video call)':course.location},
-                      {l:'Fee',v:`LKR ${course.fee.toLocaleString()}/month`},
+                      {l:'Mode',v:displayMode?.charAt(0).toUpperCase()+displayMode?.slice(1)},
+                      {l:'Location',v:displayMode==='online'?'Online (video call)':course?.location},
+                      {l:'Fee',v:`LKR ${course?.fee?.toLocaleString()}/month`},
                     ].map(row=>(
                       <div key={row.l} style={{ display:'flex', gap:12, padding:'10px 0', borderBottom:'1px solid rgba(16,185,129,0.1)' }}>
                         <span style={{ fontSize:13, color:'#065F46', width:120, flexShrink:0 }}>{row.l}</span>
@@ -498,13 +494,42 @@ export default function EnrollPage() {
 
                 <div style={{ display:'flex', justifyContent:'space-between' }}>
                   <NavBtn label="Back" onClick={handleBack}/>
-                  <button onClick={handleSubmit} disabled={!agreed} style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:13, padding:'13px 40px', fontSize:15, fontWeight:700, cursor:agreed?'pointer':'not-allowed', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 22px rgba(16,185,129,0.38)', display:'flex', alignItems:'center', gap:8, opacity:agreed?1:0.5, transition:'all 0.28s' }}
-                    onMouseEnter={e=>{ if(agreed) e.currentTarget.style.transform='translateY(-3px)'; }}
-                    onMouseLeave={e=>{e.currentTarget.style.transform='none';}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    Submit Enrollment Request
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!agreed || submitting}
+                    style={{
+                      background: 'linear-gradient(135deg,#10B981,#059669)',
+                      color: 'white', border: 'none', borderRadius: 13,
+                      padding: '13px 40px', fontSize: 15, fontWeight: 700,
+                      cursor: (!agreed || submitting) ? 'not-allowed' : 'pointer',
+                      fontFamily: "'DM Sans',sans-serif",
+                      boxShadow: '0 6px 22px rgba(16,185,129,0.38)',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      opacity: (!agreed || submitting) ? 0.6 : 1,
+                      transition: 'all 0.28s',
+                    }}
+                    onMouseEnter={e => { if (agreed && !submitting) e.currentTarget.style.transform = 'translateY(-3px)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+                  >
+                    {submitting ? (
+                      <>
+                        <div style={{ width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTop:'2px solid white', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Submit Enrollment Request
+                      </>
+                    )}
                   </button>
                 </div>
+
+                {submitError && (
+                  <p style={{ fontSize:13, color:'#EF4444', marginTop:12, textAlign:'center', fontWeight:600 }}>
+                    ⚠️ {submitError}
+                  </p>
+                )}
               </div>
             )}
 
@@ -516,14 +541,14 @@ export default function EnrollPage() {
                 </div>
                 <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900, color:'#111827', marginBottom:8 }}>You're Almost In! 🎉</h2>
                 <p style={{ fontSize:15, color:'#6B7280', marginBottom:28, lineHeight:1.7, maxWidth:420, margin:'0 auto 28px' }}>
-                  Hi <strong style={{ color:'#111827' }}>{fullName}</strong>! Your enrollment request for <strong style={{ color:'#10B981' }}>{course.title}</strong> has been sent to <strong style={{ color:'#111827' }}>{tutor.name}</strong>.
+                  Hi <strong style={{ color:'#111827' }}>{fullName}</strong>! Your enrollment request for <strong style={{ color:'#10B981' }}>{course?.title}</strong> has been sent to <strong style={{ color:'#111827' }}>{course?.tutor_name || 'tutor'}</strong>.
                 </p>
 
                 <div style={{ background:'#F0FDF4', borderRadius:16, padding:'22px 24px', marginBottom:28, border:'1px solid #A7F3D0', textAlign:'left' }}>
                   <p style={{ fontSize:13, fontWeight:700, color:'#059669', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:14 }}>What happens next</p>
                   {[
                     { icon:'📧', text:'Confirmation email sent to your inbox' },
-                    { icon:'⏳', text:`${tutor.name} will review your request within 24 hours` },
+                    { icon:'⏳', text:`${course?.tutor_name || 'Your tutor'} will review your request within 24 hours` },
                     { icon:'✅', text:"You'll receive approval + payment details via email" },
                     { icon:'🎓', text:`First class: ${selectedDay} at ${selectedTime}` },
                   ].map((item,i)=>(
@@ -554,9 +579,9 @@ export default function EnrollPage() {
           <div className="enroll-sidebar" style={{ width:300, flexShrink:0 }}>
             <EnrollSidebar
               courseId={course.id} title={course.title} image={course.image}
-              tutorName={tutor.name} tutorAvatar={tutor.avatar}
+              tutorName={course.tutor_name || 'Tutor'} tutorAvatar={course.tutor_avatar || ''}
               fee={course.fee} mode={course.mode} location={course.location}
-              enrolled={course.enrolled} maxStudents={course.maxStudents}
+              enrolled={course.enrolledCount || 0} maxStudents={course.max_students || 10}
               currentStep={step}
             />
           </div>
