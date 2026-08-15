@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -116,6 +117,16 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+
+          {/* Google Sign-In */}
+          <GoogleSignInButton onError={setError} />
+
+          {/* Divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+            <span style={{ fontSize: 13, color: "#9ca3af" }}>or continue with email</span>
+            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+          </div>
 
           {/* Email Field */}
           <div>

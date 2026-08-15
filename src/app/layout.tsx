@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { GoogleAuthProvider } from "@/components/providers/GoogleAuthProvider";
 
 export const metadata = {
   title: "frontend1",
@@ -11,8 +12,10 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning={true}>{children}</body>
+    <html lang="en">
+      <body suppressHydrationWarning={true}>
+        <GoogleAuthProvider>{children}</GoogleAuthProvider>
+      </body>
     </html>
   );
 }
