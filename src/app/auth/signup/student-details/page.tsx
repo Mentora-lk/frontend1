@@ -4,18 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import StudentRegistration from "../components/SignupForm/StudentRegistration";
 import { GoogleSignUpButton } from "@/components/auth/GoogleSignUpButton";
+import { usePalette } from "@/hooks/usePalette";
 
 export default function StudentDetailsPage() {
+  const palette = usePalette();
   const [googleError, setGoogleError] = useState("");
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", background: palette.bg, transition: "background 0.25s ease" }}>
       <div
         style={{
           maxWidth: 600,
           margin: "60px auto",
           padding: "40px 20px",
-          background: "#f9fafb",
+          background: palette.surfaceAlt,
           borderRadius: 16,
         }}
       >
@@ -29,6 +31,7 @@ export default function StudentDetailsPage() {
                 cursor: "pointer",
                 fontSize: 24,
                 padding: "8px",
+                color: palette.textPrimary,
               }}
             >
               ←
@@ -40,7 +43,7 @@ export default function StudentDetailsPage() {
                 fontFamily: "'Playfair Display', serif",
                 fontSize: 36,
                 fontWeight: 700,
-                color: "#111827",
+                color: palette.textPrimary,
                 margin: 0,
                 lineHeight: 1.2,
               }}
@@ -50,7 +53,7 @@ export default function StudentDetailsPage() {
             <p
               style={{
                 fontSize: 14,
-                color: "#6b7280",
+                color: palette.textSecondary,
                 margin: "8px 0 0",
                 lineHeight: 1.6,
               }}
@@ -80,12 +83,12 @@ export default function StudentDetailsPage() {
         <GoogleSignUpButton role="student" onError={setGoogleError} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "22px 0" }}>
-          <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, #e5e7eb)" }} />
+          <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, transparent, ${palette.border})` }} />
           <span
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: "#9ca3af",
+              color: palette.textMuted,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
               whiteSpace: "nowrap",
@@ -93,7 +96,7 @@ export default function StudentDetailsPage() {
           >
             or fill in your details
           </span>
-          <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #e5e7eb, transparent)" }} />
+          <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${palette.border}, transparent)` }} />
         </div>
 
         {/* Form */}

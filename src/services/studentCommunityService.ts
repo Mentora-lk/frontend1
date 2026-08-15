@@ -54,6 +54,13 @@ export const getMyDeadlines = async () => {
     });
 };
 
+export const getCommunityStats = async () => {
+    return apiCall<any>("/api/student/communities/stats", {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
 export const getCommunityFeed = async (communityId: string | number) => {
     return apiCall<any>(`/api/student/communities/${communityId}/feed`, {
         method: "GET",

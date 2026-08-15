@@ -68,6 +68,16 @@ export const authService = {
     });
   },
 
+  async deleteAccount(): Promise<{ message: string }> {
+    const token = localStorage.getItem("token");
+    return apiCall<{ message: string }>("/api/auth/account", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
   async registerStudent(data: RegisterStudentRequest): Promise<AuthResponse> {
     return apiCall<AuthResponse>("/api/auth/register/student", {
       method: "POST",

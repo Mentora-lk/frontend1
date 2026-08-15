@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { usePalette } from "@/hooks/usePalette";
 
 export default function LoginPage() {
   const router = useRouter();
+  const palette = usePalette();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -70,7 +72,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", background: palette.bg, transition: "background 0.25s ease" }}>
       <div
         style={{
           maxWidth: 500,
@@ -85,7 +87,7 @@ export default function LoginPage() {
               fontFamily: "'Playfair Display', serif",
               fontSize: 42,
               fontWeight: 900,
-              color: "#111827",
+              color: palette.textPrimary,
               margin: "0 0 12px",
               lineHeight: 1.2,
             }}
@@ -95,7 +97,7 @@ export default function LoginPage() {
           <p
             style={{
               fontSize: 16,
-              color: "#5f646f",
+              color: palette.textSecondary,
               margin: 0,
               lineHeight: 1.6,
             }}
@@ -151,7 +153,7 @@ export default function LoginPage() {
                 display: "block",
                 fontSize: 14,
                 fontWeight: 500,
-                color: "#374151",
+                color: palette.textSecondary,
                 marginBottom: 8,
               }}
             >
@@ -172,9 +174,10 @@ export default function LoginPage() {
                 border:
                   hoveredField === "email"
                     ? "2px solid #10b981"
-                    : "1px solid #d1d5db",
+                    : `1px solid ${palette.border}`,
                 borderRadius: 10,
-                background: "#ffffff",
+                background: palette.inputBg,
+                color: palette.textPrimary,
                 outline: "none",
                 transition: "all 0.3s ease",
                 boxSizing: "border-box",
@@ -201,7 +204,7 @@ export default function LoginPage() {
                 style={{
                   fontSize: 14,
                   fontWeight: 500,
-                  color: "#374151",
+                  color: palette.textSecondary,
                 }}
               >
                 Password
@@ -240,9 +243,10 @@ export default function LoginPage() {
                 border:
                   hoveredField === "password"
                     ? "2px solid #10b981"
-                    : "1px solid #d1d5db",
+                    : `1px solid ${palette.border}`,
                 borderRadius: 10,
-                background: "#ffffff",
+                background: palette.inputBg,
+                color: palette.textPrimary,
                 outline: "none",
                 transition: "all 0.3s ease",
                 boxSizing: "border-box",
@@ -297,7 +301,7 @@ export default function LoginPage() {
             style={{
               textAlign: "center",
               fontSize: 14,
-              color: "#6b7280",
+              color: palette.textMuted,
               margin: "16px 0 0",
             }}
           >

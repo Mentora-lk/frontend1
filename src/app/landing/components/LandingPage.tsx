@@ -4,6 +4,8 @@ import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import Navbar from "../../../components/navbar/Navbar";
 import { searchCourses, getPlatformStats } from "@/services/classService";
+import { usePalette } from "@/hooks/usePalette";
+import { useTheme } from "@/hooks/useTheme";
 
 
 
@@ -54,7 +56,8 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
 
 function CourseCard({ course }: { course: any }) {
   const [hov, setHov] = useState(false);
-  
+  const palette = usePalette();
+
   // Handle both real backend data structure and missing fields
   const tutorName = (course.tutor?.name || course.tutor_name || course.tutor || 'Unknown Tutor').toString();
   const location  = (course.location || 'Sri Lanka').toString();
@@ -72,7 +75,7 @@ function CourseCard({ course }: { course: any }) {
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         style={{
-          background: "white",
+          background: palette.surface,
           borderRadius: 20,
           overflow: "hidden",
           cursor: "pointer",
@@ -80,8 +83,8 @@ function CourseCard({ course }: { course: any }) {
           transform: hov ? "translateY(-8px)" : "translateY(0)",
           boxShadow: hov
             ? "0 24px 48px rgba(16,185,129,0.18), 0 8px 24px rgba(0,0,0,0.1)"
-            : "0 4px 20px rgba(0,0,0,0.07)",
-          border: hov ? "1px solid rgba(16,185,129,0.25)" : "1px solid rgba(0,0,0,0.04)",
+            : palette.shadow,
+          border: hov ? "1px solid rgba(16,185,129,0.25)" : `1px solid ${palette.border}`,
         }}
       >
         <div style={{ position: "relative", overflow: "hidden", height: 185 }}>
@@ -163,7 +166,7 @@ function CourseCard({ course }: { course: any }) {
               fontFamily: "'Playfair Display', serif",
               fontWeight: 700,
               fontSize: 15,
-              color: "#111827",
+              color: palette.textPrimary,
               lineHeight: 1.4,
               marginBottom: 8,
               display: "-webkit-box",
@@ -178,17 +181,17 @@ function CourseCard({ course }: { course: any }) {
           <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
             <Stars rating={rating} size={13} />
             <span style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>{rating}</span>
-            <span style={{ fontSize: 11, color: "#9CA3AF" }}>({reviews})</span>
+            <span style={{ fontSize: 11, color: palette.textMuted }}>({reviews})</span>
           </div>
 
-          <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 4 }}>
+          <p style={{ fontSize: 12, color: palette.textMuted, marginBottom: 4 }}>
             By <span style={{ fontWeight: 600, color: "#10B981" }}>{(tutorName || 'Unknown').toString()}</span>
           </p>
 
           <p
             style={{
               fontSize: 12,
-              color: "#9CA3AF",
+              color: palette.textMuted,
               lineHeight: 1.5,
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -206,13 +209,13 @@ function CourseCard({ course }: { course: any }) {
               justifyContent: "space-between",
               marginTop: 14,
               paddingTop: 12,
-              borderTop: "1px solid #F3F4F6",
+              borderTop: `1px solid ${palette.border}`,
             }}
           >
             <span
               style={{
                 fontSize: 12,
-                color: "#9CA3AF",
+                color: palette.textMuted,
                 display: "flex",
                 alignItems: "center",
                 gap: 4,
@@ -233,6 +236,9 @@ function CourseCard({ course }: { course: any }) {
 }
 
 export default function LandingPage() {
+  const palette = usePalette();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState("IT");
   const [filterSubject, setFilterSubject] = useState("All");
@@ -310,7 +316,7 @@ export default function LandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'DM Sans', sans-serif; background: #F8FAF9; color: #1a1a1a; overflow-x: hidden; }
+        body { font-family: 'DM Sans', sans-serif; background: ${palette.bg}; color: ${palette.textPrimary}; overflow-x: hidden; transition: background 0.25s ease; }
         a { text-decoration: none; color: inherit; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -365,9 +371,9 @@ export default function LandingPage() {
         .btn-outline-green:hover { background: #10B981; color: white; transform: translateY(-3px); box-shadow: 0 10px 28px rgba(16,185,129,0.35); }
 
         .feature-card {
-          background: white; border-radius: 22px; padding: 36px 28px;
+          background: ${palette.surface}; border-radius: 22px; padding: 36px 28px;
           border: 1px solid rgba(16,185,129,0.08);
-          box-shadow: 0 4px 24px rgba(0,0,0,0.045);
+          box-shadow: ${palette.shadow};
           transition: all 0.32s cubic-bezier(.22,1,.36,1);
         }
         .feature-card:hover {
@@ -377,10 +383,10 @@ export default function LandingPage() {
         }
 
         .filter-card {
-          background: white; border-radius: 20px; padding: 26px 22px;
-          box-shadow: 0 4px 28px rgba(0,0,0,0.07);
+          background: ${palette.surface}; border-radius: 20px; padding: 26px 22px;
+          box-shadow: ${palette.shadow};
           position: sticky; top: 88px;
-          border: 1px solid rgba(0,0,0,0.04);
+          border: 1px solid ${palette.border};
         }
 
         .section-eyebrow {
@@ -396,7 +402,7 @@ export default function LandingPage() {
         .section-heading {
           font-family: 'Playfair Display', serif;
           font-size: clamp(28px,3.5vw,44px);
-          font-weight: 900; color: #111827; line-height: 1.12;
+          font-weight: 900; color: ${palette.textPrimary}; line-height: 1.12;
         }
 
         .dot-nav {
@@ -453,7 +459,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      <div style={{ minHeight: "100vh", background: "#F8FAF9" }}>
+      <div style={{ minHeight: "100vh", background: palette.bg }}>
         <Navbar scrollY={scrollY} />
 
         <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
@@ -656,7 +662,7 @@ export default function LandingPage() {
 
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, lineHeight: 0 }}>
             <svg viewBox="0 0 1440 80" preserveAspectRatio="none" style={{ display: "block", width: "100%", height: 80 }}>
-              <path d="M0,40 C480,90 960,0 1440,50 L1440,80 L0,80 Z" fill="#F8FAF9" />
+              <path d="M0,40 C480,90 960,0 1440,50 L1440,80 L0,80 Z" fill={palette.bg} />
             </svg>
           </div>
         </section>
@@ -672,7 +678,7 @@ export default function LandingPage() {
                     gap: 8,
                     marginBottom: 22,
                     paddingBottom: 16,
-                    borderBottom: "1px solid #F3F4F6",
+                    borderBottom: `1px solid ${palette.border}`,
                   }}
                 >
                   <div
@@ -692,21 +698,21 @@ export default function LandingPage() {
                       <line x1="11" y1="18" x2="13" y2="18" />
                     </svg>
                   </div>
-                  <h3 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16 }}>Filters</h3>
+                  <h3 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16, color: palette.textPrimary }}>Filters</h3>
                 </div>
 
-                <FilterGroup label="Subject">
+                <FilterGroup label="Subject" isDark={isDark}>
                   <select
                     value={filterSubject}
                     onChange={(e) => setFilterSubject(e.target.value)}
                     style={{
                       width: "100%",
-                      border: "1.5px solid #E5E7EB",
+                      border: `1.5px solid ${palette.border}`,
                       borderRadius: 10,
                       padding: "9px 12px",
                       fontSize: 13,
-                      color: "#374151",
-                      background: "white",
+                      color: palette.textSecondary,
+                      background: palette.inputBg,
                       fontFamily: "'DM Sans',sans-serif",
                       cursor: "pointer",
                     }}
@@ -717,7 +723,7 @@ export default function LandingPage() {
                   </select>
                 </FilterGroup>
 
-                <FilterGroup label={`Price Range (LKR/hr) - up to ${priceRange.toLocaleString()}`}>
+                <FilterGroup label={`Price Range (LKR/hr) - up to ${priceRange.toLocaleString()}`} isDark={isDark}>
                   <input
                     type="range"
                     min={500}
@@ -727,13 +733,13 @@ export default function LandingPage() {
                     onChange={(e) => setPriceRange(+e.target.value)}
                     style={{ width: "100%" }}
                   />
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: palette.textMuted, marginTop: 4 }}>
                     <span>Rs. 500</span>
                     <span>Rs. 5,000+</span>
                   </div>
                 </FilterGroup>
 
-                <FilterGroup label="Minimum Rating">
+                <FilterGroup label="Minimum Rating" isDark={isDark}>
                   {[
                     { v: 0, l: "Any" },
                     { v: 4.5, l: "4.5+" },
@@ -748,7 +754,7 @@ export default function LandingPage() {
                         marginBottom: 8,
                         cursor: "pointer",
                         fontSize: 13,
-                        color: "#374151",
+                        color: palette.textSecondary,
                       }}
                     >
                       <input type="radio" name="rating" checked={filterRating === r.v} onChange={() => setFilterRating(r.v)} />
@@ -758,7 +764,7 @@ export default function LandingPage() {
                   ))}
                 </FilterGroup>
 
-                <FilterGroup label="Availability">
+                <FilterGroup label="Availability" isDark={isDark}>
                   {["Weekdays", "Weekends", "Evening Slots", "Morning Slots"].map((opt) => (
                     <label
                       key={opt}
@@ -769,7 +775,7 @@ export default function LandingPage() {
                         marginBottom: 8,
                         cursor: "pointer",
                         fontSize: 13,
-                        color: "#374151",
+                        color: palette.textSecondary,
                       }}
                     >
                       <input type="radio" name="avail" /> {opt}
@@ -787,9 +793,9 @@ export default function LandingPage() {
                     width: "100%",
                     padding: "9px",
                     borderRadius: 10,
-                    border: "1.5px solid #E5E7EB",
-                    background: "white",
-                    color: "#6B7280",
+                    border: `1.5px solid ${palette.border}`,
+                    background: palette.surface,
+                    color: palette.textSecondary,
                     fontWeight: 600,
                     fontSize: 13,
                     cursor: "pointer",
@@ -802,9 +808,9 @@ export default function LandingPage() {
                     e.currentTarget.style.color = "#EF4444";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "white";
-                    e.currentTarget.style.borderColor = "#E5E7EB";
-                    e.currentTarget.style.color = "#6B7280";
+                    e.currentTarget.style.background = palette.surface;
+                    e.currentTarget.style.borderColor = palette.border;
+                    e.currentTarget.style.color = palette.textSecondary;
                   }}
                 >
                   Clear All
@@ -816,7 +822,7 @@ export default function LandingPage() {
               <div style={{ marginBottom: 32 }}>
                 <p className="section-eyebrow">Discover Classes</p>
                 <h2 className="section-heading">Top Classes For You</h2>
-                <p style={{ color: "#6B7280", marginTop: 8, fontSize: 14 }}>
+                <p style={{ color: palette.textSecondary, marginTop: 8, fontSize: 14 }}>
                   <span style={{ fontWeight: 700, color: "#10B981" }}>{filteredCourses.length}</span> classes found
                   . Only verified tutors
                 </p>
@@ -826,15 +832,15 @@ export default function LandingPage() {
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} style={{
-                      background: 'white', borderRadius: 20, overflow: 'hidden',
-                      boxShadow: '0 4px 18px rgba(0,0,0,0.06)',
+                      background: palette.surface, borderRadius: 20, overflow: 'hidden',
+                      boxShadow: palette.shadow,
                       animation: 'pulse 1.5s ease-in-out infinite',
                     }}>
-                      <div style={{ height: 185, background: '#F3F4F6' }}/>
+                      <div style={{ height: 185, background: palette.surfaceAlt }}/>
                       <div style={{ padding: '16px 18px' }}>
-                        <div style={{ height: 16, background: '#F3F4F6', borderRadius: 8, marginBottom: 10 }}/>
-                        <div style={{ height: 12, background: '#F3F4F6', borderRadius: 8, width: '60%', marginBottom: 8 }}/>
-                        <div style={{ height: 12, background: '#F3F4F6', borderRadius: 8, width: '40%' }}/>
+                        <div style={{ height: 16, background: palette.surfaceAlt, borderRadius: 8, marginBottom: 10 }}/>
+                        <div style={{ height: 12, background: palette.surfaceAlt, borderRadius: 8, width: '60%', marginBottom: 8 }}/>
+                        <div style={{ height: 12, background: palette.surfaceAlt, borderRadius: 8, width: '40%' }}/>
                       </div>
                     </div>
                   ))
@@ -851,7 +857,7 @@ export default function LandingPage() {
                     })
                     .filter(Boolean)  // Remove null entries
                 ) : (
-                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: palette.textMuted }}>
                     <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
                     <p style={{ fontSize: 16, fontWeight: 600 }}>No classes match your filters</p>
                     <p style={{ fontSize: 13, marginTop: 6 }}>Try adjusting your filters</p>
@@ -872,7 +878,9 @@ export default function LandingPage() {
 
         <section
           style={{
-            background: "linear-gradient(160deg,#f0fdf4 0%,#ecfdf5 60%,#f8fffe 100%)",
+            background: isDark
+              ? "linear-gradient(160deg,#0F1512 0%,#131A16 60%,#0F1512 100%)"
+              : "linear-gradient(160deg,#f0fdf4 0%,#ecfdf5 60%,#f8fffe 100%)",
             padding: "80px 6%",
             position: "relative",
             overflow: "hidden",
@@ -945,10 +953,10 @@ export default function LandingPage() {
                   >
                     {f.icon}
                   </div>
-                  <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, fontWeight: 700, marginBottom: 10, color: "#111827" }}>
+                  <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, fontWeight: 700, marginBottom: 10, color: palette.textPrimary }}>
                     {f.title}
                   </h3>
-                  <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.75 }}>{f.desc}</p>
+                  <p style={{ color: palette.textSecondary, fontSize: 14, lineHeight: 1.75 }}>{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -970,18 +978,18 @@ export default function LandingPage() {
                 { n: "50+", l: "Subjects" },
                 { n: "4.8★", l: "Avg. Rating" },
               ].map((s, i) => (
-                <div key={i} style={{ background: "white", padding: "28px 24px", textAlign: "center" }}>
+                <div key={i} style={{ background: palette.surface, padding: "28px 24px", textAlign: "center" }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 900, color: "#10B981", lineHeight: 1 }}>
                     {s.n}
                   </div>
-                  <div style={{ fontSize: 13, color: "#6B7280", marginTop: 6, fontWeight: 500 }}>{s.l}</div>
+                  <div style={{ fontSize: 13, color: palette.textSecondary, marginTop: 6, fontWeight: 500 }}>{s.l}</div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section style={{ padding: "80px 6%", background: "white" }}>
+        <section style={{ padding: "80px 6%", background: palette.bg }}>
           <div style={{ maxWidth: 1280, margin: "0 auto" }}>
             <div className="testimonial-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 52, alignItems: "center" }}>
               <div>
@@ -994,7 +1002,7 @@ export default function LandingPage() {
 
                 <div
                   style={{
-                    background: "linear-gradient(135deg,#f0fdf4,#ecfdf5)",
+                    background: isDark ? "linear-gradient(135deg,#161D1A,#1B2420)" : "linear-gradient(135deg,#f0fdf4,#ecfdf5)",
                     borderRadius: 24,
                     padding: 36,
                     position: "relative",
@@ -1038,7 +1046,7 @@ export default function LandingPage() {
                     style={{
                       fontSize: 17,
                       lineHeight: 1.8,
-                      color: "#1F2937",
+                      color: palette.textPrimary,
                       fontStyle: "italic",
                       marginBottom: 24,
                       position: "relative",
@@ -1069,8 +1077,8 @@ export default function LandingPage() {
                       {TESTIMONIALS[testimonialIdx].name[0]}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}>{TESTIMONIALS[testimonialIdx].name}</div>
-                      <div style={{ fontSize: 12, color: "#9CA3AF" }}>Verified Student</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: palette.textPrimary }}>{TESTIMONIALS[testimonialIdx].name}</div>
+                      <div style={{ fontSize: 12, color: palette.textMuted }}>Verified Student</div>
                     </div>
                   </div>
                 </div>
@@ -1294,7 +1302,7 @@ export default function LandingPage() {
   );
 }
 
-function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+function FilterGroup({ label, children, isDark }: { label: string; children: ReactNode; isDark?: boolean }) {
   return (
     <div style={{ marginBottom: 22 }}>
       <label
@@ -1303,7 +1311,7 @@ function FilterGroup({ label, children }: { label: string; children: ReactNode }
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-          color: "#9CA3AF",
+          color: isDark ? "#8B968F" : "#9CA3AF",
           display: "block",
           marginBottom: 10,
         }}

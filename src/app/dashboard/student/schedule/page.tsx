@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { getMySchedule } from '@/services/enrollmentService';
+import { usePalette } from '@/hooks/usePalette';
 
 export default function SchedulePage() {
+  const palette = usePalette();
   // Real data from backend
   const [sessions,  setSessions]  = useState<any[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -83,7 +85,7 @@ export default function SchedulePage() {
       {loading ? (
         <div style={{ textAlign:'center', padding:'80px 0' }}>
           <div style={{ width:40, height:40, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
-          <p style={{ color:'#9CA3AF', fontSize:14 }}>Loading your schedule...</p>
+          <p style={{ color:palette.textMuted, fontSize:14 }}>Loading your schedule...</p>
         </div>
       ) : error ? (
         <div style={{ textAlign:'center', padding:'80px 0' }}>
@@ -105,15 +107,15 @@ export default function SchedulePage() {
             { label:'Hours of Learning',  value: `${totalHours}h`,          color:'#10B981', bg:'#ECFDF5', border:'#A7F3D0' },
             { label:'Subjects Active',    value: uniqueSubjects.length,      color:'#F59E0B', bg:'#FFFBEB', border:'#FDE68A' },
           ].map(s=>(
-            <div key={s.label} style={{ background:'white', borderRadius:16, padding:'14px 18px', border:`1px solid ${s.border}`, boxShadow:`0 4px 14px ${s.bg}` }}>
+            <div key={s.label} style={{ background:palette.surface, borderRadius:16, padding:'14px 18px', border:`1px solid ${s.border}`, boxShadow:`0 4px 14px ${s.bg}` }}>
               <div style={{ fontFamily:"'Playfair Display',serif", fontSize:24, fontWeight:900, color:s.color }}>{s.value}</div>
-              <div style={{ fontSize:12, color:'#6B7280', marginTop:2 }}>{s.label}</div>
+              <div style={{ fontSize:12, color:palette.textSecondary, marginTop:2 }}>{s.label}</div>
             </div>
           ))}
         </div>
-        <div style={{ display:'flex', background:'white', borderRadius:10, border:'1.5px solid #E5E7EB', overflow:'hidden' }}>
+        <div style={{ display:'flex', background:palette.surface, borderRadius:10, border:`1.5px solid ${palette.border}`, overflow:'hidden' }}>
           {(['week','list'] as const).map(v=>(
-            <button key={v} onClick={()=>setView(v)} style={{ padding:'8px 18px', border:'none', cursor:'pointer', background:view===v?'#10B981':'white', color:view===v?'white':'#6B7280', fontSize:13, fontWeight:600, fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s' }}>
+            <button key={v} onClick={()=>setView(v)} style={{ padding:'8px 18px', border:'none', cursor:'pointer', background:view===v?'#10B981':palette.surface, color:view===v?`white`:palette.textSecondary, fontSize:13, fontWeight:600, fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s' }}>
               {v==='week'?'Week View':'List View'}
             </button>
           ))}
@@ -122,13 +124,13 @@ export default function SchedulePage() {
 
       {/* WEEK VIEW */}
       {view==='week' && (
-        <div style={{ background:'white', borderRadius:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', overflow:'hidden' }}>
+        <div style={{ background:palette.surface, borderRadius:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:`1px solid ${palette.border}`, overflow:'hidden' }}>
           {/* Day headers */}
-          <div style={{ display:'grid', gridTemplateColumns:'80px repeat(7,1fr)', borderBottom:'1px solid #F3F4F6' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'80px repeat(7,1fr)', borderBottom:`1px solid ${palette.border}` }}>
             <div style={{ padding:'14px 12px' }}/>
             {DAYS.map(d=>(
-              <div key={d} style={{ padding:'14px 8px', textAlign:'center', borderLeft:'1px solid #F3F4F6' }}>
-                <p style={{ fontSize:12, fontWeight:700, color:'#374151', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d}</p>
+              <div key={d} style={{ padding:'14px 8px', textAlign:'center', borderLeft:`1px solid ${palette.border}` }}>
+                <p style={{ fontSize:12, fontWeight:700, color:palette.textSecondary, textTransform:'uppercase', letterSpacing:'0.06em' }}>{d}</p>
               </div>
             ))}
           </div>
@@ -136,9 +138,9 @@ export default function SchedulePage() {
           {/* Time slots */}
           <div style={{ maxHeight:520, overflowY:'auto' }}>
             {HOURS.map(hour=>(
-              <div key={hour} style={{ display:'grid', gridTemplateColumns:'80px repeat(7,1fr)', borderBottom:'1px solid #F9FAFB', minHeight:52 }}>
+              <div key={hour} style={{ display:'grid', gridTemplateColumns:'80px repeat(7,1fr)', borderBottom:`1px solid ${palette.border}`, minHeight:52 }}>
                 <div style={{ padding:'6px 12px', display:'flex', alignItems:'flex-start' }}>
-                  <span style={{ fontSize:11, color:'#9CA3AF', fontWeight:500 }}>{hour}</span>
+                  <span style={{ fontSize:11, color:palette.textMuted, fontWeight:500 }}>{hour}</span>
                 </div>
                 {DAYS.map(day=>{
                   const key     = `${day}-${hour}`;
@@ -147,11 +149,11 @@ export default function SchedulePage() {
                   const color   = session ? (SUBJECT_COLORS[subject] || '#6B7280') : null;
 
                   return (
-                    <div key={day} style={{ borderLeft:'1px solid #F3F4F6', padding:'3px 4px' }}>
+                    <div key={day} style={{ borderLeft:`1px solid ${palette.border}`, padding:'3px 4px' }}>
                       {session && color && (
                         <div className="session-block" style={{ background:`${color}18`, border:`1.5px solid ${color}40`, borderLeft:`4px solid ${color}`, borderRadius:8, padding:'6px 8px' }}>
                           <p style={{ fontSize:11, fontWeight:700, color, lineHeight:1.2 }}>{subject}</p>
-                          <p style={{ fontSize:10, color:'#6B7280', marginTop:2 }}>{session.selectedTime}</p>
+                          <p style={{ fontSize:10, color:palette.textSecondary, marginTop:2 }}>{session.selectedTime}</p>
                         </div>
                       )}
                     </div>
@@ -162,11 +164,11 @@ export default function SchedulePage() {
           </div>
 
           {/* Legend */}
-          <div style={{ padding:'14px 20px', borderTop:'1px solid #F3F4F6', display:'flex', gap:20, flexWrap:'wrap' }}>
+          <div style={{ padding:'14px 20px', borderTop:`1px solid ${palette.border}`, display:'flex', gap:20, flexWrap:'wrap' }}>
             {uniqueSubjects.map(subject=>(
               <div key={subject} style={{ display:'flex', alignItems:'center', gap:7 }}>
                 <div style={{ width:12, height:12, borderRadius:3, background: SUBJECT_COLORS[subject] || '#6B7280' }}/>
-                <span style={{ fontSize:12, color:'#6B7280' }}>{subject}</span>
+                <span style={{ fontSize:12, color:palette.textSecondary }}>{subject}</span>
               </div>
             ))}
           </div>
@@ -177,7 +179,7 @@ export default function SchedulePage() {
       {view==='list' && (
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           {upcoming.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'60px 0', background:'white', borderRadius:20, color:'#9CA3AF' }}>
+            <div style={{ textAlign:'center', padding:'60px 0', background:palette.surface, borderRadius:20, color:palette.textMuted }}>
               <div style={{ fontSize:48, marginBottom:12 }}>📅</div>
               <p style={{ fontSize:16, fontWeight:600 }}>No sessions scheduled</p>
               <p style={{ fontSize:13, marginTop:6 }}>Enroll in a class to see your schedule here</p>
@@ -188,22 +190,22 @@ export default function SchedulePage() {
               const tutor   = s.course?.tutor?.name || s.tutor;
               const color   = SUBJECT_COLORS[subject] || '#6B7280';
               return (
-                <div key={i} className="upcoming-row" style={{ background:'white', borderRadius:16, padding:'18px 22px', boxShadow:'0 2px 12px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)', display:'flex', alignItems:'center', gap:16 }}>
+                <div key={i} className="upcoming-row" style={{ background:palette.surface, borderRadius:16, padding:'18px 22px', boxShadow:'0 2px 12px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}`, display:'flex', alignItems:'center', gap:16 }}>
                   <div style={{ width:48, height:48, borderRadius:14, background:`${color}15`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   </div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
-                      <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{subject}</p>
+                      <p style={{ fontSize:15, fontWeight:700, color:palette.textPrimary }}>{subject}</p>
                       <span style={{ fontSize:10, fontWeight:700, color:s.preferred_mode==='online'||s.mode==='online'?'#10B981':'#3B82F6', background:s.preferred_mode==='online'||s.mode==='online'?'#ECFDF5':'#EFF6FF', borderRadius:5, padding:'2px 7px', textTransform:'uppercase', letterSpacing:'0.06em' }}>
                         {s.preferred_mode||s.mode}
                       </span>
                     </div>
-                    <p style={{ fontSize:13, color:'#9CA3AF' }}>By <span style={{ color:'#10B981', fontWeight:600 }}>{tutor}</span></p>
+                    <p style={{ fontSize:13, color:palette.textMuted }}>By <span style={{ color:'#10B981', fontWeight:600 }}>{tutor}</span></p>
                   </div>
                   <div style={{ textAlign:'right' }}>
-                    <p style={{ fontSize:14, fontWeight:700, color:'#111827' }}>{s.selectedDay} · {s.selectedTime}</p>
-                    <p style={{ fontSize:12, color:'#9CA3AF', marginTop:2 }}>{s.course?.location || s.location || 'TBA'}</p>
+                    <p style={{ fontSize:14, fontWeight:700, color:palette.textPrimary }}>{s.selectedDay} · {s.selectedTime}</p>
+                    <p style={{ fontSize:12, color:palette.textMuted, marginTop:2 }}>{s.course?.location || s.location || 'TBA'}</p>
                   </div>
                 </div>
               );
