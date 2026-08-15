@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { getStudents } from '@/services/adminApi';
+import Spinner from '@/components/ui/Spinner';
 
-function StatCard({ title, value, detail, accent }: { title: string; value: string; detail: string; accent: string }) {
+function StatCard({ title, value, detail, accent, loading }: { title: string; value: string; detail: string; accent: string; loading?: boolean }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -11,7 +12,9 @@ function StatCard({ title, value, detail, accent }: { title: string; value: stri
         <span style={{ color: '#0f766e', fontSize: 12, fontWeight: 700 }}>Status</span>
       </div>
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
-      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
+      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6, display: 'flex', alignItems: 'center' }}>
+        {loading ? <Spinner size={22} /> : value}
+      </div>
       <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>{detail}</div>
     </div>
   );
@@ -81,8 +84,8 @@ export default function AdminStudentsPage() {
 
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <StatCard title="Total Students" value={loading ? '...' : students.length.toString()} detail="From database" accent="#0f766e" />
-        <StatCard title="Showing"        value={loading ? '...' : filtered.length.toString()}  detail="After filters"  accent="#1d4ed8" />
+       <StatCard title="Total Students" value={students.length.toString()} detail="From database" accent="#0f766e" loading={loading} />
+       <StatCard title="Showing"        value={filtered.length.toString()}  detail="After filters"  accent="#1d4ed8" loading={loading} />
       </div>
 
       {/* Table */}
@@ -128,7 +131,7 @@ export default function AdminStudentsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>Loading students...</td></tr>
+                <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center' }}><Spinner size={26} /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>No students found.</td></tr>
               ) : filtered.map((student) => (
