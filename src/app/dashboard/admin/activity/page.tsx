@@ -32,6 +32,8 @@ export default function AdminActivityPage() {
   const [query, setQuery] = useState('');
   const [actorFilter, setActorFilter] = useState('All');
   const [actionFilter, setActionFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
 
   useEffect(() => {
     setLogs(getAuditTrail());
@@ -62,13 +64,18 @@ export default function AdminActivityPage() {
     return { total, todayCount, securityCount, exportCount };
   }, [logs]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visibleLogs = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   const refreshLogs = () => {
     setLogs(getAuditTrail());
+    setPage(1);
   };
 
   const clearLogs = () => {
     saveStoredState(ADMIN_STORAGE_KEYS.audit, []);
     setLogs([]);
+    setPage(1);
   };
 
   const exportLogs = () => {
@@ -98,17 +105,17 @@ export default function AdminActivityPage() {
             type="text"
             placeholder="Search by action, detail or actor..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}
           />
 
-          <select value={actorFilter} onChange={(e) => setActorFilter(e.target.value)} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+          <select value={actorFilter} onChange={(e) => { setActorFilter(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
             {uniqueActors.map((actor) => (
               <option key={actor} value={actor}>{actor === 'All' ? 'Actor: All' : actor}</option>
             ))}
           </select>
 
-          <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+          <select value={actionFilter} onChange={(e) => { setActionFilter(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
             {uniqueActions.map((action) => (
               <option key={action} value={action}>{action === 'All' ? 'Action: All' : action}</option>
             ))}
@@ -133,32 +140,45 @@ export default function AdminActivityPage() {
             </div>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
-              <thead>
-                <tr style={{ background: '#f0fdfa', textAlign: 'left' }}>
-                  {['Time (UTC)', 'Actor', 'Action', 'Detail', 'Event ID'].map((h) => (
-                    <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((item) => (
-                  <tr key={item.id} style={{ borderTop: '1px solid #ecf4ef' }}>
-                    <td style={{ padding: '14px 16px', color: '#374151', whiteSpace: 'nowrap' }}>{formatDateTimeUTC(item.createdAt)}</td>
-                    <td style={{ padding: '14px 16px', color: '#111827', fontWeight: 700 }}>{item.actor}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ display: 'inline-flex', padding: '4px 9px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 12, fontWeight: 700, border: '1px solid #99f6e4' }}>
-                        {item.action}
-                      </span>
-                    </td>
-                    <td style={{ padding: '14px 16px', color: '#374151' }}>{item.detail}</td>
-                    <td style={{ padding: '14px 16px', color: '#6b7280', fontFamily: 'monospace', fontSize: 12 }}>{item.id}</td>
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
+                <thead>
+                  <tr style={{ background: '#f0fdfa', textAlign: 'left' }}>
+                    {['Time (UTC)', 'Actor', 'Action', 'Detail', 'Event ID'].map((h) => (
+                      <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
+                    ))}
                   </tr>
+                </thead>
+                <tbody>
+                  {visibleLogs.map((item) => (
+                    <tr key={item.id} style={{ borderTop: '1px solid #ecf4ef' }}>
+                      <td style={{ padding: '14px 16px', color: '#374151', whiteSpace: 'nowrap' }}>{formatDateTimeUTC(item.createdAt)}</td>
+                      <td style={{ padding: '14px 16px', color: '#111827', fontWeight: 700 }}>{item.actor}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span style={{ display: 'inline-flex', padding: '4px 9px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 12, fontWeight: 700, border: '1px solid #99f6e4' }}>
+                          {item.action}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', color: '#374151' }}>{item.detail}</td>
+                      <td style={{ padding: '14px 16px', color: '#6b7280', fontFamily: 'monospace', fontSize: 12 }}>{item.id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
+              <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filtered.length)} of {filtered.length} events</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Previous</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Next</button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
