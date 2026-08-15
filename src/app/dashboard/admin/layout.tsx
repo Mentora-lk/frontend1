@@ -130,7 +130,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const isAuthPage =
       pathname === '/dashboard/admin/auth' ||
-      pathname.startsWith('/dashboard/admin/auth/');
+      pathname.startsWith('/dashboard/admin/auth/') ||
+      pathname === '/dashboard/admin/forgot-password' ||
+      pathname.startsWith('/dashboard/admin/forgot-password/') ||
+      pathname.startsWith('/dashboard/admin/reset-password/');
 
     if (isAuthPage) {
       setAuthorized(true);
