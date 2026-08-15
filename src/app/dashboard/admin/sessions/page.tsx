@@ -22,8 +22,8 @@ function StatCard({ title, value, detail, accent, loading }: { title: string; va
 function StatusBadge({ status }: { status: string }) {
   const s = (status || '').toLowerCase();
   const palette =
-    s === 'confirmed'   ? { bg: '#ecfeff', color: '#0f766e', border: '#99f6e4' } :
-    s === 'pending'     ? { bg: '#fef3c7', color: '#b45309', border: '#fde68a' } :
+    s === 'approved' || s === 'active' ? { bg: '#ecfeff', color: '#0f766e', border: '#99f6e4' } :
+    s === 'requested' || s === 'pending' ? { bg: '#fef3c7', color: '#b45309', border: '#fde68a' } :
     s === 'cancelled' || s === 'rejected' ? { bg: '#fee2e2', color: '#991b1b', border: '#fecaca' } :
                           { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
   return (
@@ -42,7 +42,7 @@ export default function AdminSessionsPage() {
   const [statusFilter, setStatus] = useState('All Status');
   const [toast, setToast]       = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 6;
+  const pageSize = 5;
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -98,8 +98,8 @@ export default function AdminSessionsPage() {
     showToast('📥 Schedule exported!');
   };
 
-  const confirmedCount = sessions.filter((s) => s.status === 'Confirmed').length;
-  const pendingCount = sessions.filter((s) => s.status === 'Pending').length;
+  const confirmedCount = sessions.filter((s) => s.status === 'approved').length;
+  const pendingCount = sessions.filter((s) => s.status === 'requested').length;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visibleSessions = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -174,16 +174,16 @@ export default function AdminSessionsPage() {
                   <td style={{ padding: '14px' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
-                        onClick={() => handleUpdateStatus(session.id, 'Confirmed')}
-                        disabled={session.status === 'Confirmed'}
-                        style={{ border: 'none', background: session.status === 'Confirmed' ? '#e5e7eb' : '#0f766e', color: session.status === 'Confirmed' ? '#9ca3af' : '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: session.status === 'Confirmed' ? 'not-allowed' : 'pointer' }}
+                        onClick={() => handleUpdateStatus(session.id, 'approved')}
+                        disabled={session.status === 'approved'}
+                        style={{ border: 'none', background: session.status === 'approved' ? '#e5e7eb' : '#0f766e', color: session.status === 'approved' ? '#9ca3af' : '#fff', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: session.status === 'approved' ? 'not-allowed' : 'pointer' }}
                       >
                         Confirm
                       </button>
                       <button
-                        onClick={() => handleUpdateStatus(session.id, 'Cancelled')}
-                        disabled={session.status === 'Cancelled'}
-                        style={{ border: '1px solid #fca5a5', background: '#fff', color: session.status === 'Cancelled' ? '#9ca3af' : '#be123c', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: session.status === 'Cancelled' ? 'not-allowed' : 'pointer' }}
+                        onClick={() => handleUpdateStatus(session.id, 'cancelled')}
+                        disabled={session.status === 'cancelled'}
+                        style={{ border: '1px solid #fca5a5', background: '#fff', color: session.status === 'cancelled' ? '#9ca3af' : '#be123c', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: session.status === 'cancelled' ? 'not-allowed' : 'pointer' }}
                       >
                         Cancel
                       </button>
