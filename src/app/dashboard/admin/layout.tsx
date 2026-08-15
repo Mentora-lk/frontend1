@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SVGProps } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuditTrail } from './utils/operations';
+import { AppearanceProvider } from './appearance-context';
 
 function DashboardIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -369,7 +370,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </header>
             <div className="admin-content">
               <div className="admin-inner">
-                {children}
+                <AppearanceProvider>{children}</AppearanceProvider>
               </div>
             </div>
           </main>
