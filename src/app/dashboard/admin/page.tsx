@@ -5,6 +5,7 @@ import { CreditCard, GraduationCap, Users, BookOpen } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getAdminStats, getTutors } from '@/services/adminApi';
 import { revenueData, userAcquisitionData } from '@/data/adminData';
+import Spinner from '@/components/ui/Spinner';
 
 export default function AdminDashboardPage() {
   // Backend returns: { totalUsers, totalTutors, totalStudents, totalCourses }
@@ -60,23 +61,31 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Stat Cards — using real backend fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card) => (
-          <div
-            key={card.title}
-            style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-              <card.icon size={20} color="#059669" />
-            </div>
-            <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 4, fontWeight: 500 }}>{card.title}</p>
-            <span style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
-              {loading ? '...' : card.value}
-            </span>
-          </div>
-        ))}
+     {/* Stat Cards — vertical stacked list */}
+<div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+  {statCards.map((card, i) => (
+    <div
+      key={card.title}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '18px 22px',
+        borderBottom: i !== statCards.length - 1 ? '1px solid #F3F4F6' : 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <card.icon size={20} color="#059669" />
+        </div>
+        <p style={{ fontSize: 14, color: '#374151', fontWeight: 600, margin: 0 }}>{card.title}</p>
       </div>
+      <span style={{ fontSize: 20, fontWeight: 700, color: '#111827', display: 'inline-flex', alignItems: 'center' }}>
+        {loading ? <Spinner size={18} /> : card.value}
+      </span>
+    </div>
+  ))}
+</div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -87,21 +96,27 @@ export default function AdminDashboardPage() {
           <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 4 }}>Monthly Revenue Growth</h3>
           <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 20 }}>Jan – Jun 2024</p>
           <div style={{ height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#10B981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}   />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `LKR ${v / 1000}k`} />
-                <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: 8 }} />
-                <Area type="monotone" dataKey="value" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <Spinner size={32} />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#10B981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}   />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `LKR ${v / 1000}k`} />
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: 8 }} />
+                  <Area type="monotone" dataKey="value" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -109,15 +124,21 @@ export default function AdminDashboardPage() {
           <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 4 }}>User Acquisition</h3>
           <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 20 }}>Tutors vs Students</p>
           <div style={{ height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={userAcquisitionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: 8 }} />
-                <Bar dataKey="students" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
-                <Bar dataKey="tutors"   fill="#D1FAE5" radius={[4, 4, 0, 0]} barSize={12} />
-              </BarChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                <Spinner size={32} />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={userAcquisitionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: 8 }} />
+                  <Bar dataKey="students" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="tutors"   fill="#D1FAE5" radius={[4, 4, 0, 0]} barSize={12} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
@@ -140,7 +161,7 @@ export default function AdminDashboardPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: '#9CA3AF' }}>Loading...</td></tr>
+                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center' }}><Spinner size={22} /></td></tr>
               ) : tutors.length === 0 ? (
                 <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: '#9CA3AF' }}>No tutors found</td></tr>
               ) : tutors.map((tutor) => (
