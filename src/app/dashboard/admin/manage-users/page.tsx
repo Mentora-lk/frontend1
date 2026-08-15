@@ -9,7 +9,7 @@ type BackendTutor = {
   id: number;
   full_name: string;
   email: string;
-  subjects: string;
+  subject: string;
   city: string;
   created_at: string;
 };
@@ -97,7 +97,7 @@ export default function TutorsPage() {
 
   const exportQueue = () => {
     const header = ['Tutor', 'Email', 'Subjects', 'City', 'Status'];
-    const rows = filteredTutors.map((t) => [t.full_name, t.email, t.subjects, t.city, t.status]);
+    const rows = filteredTutors.map((t) => [t.full_name, t.email, t.subject, t.city, t.status]);
     const csv = [header, ...rows].map((r) => r.join(',')).join('\n');
     downloadFile('tutor-review-queue.csv', csv, 'text/csv;charset=utf-8;');
     appendAudit('TUTOR_QUEUE_EXPORT', `Exported ${filteredTutors.length} tutor records`);
@@ -189,7 +189,7 @@ export default function TutorsPage() {
                     </div>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
-                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfeff', color: '#0f766e', border: '1px solid #99f6e4' }}>{tutor.subjects}</span>
+                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfeff', color: '#0f766e', border: '1px solid #99f6e4' }}>{tutor.subject}</span>
                   </td>
                   <td style={{ padding: '14px 16px', color: '#374151' }}>📍 {tutor.city}</td>
                   <td style={{ padding: '14px 16px' }}><StatusBadge status={tutor.status} /></td>
@@ -239,7 +239,7 @@ export default function TutorsPage() {
             <div style={{ marginBottom: 14 }}>
               <p style={{ margin: '0 0 8px', color: '#374151', fontWeight: 700, fontSize: 13 }}>Subjects</p>
               <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#f8faf9', color: '#111827' }}>
-                {selectedTutor.subjects || 'Not specified'}
+                {selectedTutor.subject || 'Not specified'}
               </div>
             </div>
 
