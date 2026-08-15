@@ -28,6 +28,10 @@ export default function AdminStudentsPage() {
   const [search, setSearch]     = useState('');
   const [levelFilter, setLevelFilter] = useState('All Levels');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5; // students per page
+
   useEffect(() => {
     async function fetchStudents() {
       try {
@@ -63,10 +67,20 @@ export default function AdminStudentsPage() {
     }
 
     setFiltered(result);
+    setCurrentPage(1); // reset to page 1 whenever search/filter changes
   }, [search, levelFilter, students]);
 
   // Unique grade levels for filter dropdown
   const gradeLevels = Array.from(new Set(students.map((s) => s.grade_level).filter(Boolean)));
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
@@ -134,7 +148,7 @@ export default function AdminStudentsPage() {
                 <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center' }}><Spinner size={26} /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>No students found.</td></tr>
-              ) : filtered.map((student) => (
+              ) : paginated.map((student) => (
                 // Backend fields: user_id, full_name, grade_level, school_institute, email, created_at
                 <tr key={student.user_id} style={{ borderTop: '1px solid #ecf4ef' }}>
                   <td style={{ padding: '14px' }}>
@@ -158,6 +172,78 @@ export default function AdminStudentsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination controls */}
+        {!loading && filtered.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 16, paddingTop: 14, borderTop: '1px solid #ecf4ef' }}>
+            <div style={{ color: '#6b7280', fontSize: 13 }}>
+              Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #d1d5db',
+                  background: currentPage === 1 ? '#f3f4f6' : '#fff',
+                  color: currentPage === 1 ? '#9ca3af' : '#111827',
+                  fontSize: 13,
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Prev
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, idx) =>
+                  p === 'ellipsis' ? (
+                    <span key={`ellipsis-${idx}`} style={{ padding: '0 4px', color: '#9ca3af' }}>…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        border: '1px solid ' + (p === currentPage ? '#0f766e' : '#d1d5db'),
+                        background: p === currentPage ? '#0f766e' : '#fff',
+                        color: p === currentPage ? '#fff' : '#111827',
+                        fontSize: 13,
+                        fontWeight: p === currentPage ? 700 : 400,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )}
+
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #d1d5db',
+                  background: currentPage === totalPages ? '#f3f4f6' : '#fff',
+                  color: currentPage === totalPages ? '#9ca3af' : '#111827',
+                  fontSize: 13,
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
