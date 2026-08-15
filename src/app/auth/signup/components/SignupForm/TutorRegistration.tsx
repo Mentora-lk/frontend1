@@ -214,7 +214,12 @@ export default function TutorRegistration() {
       }
 
       // Extract user info from response (backend returns { token, user: { id, email, role }, profile })
-      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+      const user = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        fullName: response.profile?.full_name ?? formData.fullName,
+      };
 
       // Store token and user info
       localStorage.setItem("token", response.token);

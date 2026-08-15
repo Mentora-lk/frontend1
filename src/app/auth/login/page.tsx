@@ -38,8 +38,13 @@ export default function LoginPage() {
         throw new Error("Invalid response from server. Please try again.");
       }
 
-      // The backend returns { token, user: { id, email, role } }
-      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+      // The backend returns { token, user: { id, email, role, fullName } }
+      const user = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        fullName: response.user.fullName,
+      };
 
       // Store token and user info in localStorage
       localStorage.setItem("token", response.token);
@@ -122,10 +127,21 @@ export default function LoginPage() {
           <GoogleSignInButton onError={setError} />
 
           {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-            <span style={{ fontSize: 13, color: "#9ca3af" }}>or continue with email</span>
-            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "8px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, #e5e7eb)" }} />
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#9ca3af",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                whiteSpace: "nowrap",
+              }}
+            >
+              or continue with email
+            </span>
+            <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, #e5e7eb, transparent)" }} />
           </div>
 
           {/* Email Field */}

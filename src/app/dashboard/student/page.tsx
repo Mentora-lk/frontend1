@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
+import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
 
 type MyClassStatus = 'active' | 'requested' | 'approved';
 type MyClassMode = 'online' | 'offline' | 'both';
@@ -163,6 +164,8 @@ const SUBJECT_COLORS: Record<string, string> = {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function StudentDashboard() {
+  const user = useCurrentUser();
+
   // Real data from backend
   const [classes,  setClasses]  = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -290,10 +293,10 @@ export default function StudentDashboard() {
 
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>D</div>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{getInitial(user)}</div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>D.M.S.N. Dissanayake</span>
-                <span style={{ fontSize: 11, color: '#9CA3AF' }}>Student</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>{getDisplayName(user)}</span>
+                <span style={{ fontSize: 11, color: '#9CA3AF' }}>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : ''}</span>
               </div>
             </div>
           </div>

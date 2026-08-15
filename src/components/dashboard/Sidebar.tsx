@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
 
 const NAV_ITEMS = [
   {
@@ -31,6 +32,9 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const user = useCurrentUser();
+  const displayName = getDisplayName(user);
+  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
 
   return (
     <div style={{
@@ -47,10 +51,10 @@ export default function Sidebar() {
             background: 'linear-gradient(135deg,#10B981,#059669)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', fontWeight: 700, fontSize: 18, flexShrink: 0,
-          }}>D</div>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>D.M.S.N. Dissanayake</p>
-            <p style={{ fontSize: 11, color: '#9CA3AF' }}>Student · 234058V</p>
+          }}>{getInitial(user)}</div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</p>
+            <p style={{ fontSize: 11, color: '#9CA3AF' }}>{roleLabel}</p>
           </div>
         </div>
       </div>
