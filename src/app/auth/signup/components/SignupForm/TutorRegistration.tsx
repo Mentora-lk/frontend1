@@ -15,6 +15,7 @@ import {
   handleLinkHoverLeave,
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
+import { GoogleSignupButton } from "@/components/auth/GoogleSignupButton";
 
 type Qualification = {
   id: string;
@@ -67,6 +68,12 @@ export default function TutorRegistration() {
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Set once "Sign up with Google" verifies an email — the account is
+  // created with this ticket instead of a password (see handleSubmit).
+  const [googleSignupToken, setGoogleSignupToken] = useState<string | null>(null);
+  const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
+
   const [newQualification, setNewQualification] = useState<Qualification>({
     id: "",
     university: "",
@@ -161,14 +168,30 @@ export default function TutorRegistration() {
     }));
   };
 
+  const handleGoogleVerified = ({ email, name, googleSignupToken: token }: { email: string; name: string | null; googleSignupToken: string }) => {
+    setError("");
+    setAlreadyHasAccount(false);
+    setGoogleSignupToken(token);
+    setFormData((prev) => ({
+      ...prev,
+      email,
+      fullName: prev.fullName || name || prev.fullName,
+    }));
+  };
+
+  const useDifferentEmail = () => {
+    setGoogleSignupToken(null);
+    setFormData((prev) => ({ ...prev, email: "" }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      // Validate passwords match
-      if (formData.password !== formData.confirmPassword) {
+      // Password fields don't apply once verified via Google.
+      if (!googleSignupToken && formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
         setIsLoading(false);
         return;
@@ -182,7 +205,10 @@ export default function TutorRegistration() {
       submissionData.append("email", formData.email);
       submissionData.append("address", formData.address);
       submissionData.append("password", formData.password);
-      
+      if (googleSignupToken) {
+        submissionData.append("googleSignupToken", googleSignupToken);
+      }
+
       if (formData.profilePicture) {
         submissionData.append("profilePicture", formData.profilePicture);
       }
@@ -235,8 +261,12 @@ export default function TutorRegistration() {
 
   const canProceedToNextStep = () => {
     switch (currentStep) {
-      case 1:
-        return formData.fullName && formData.dateOfBirth && formData.gender && formData.city && formData.email && formData.address && formData.password && formData.confirmPassword && formData.password === formData.confirmPassword;
+      case 1: {
+        const identityOk = googleSignupToken
+          ? true
+          : Boolean(formData.password && formData.confirmPassword && formData.password === formData.confirmPassword);
+        return Boolean(formData.fullName && formData.dateOfBirth && formData.gender && formData.city && formData.email && formData.address) && identityOk;
+      }
       case 2:
         return true;
       case 3:
@@ -327,6 +357,42 @@ export default function TutorRegistration() {
       {/* Step 1: About */}
       {currentStep === 1 && (
         <form style={formContainerStyle}>
+          {alreadyHasAccount && (
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "#fffbeb",
+                border: "1px solid #fde68a",
+                borderRadius: 10,
+                color: "#92400e",
+                fontSize: 14,
+                textAlign: "center",
+              }}
+            >
+              An account already exists for that email.{" "}
+              <a href="/auth/login" style={{ color: "#92400e", fontWeight: 700 }}>
+                Log in instead
+              </a>
+              .
+            </div>
+          )}
+
+          {!googleSignupToken && (
+            <>
+              <GoogleSignupButton
+                role="tutor"
+                onVerified={handleGoogleVerified}
+                onAlreadyExists={() => setAlreadyHasAccount(true)}
+                onError={setError}
+              />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
+                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+                <span style={{ fontSize: 13, color: "#9ca3af" }}>or fill in the form</span>
+                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+              </div>
+            </>
+          )}
+
           <input
             type="text"
             name="fullName"
@@ -387,17 +453,32 @@ export default function TutorRegistration() {
               style={getInputStyle(hoveredField, "city")}
               required
             />
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("email")}
-              onBlur={() => setHoveredField(null)}
-              placeholder="Email Address"
-              style={getInputStyle(hoveredField, "email")}
-              required
-            />
+            {googleSignupToken ? (
+              <div>
+                <div style={getInputStyle(hoveredField, "email")}>
+                  ✓ {formData.email}
+                </div>
+                <button
+                  type="button"
+                  onClick={useDifferentEmail}
+                  style={{ background: "none", border: "none", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0" }}
+                >
+                  Use a different email
+                </button>
+              </div>
+            ) : (
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                onFocus={() => setHoveredField("email")}
+                onBlur={() => setHoveredField(null)}
+                placeholder="Email Address"
+                style={getInputStyle(hoveredField, "email")}
+                required
+              />
+            )}
           </div>
 
           <input
@@ -412,6 +493,7 @@ export default function TutorRegistration() {
             required
           />
 
+          {!googleSignupToken && (
           <div style={formGridStyle(2)}>
             <input
               type="password"
@@ -436,6 +518,7 @@ export default function TutorRegistration() {
               required
             />
           </div>
+          )}
         </form>
       )}
 

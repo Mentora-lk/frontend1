@@ -14,6 +14,9 @@ export interface RegisterStudentRequest {
   language: string;
   gradeLevel: string;
   address: string;
+  // Present when the email was verified via "Sign up with Google" instead
+  // of a manually-typed password — see GoogleSignupButton.
+  googleSignupToken?: string;
 }
 
 export interface RegisterTutorRequest {
@@ -31,6 +34,13 @@ export interface AuthResponse {
     role: "student" | "tutor" | "admin";
   };
   profile?: any;
+}
+
+export interface GoogleSignupVerifyResponse {
+  email: string;
+  name: string | null;
+  picture: string | null;
+  googleSignupToken: string;
 }
 
 export interface StudentDashboardResponse {
@@ -62,6 +72,17 @@ export const authService = {
 
   async loginWithGoogle(idToken: string, role?: "student" | "tutor"): Promise<AuthResponse> {
     return apiCall<AuthResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ idToken, role }),
+    });
+  },
+
+  // Identity check only for the SIGNUP flow — creates nothing server-side.
+  // Returns a short-lived googleSignupToken that proves this email was
+  // Google-verified; the account is only created once the detail form is
+  // submitted with that token (see registerStudent/registerTutorFormData).
+  async verifyGoogleForSignup(idToken: string, role: "student" | "tutor"): Promise<GoogleSignupVerifyResponse> {
+    return apiCall<GoogleSignupVerifyResponse>("/api/auth/google/verify-signup", {
       method: "POST",
       body: JSON.stringify({ idToken, role }),
     });
