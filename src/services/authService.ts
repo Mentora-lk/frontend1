@@ -60,6 +60,13 @@ export const authService = {
     });
   },
 
+  async loginWithGoogle(idToken: string, role?: "student" | "tutor"): Promise<AuthResponse> {
+    return apiCall<AuthResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ idToken, role }),
+    });
+  },
+
   async registerStudent(data: RegisterStudentRequest): Promise<AuthResponse> {
     return apiCall<AuthResponse>("/api/auth/register/student", {
       method: "POST",
