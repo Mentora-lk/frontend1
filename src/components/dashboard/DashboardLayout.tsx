@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Sidebar from './Sidebar';
+import ClientOnly from '@/components/ClientOnly';
 
 export default function DashboardLayout({ children, title, subtitle }: {
   children: React.ReactNode;
@@ -9,7 +10,9 @@ export default function DashboardLayout({ children, title, subtitle }: {
   subtitle?: string;
 }) {
   return (
-    <>
+    // See src/components/ClientOnly.tsx — same browser-extension hydration
+    // issue as TutorDashboardLayout, same fix.
+    <ClientOnly>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -71,6 +74,6 @@ export default function DashboardLayout({ children, title, subtitle }: {
           </div>
         </div>
       </div>
-    </>
+    </ClientOnly>
   );
 }

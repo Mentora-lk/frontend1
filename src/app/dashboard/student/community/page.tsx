@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { discoverCommunities, getMyClasses, getMyDeadlines, getCommunityFeed, requestCommunityAccess, togglePostReaction } from '@/services/studentCommunityService';
+import { discoverCommunities, getMyClasses, getMyDeadlines, getCommunityFeed, requestCommunityAccess, cancelCommunityRequest, getMyPendingRequests, togglePostReaction } from '@/services/studentCommunityService';
+import { useCommunitySocket } from '@/hooks/useCommunitySocket';
+import { useStudentRequestSocket } from '@/hooks/useStudentRequestSocket';
 
 const ALL_TAGS = ['All', 'Physics', 'Maths', 'ICT', 'Technology', 'Design', 'Backend', 'Science'];
 
@@ -21,21 +23,48 @@ export default function StudentCommunityPage() {
   const [isManageMenuOpen, setIsManageMenuOpen] = useState(false);
   const [mutedCommunities, setMutedCommunities] = useState<number[]>([]);
 
-  // Modal state
+  // Request state — pendingRequests is the source of truth (backed by the
+  // server, survives a refresh); pendingCommunities is just the id list
+  // derived from it, kept for the Discover-grid button lookups.
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [pendingCommunities, setPendingCommunities] = useState<number[]>([]);
+  const [requestingId, setRequestingId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [requestError, setRequestError] = useState('');
 
   const loadInitialData = async () => {
-    try {
-      const [discRes, classesRes, deadRes] = await Promise.all([
-        discoverCommunities(),
-        getMyClasses(),
-        getMyDeadlines()
-      ]);
-      if (discRes) setCommunities(discRes);
-      if (classesRes) setActiveCommunities(classesRes);
-      if (deadRes) setDeadlines(deadRes);
-    } catch (err) {
-      console.error("Failed to load community data", err);
+    // allSettled, not all — these are 4 independent endpoints; one failing
+    // shouldn't blank the whole page (each widget updates on its own result).
+    const [discRes, classesRes, deadRes, pendingRes] = await Promise.allSettled([
+      discoverCommunities(),
+      getMyClasses(),
+      getMyDeadlines(),
+      getMyPendingRequests()
+    ]);
+
+    if (discRes.status === 'fulfilled' && discRes.value) {
+      setCommunities(discRes.value);
+    } else if (discRes.status === 'rejected') {
+      console.error("Failed to load discover communities", discRes.reason);
+    }
+
+    if (classesRes.status === 'fulfilled' && classesRes.value) {
+      setActiveCommunities(classesRes.value);
+    } else if (classesRes.status === 'rejected') {
+      console.error("Failed to load my classes", classesRes.reason);
+    }
+
+    if (deadRes.status === 'fulfilled' && deadRes.value) {
+      setDeadlines(deadRes.value);
+    } else if (deadRes.status === 'rejected') {
+      console.error("Failed to load deadlines", deadRes.reason);
+    }
+
+    if (pendingRes.status === 'fulfilled' && pendingRes.value) {
+      setPendingRequests(pendingRes.value);
+      setPendingCommunities(pendingRes.value.map((r: any) => r.community_id));
+    } else if (pendingRes.status === 'rejected') {
+      console.error("Failed to load pending requests", pendingRes.reason);
     }
   };
 
@@ -60,6 +89,51 @@ export default function StudentCommunityPage() {
     }
   }, [selectedActiveCommunity]);
 
+  // Live updates: join the selected community's Socket.io room so a tutor's
+  // new post shows up here immediately instead of only after a refresh.
+  const { status: socketStatus } = useCommunitySocket(
+    selectedActiveCommunity?.id,
+    (rawPost) => {
+      setPosts(prev => {
+        if (prev.some(p => p.id === rawPost.id)) return prev; // duplicate event
+        return [{
+          id: rawPost.id,
+          type: rawPost.type,
+          content: rawPost.content,
+          media_url: rawPost.media_url,
+          poll_options: rawPost.poll_options,
+          is_pinned: rawPost.is_pinned,
+          created_at: rawPost.created_at,
+          author_id: rawPost.author_id,
+          author_name: rawPost.author_name || selectedActiveCommunity?.tutor_name || 'Tutor',
+          author_avatar: null,
+          role: rawPost.author_role === 'tutor' ? 'Tutor' : 'Student',
+          reaction_count: 0,
+          has_reacted: false,
+        }, ...prev];
+      });
+    }
+  );
+
+  // Live updates: the backend pushes `membership_request_updated` to this
+  // student's personal Socket.io room the moment a tutor accepts or declines
+  // one of their pending community requests, so "My Requests" and the
+  // Discover/Active-Communities lists update without a refresh.
+  const { status: requestSocketStatus } = useStudentRequestSocket((update) => {
+    setPendingRequests(prev => prev.filter(r => r.membership_id !== update.membership_id));
+    setPendingCommunities(prev => prev.filter(cid => cid !== update.community_id));
+
+    if (update.status === 'approved') {
+      // Refetch so the newly-approved community shows up under Active
+      // Communities with correct member_count/tutor info from the server.
+      getMyClasses().then(res => { if (res) setActiveCommunities(res); }).catch(err => console.error('Failed to refresh my classes', err));
+    } else if (update.status === 'declined') {
+      // A declined request is eligible to be re-requested — bring the
+      // community back into the Discover grid without a full page reload.
+      discoverCommunities().then(res => { if (res) setCommunities(res); }).catch(err => console.error('Failed to refresh discover communities', err));
+    }
+  });
+
   const toggleLike = async (id: number) => {
     try {
       const res = await togglePostReaction(id);
@@ -72,11 +146,46 @@ export default function StudentCommunityPage() {
   };
 
   const handleRequestAccess = async (id: number) => {
+    if (requestingId) return; // already submitting one — avoid double requests
     try {
-      await requestCommunityAccess(id);
+      setRequestError('');
+      setRequestingId(id);
+      const res = await requestCommunityAccess(id);
       setPendingCommunities(prev => [...prev, id]);
-    } catch (err) {
+      if (res?.membership) {
+        const community = communities.find(c => c.id === id);
+        setPendingRequests(prev => [{
+          membership_id: res.membership.id,
+          requested_at: res.membership.requested_at,
+          community_id: id,
+          name: community?.name,
+          description: community?.description,
+          tags: community?.tags,
+          tutor_name: community?.tutor_name,
+          tutor_avatar: community?.tutor_avatar,
+        }, ...prev]);
+      }
+    } catch (err: any) {
       console.error("Failed to request access", err);
+      setRequestError(err?.message || 'Failed to request access. Please try again.');
+    } finally {
+      setRequestingId(null);
+    }
+  };
+
+  const handleCancelRequest = async (id: number) => {
+    if (cancellingId) return;
+    try {
+      setRequestError('');
+      setCancellingId(id);
+      await cancelCommunityRequest(id);
+      setPendingCommunities(prev => prev.filter(pid => pid !== id));
+      setPendingRequests(prev => prev.filter(r => r.community_id !== id));
+    } catch (err: any) {
+      console.error("Failed to cancel request", err);
+      setRequestError(err?.message || 'Failed to cancel request. Please try again.');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -122,34 +231,81 @@ export default function StudentCommunityPage() {
           <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, marginBottom: 16 }}>{post.content}</p>
 
           {/* Media Content */}
-          {post.type === 'announcement' && post.media_url && (
-            <div style={{ position: 'relative', width: '100%', height: 240, background: '#111827', borderRadius: 12, marginBottom: 16, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <video src={post.media_url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {post.type === 'image' && post.media_url && (
+            <div style={{ marginBottom: 16, padding: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <img src={post.media_url} alt="Post media" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12, display: 'block' }} />
+                <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                  <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                    Download Image
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
-          {post.type === 'announcement' && post.media_url && (
-                        console.log('Rendering image post with media URL:', post.type, post.media_url),
+          {['document', 'pdf', 'doc'].includes(post.type) && post.media_url && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>Attached Document</p>
-                <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>PDF</p>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: 0, textTransform: 'uppercase' }}>{post.type}</p>
               </div>
               <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               </a>
             </div>
           )}
-          {/* nisiya */}
-          {post.type === 'announcement' && post.media_url && (
-            console.log('Rendering image post with media URL:', post.type, post.media_url),
-            <div style={{ position: 'relative', width: '100%', borderRadius: 12, marginBottom: 16, overflow: 'hidden' }}>
-              <img src={post.media_url} alt="Post media" style={{ width: '100%', height: 'auto', display: 'block' }} />
+
+          {post.type === 'video' && post.media_url && (
+            <div style={{ position: 'relative', width: '100%', height: 240, background: '#111827', borderRadius: 12, marginBottom: 16, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <video src={post.media_url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
+
+          {post.type === 'announcement' && post.media_url && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: '0 0 2px 0' }}>Attached File</p>
+                <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>Attachment</p>
+              </div>
+              <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              </a>
+            </div>
+          )}
+
+          {/* Poll — read-only display for now; there's no vote-casting endpoint
+              anywhere yet (tutor side shows the same static 0%/0 votes shell). */}
+          {post.type === 'poll' && (() => {
+            const options = typeof post.poll_options === 'string'
+              ? (() => { try { return JSON.parse(post.poll_options); } catch { return null; } })()
+              : post.poll_options;
+            if (!options || !Array.isArray(options) || options.length === 0) return null;
+            return (
+              <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E40AF" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Poll</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {options.map((option: string, index: number) => (
+                    <div key={index} style={{ background: '#DBEAFE', borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1E40AF' }}>{option}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1E40AF' }}>0%</span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 12, marginBottom: 0 }}>0 votes • Voting isn&apos;t available yet</p>
+              </div>
+            );
+          })()}
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 4, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
@@ -188,8 +344,12 @@ export default function StudentCommunityPage() {
               {/* Community Detail Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: '0 8px', flexWrap: 'wrap', gap: 16 }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: '#111827', margin: '0 0 8px 0', display: 'flex', alignItems: 'center' }}>
+                  <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: '#111827', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
                     {selectedActiveCommunity.name}
+                    <span title={`Live updates: ${socketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#F3F4F6', borderRadius: 99, padding: '3px 9px', fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', color: '#4B5563' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: socketStatus === 'connected' ? '#10B981' : socketStatus === 'connecting' ? '#F59E0B' : '#EF4444' }} />
+                      {socketStatus === 'connected' ? 'LIVE' : socketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
+                    </span>
                     {mutedCommunities.includes(selectedActiveCommunity.id) && (
                       <span style={{ marginLeft: 10, color: '#9CA3AF', display: 'flex' }} title="Notifications Muted">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
@@ -231,6 +391,11 @@ export default function StudentCommunityPage() {
               {/* Discover Header & Search */}
               <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)', marginBottom: 20 }}>
                 <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Find Your Community</h2>
+                {requestError && (
+                  <div style={{ background: '#FEE2E2', border: '1px solid #FECACA', color: '#DC2626', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16 }}>
+                    {requestError}
+                  </div>
+                )}
                 <div style={{ position: 'relative', marginBottom: 20 }}>
                   <svg style={{ position: 'absolute', left: 14, top: 13, color: '#9CA3AF' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                   <input
@@ -281,22 +446,24 @@ export default function StudentCommunityPage() {
                             Pending
                           </button>
                           <button
-                            onClick={() => setPendingCommunities(prev => prev.filter(id => id !== c.id))}
-                            style={{ width: '100%', background: 'white', border: '1.5px solid #EF4444', color: '#EF4444', padding: '8px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}
+                            onClick={() => handleCancelRequest(c.id)}
+                            disabled={cancellingId === c.id}
+                            style={{ width: '100%', background: 'white', border: '1.5px solid #EF4444', color: '#EF4444', padding: '8px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: cancellingId === c.id ? 'not-allowed' : 'pointer', opacity: cancellingId === c.id ? 0.6 : 1, fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}
                             onMouseOver={e => { e.currentTarget.style.background = '#FEF2F2'; }}
                             onMouseOut={e => { e.currentTarget.style.background = 'white'; }}
                           >
-                            Cancel Request
+                            {cancellingId === c.id ? 'Cancelling…' : 'Cancel Request'}
                           </button>
                         </div>
                       ) : (
                         <button
                           onClick={() => handleRequestAccess(c.id)}
-                          style={{ width: '100%', background: 'white', border: '1.5px solid #10B981', color: '#10B981', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}
-                          onMouseOver={e => { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; }}
-                          onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#10B981'; }}
+                          disabled={requestingId === c.id}
+                          style={{ width: '100%', background: 'white', border: '1.5px solid #10B981', color: '#10B981', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: requestingId === c.id ? 'not-allowed' : 'pointer', opacity: requestingId === c.id ? 0.6 : 1, fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}
+                          onMouseOver={e => { if (requestingId !== c.id) { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; } }}
+                          onMouseOut={e => { if (requestingId !== c.id) { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#10B981'; } }}
                         >
-                          Request Access
+                          {requestingId === c.id ? 'Sending Request…' : 'Request Access'}
                         </button>
                       )}
                     </div>
@@ -310,6 +477,48 @@ export default function StudentCommunityPage() {
 
         {/* Right panel */}
         <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Pending Requests Widget — only shows when there's something pending;
+              this is what makes a "Request Access" click visible after a refresh,
+              since Discover itself hides pending communities. */}
+          {pendingRequests.length > 0 && (
+            <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>
+              <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 12, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                My Requests
+                <span style={{ background: '#FEF3C7', color: '#B45309', borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0 }}>{pendingRequests.length}</span>
+                <span title={`Live updates: ${requestSocketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#F3F4F6', borderRadius: 99, padding: '2px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', color: '#4B5563', marginLeft: 'auto' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: requestSocketStatus === 'connected' ? '#10B981' : requestSocketStatus === 'connecting' ? '#F59E0B' : '#EF4444' }} />
+                  {requestSocketStatus === 'connected' ? 'LIVE' : requestSocketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
+                </span>
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pendingRequests.map(r => (
+                  <div key={r.membership_id} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 12, borderBottom: '1px solid #F3F4F6' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: '#8B5CF615', color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: 'hidden' }}>
+                      {r.tutor_avatar ? <img src={r.tutor_avatar} alt={r.tutor_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.name?.charAt(0)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', margin: '0 0 2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</p>
+                      <p style={{ fontSize: 11, color: '#D97706', margin: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        Awaiting approval
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleCancelRequest(r.community_id)}
+                      disabled={cancellingId === r.community_id}
+                      title="Cancel request"
+                      style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: cancellingId === r.community_id ? 'not-allowed' : 'pointer', padding: 4, flexShrink: 0, display: 'flex' }}
+                      onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
+                      onMouseOut={e => e.currentTarget.style.color = '#9CA3AF'}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Active Communities Widget */}
           <div style={{ background: 'white', borderRadius: 20, padding: 22, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.04)' }}>

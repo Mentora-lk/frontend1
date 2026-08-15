@@ -117,11 +117,21 @@ export const createPost = async (communityId: string, data: { type: string; cont
     console.log('════════════════════════════════════════');
     console.log('  Type:', data.type);
     console.log('  Content:', data.content);
-    
-    return apiCall<any>(`/api/tutor/communities/${communityId}/posts`, { 
+
+    // Mirror the FormData branch above: the backend destructures snake_case
+    // `poll_options` from req.body, so camelCase `pollOptions` must be renamed
+    // before sending — otherwise a poll with no attached file silently loses
+    // its options (backend sees `poll_options: undefined`).
+    const { pollOptions, ...jsonRest } = data;
+    const jsonBody: Record<string, any> = { ...jsonRest };
+    if (pollOptions && pollOptions.length > 0) {
+        jsonBody.poll_options = pollOptions;
+    }
+
+    return apiCall<any>(`/api/tutor/communities/${communityId}/posts`, {
         method: "POST",
-        body: JSON.stringify(data),
-        headers: getAuthHeaders() 
+        body: JSON.stringify(jsonBody),
+        headers: getAuthHeaders()
     });
 };
 
