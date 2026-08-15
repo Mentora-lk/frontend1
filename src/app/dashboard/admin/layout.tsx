@@ -102,6 +102,7 @@ const adminSections = [
       { href: '/dashboard/admin/tutors', label: 'Tutors', icon: TutorsIcon },
       { href: '/dashboard/admin/students', label: 'Students', icon: StudentsIcon },
       { href: '/dashboard/admin/sessions', label: 'Sessions', icon: SessionsIcon },
+      { href: '/dashboard/admin/quick-add', label: 'Quick Add', icon: DashboardIcon },
     ],
   },
   {
