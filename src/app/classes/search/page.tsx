@@ -10,10 +10,8 @@ import { usePalette } from '@/hooks/usePalette';
 const SUBJECTS  = ['All','Mathematics','Physics','Chemistry','ICT','Music','Business','English'];
 const LOCATIONS = ['All Locations','Moratuwa','Colombo','Kandy','Piliyandala','Matale','Online'];
 const SORT_OPTIONS = [
-  { value:'rating',   label:'Top Rated' },
   { value:'fee_asc',  label:'Price: Low to High' },   //!An array of objects:value → used internally:label → shown to user
   { value:'fee_desc', label:'Price: High to Low' },
-  { value:'reviews',  label:'Most Reviewed' },
 ];
 type Course = {         //!TypeScript type declaration:creating a blueprint of course object
   id: string;
@@ -37,19 +35,6 @@ const SUBJECT_COLORS: Record<string,string> = {
   ICT:'#F59E0B', Music:'#EC4899', Business:'#F97316', English:'#06B6D4',
 };
 const MODE_COLOR: Record<string,string> = { online:'#10B981', offline:'#3B82F6', both:'#F59E0B' };
-
-// ── Stars ─────────────────────────────────────────────────────────────────────
-function Stars({ rating }: { rating: number }) {           //!rating(not yet implemented)
-  return (
-    <span style={{ display:'inline-flex', gap:1 }}>
-      {[1,2,3,4,5].map(s=>(
-        <svg key={s} width="12" height="12" viewBox="0 0 24 24" fill={s<=Math.round(rating)?'#F59E0B':'none'} stroke="#F59E0B" strokeWidth="1.5">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-        </svg>
-      ))}
-    </span>
-  );
-}
 
 // ── Course Card ───────────────────────────────────────────────────────────────
 //!grid view and list view of class cards
@@ -79,11 +64,6 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
               </div>
               <p style={{ fontSize:13, color:'#10B981', fontWeight:600, marginBottom:4 }}>By {course.tutor_name || "Tutor"}</p>
               <p style={{ fontSize:12, color:palette.textMuted, marginBottom:8 }}>{course.desc}</p>
-              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                <Stars rating={course.average_rating || course.rating || 0}/>
-                <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating || course.rating}</span>
-                <span style={{ fontSize:11, color:palette.textMuted }}>({course.review_count || course.reviews || 0})</span>
-              </div>
             </div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
               <div style={{ display:'flex', gap:10 }}>
@@ -119,12 +99,7 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
         <div style={{ padding:'15px 17px 17px' }}>
           <h3 style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:15, color:palette.textPrimary, lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{course.title}</h3>
           <p style={{ fontSize:12, color:palette.textMuted, marginBottom:7 }}>By <span style={{ fontWeight:600, color:'#10B981' }}>{course.tutor_name || "Tutor"}</span></p>
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:10 }}>
-            <Stars rating={course.average_rating || course.rating || 0}/>
-            <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{course.average_rating || course.rating}</span>
-            <span style={{ fontSize:11, color:palette.textMuted }}>({course.review_count || course.reviews || 0})</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:`1px solid ${palette.border}` }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:10, paddingTop:10, borderTop:`1px solid ${palette.border}` }}>
             <span style={{ fontSize:14, fontWeight:800, color:'#059669' }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:10, fontWeight:400, color:palette.textMuted }}>/mo</span></span>
             <span style={{ fontSize:12, fontWeight:600, color:'#10B981' }}>View →</span>
           </div>
@@ -156,9 +131,8 @@ export default function ClassSearchPage() {
   const [subject,   setSubject]   = useState('All');
   const [mode,      setMode]      = useState('All');
   const [location,  setLocation]  = useState('All Locations');
-  const [minRating, setMinRating] = useState(0);
   const [maxFee,    setMaxFee]    = useState(6000);
-  const [sortBy,    setSortBy]    = useState('rating');
+  const [sortBy,    setSortBy]    = useState('fee_asc');
   const [view,      setView]      = useState<'grid'|'list'>('grid');
   const [page,      setPage]      = useState(1);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -181,7 +155,6 @@ useEffect(() => {
         subject:   subject   !== 'All'           ? subject   : undefined,        
         mode:      mode      !== 'All'           ? mode      : undefined,    
         location:  location  !== 'All Locations' ? location  : undefined,
-        minRating: minRating > 0                 ? minRating : undefined,
         maxFee:    maxFee    < 6000              ? maxFee    : undefined,
         sortBy,
         page,
@@ -199,7 +172,7 @@ useEffect(() => {
   };
 
   fetchCourses();
-}, [query, subject, mode, location, minRating, maxFee, sortBy, page]);
+}, [query, subject, mode, location, maxFee, sortBy, page]);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -207,8 +180,8 @@ useEffect(() => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const clearAll   = () => { setQuery(''); setSubject('All'); setMode('All'); setLocation('All Locations'); setMinRating(0); setMaxFee(6000); }; //!resets filters back to default values
-  const activeCount = [subject!=='All', mode!=='All', location!=='All Locations', minRating>0, maxFee<6000].filter(Boolean).length;              //!counts how many filters are currently active.
+  const clearAll   = () => { setQuery(''); setSubject('All'); setMode('All'); setLocation('All Locations'); setMaxFee(6000); }; //!resets filters back to default values
+  const activeCount = [subject!=='All', mode!=='All', location!=='All Locations', maxFee<6000].filter(Boolean).length;              //!counts how many filters are currently active.
   const scrollTop  = () => topRef.current?.scrollIntoView({ behavior:'smooth' });
 
   return (
@@ -335,17 +308,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Rating */}
-              <div style={{ marginBottom:22 }}>
-                <label className="filter-label">Min Rating</label>
-                {[{v:0,l:'Any'},{v:4.5,l:'4.5+ ★'},{v:4.0,l:'4.0+ ★'}].map(r=>(
-                  <label key={r.v} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, cursor:'pointer', fontSize:13, color:palette.textSecondary }}>
-                    <input type="radio" name="rating" checked={minRating===r.v} onChange={()=>setMinRating(r.v)} style={{ accentColor:'#10B981' }}/>
-                    {r.l}
-                  </label>
-                ))}
-              </div>
-
               <button onClick={clearAll} style={{ width:'100%', padding:'9px', borderRadius:10, border:`1.5px solid ${palette.border}`, background:palette.surface, color:palette.textSecondary, fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s' }}
                 onMouseEnter={e=>{(e.currentTarget.style.background='#FEF2F2');(e.currentTarget.style.borderColor='#FCA5A5');(e.currentTarget.style.color='#EF4444');}}
                 onMouseLeave={e=>{(e.currentTarget.style.background='white');(e.currentTarget.style.borderColor='#E5E7EB');(e.currentTarget.style.color='#6B7280');}}>
@@ -385,7 +347,6 @@ useEffect(() => {
                 {subject!=='All'             && <FilterChip label={`Subject: ${subject}`}                onRemove={()=>setSubject('All')}/>}
                 {mode!=='All'               && <FilterChip label={`Mode: ${mode}`}                      onRemove={()=>setMode('All')}/>}
                 {location!=='All Locations' && <FilterChip label={`📍 ${location}`}                    onRemove={()=>setLocation('All Locations')}/>}
-                {minRating>0                && <FilterChip label={`${minRating}★ & above`}              onRemove={()=>setMinRating(0)}/>}
                 {maxFee<6000                && <FilterChip label={`Max LKR ${maxFee.toLocaleString()}`} onRemove={()=>setMaxFee(6000)}/>}
               </div>
             )}

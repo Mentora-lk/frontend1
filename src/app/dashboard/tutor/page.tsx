@@ -83,9 +83,6 @@ export default function TutorDashboard() {
   const pendingClasses = classes.filter(c => c.status === 'pending');
   const totalStudents  = activeClasses.reduce((s, c) => s + c.studentsEnrolled, 0);
   const monthlyEarnings = activeClasses.reduce((s, c) => s + c.fee * c.studentsEnrolled, 0);
-  const avgRating = activeClasses.length > 0
-    ? activeClasses.reduce((s, c) => s + Number(c.rating || 0), 0) / activeClasses.length
-    : 0;
 
   const filtered = classes.filter(c => {
     const matchStatus = statusFilter === 'all' || c.status === statusFilter;
@@ -187,7 +184,6 @@ export default function TutorDashboard() {
                     <img src={thumbnail} alt={cls.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,0.5),transparent)' }} />
                     <span style={{ position:'absolute', top:12, right:12, background:st.bg, color:st.color, fontSize:10, fontWeight:700, borderRadius:6, padding:'3px 8px', letterSpacing:'0.06em' }}>{st.label}</span>
-                    <span style={{ position:'absolute', bottom:12, left:12, color:'white', fontSize:12, fontWeight:600 }}>⭐ {cls.rating}</span>
                   </div>
                   <div style={{ padding:'16px 18px' }}>
                     <p style={{ fontSize:14, fontWeight:700, color:palette.textPrimary, marginBottom:4, lineHeight:1.3 }}>{cls.title}</p>
@@ -220,7 +216,6 @@ export default function TutorDashboard() {
                   </div>
                   <div style={{ textAlign:'right', flexShrink:0 }}>
                     <p style={{ fontSize:14, fontWeight:700, color:'#10B981' }}>Rs. {cls.fee.toLocaleString()}</p>
-                    <p style={{ fontSize:11, color:palette.textMuted, marginTop:2 }}>⭐ {cls.rating}</p>
                   </div>
                 </div>
               );
@@ -294,9 +289,9 @@ export default function TutorDashboard() {
             <p style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900, color:'white', marginBottom:4 }}>Rs. {monthlyEarnings.toLocaleString()}</p>
             <p style={{ fontSize:12, color:'rgba(255,255,255,0.6)', marginBottom:16 }}>From {activeClasses.length} active classes</p>
             <div style={{ height:1, background:'rgba(255,255,255,0.15)', marginBottom:16 }} />
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
-              <div><p style={{ fontSize:18, fontWeight:900, color:'white', fontFamily:"'Playfair Display',serif" }}>{totalStudents}</p><p style={{ fontSize:11, color:'rgba(255,255,255,0.5)' }}>Total Students</p></div>
-              <div style={{ textAlign:'right' }}><p style={{ fontSize:18, fontWeight:900, color:'white', fontFamily:"'Playfair Display',serif" }}>⭐ {avgRating > 0 ? avgRating.toFixed(1) : '—'}</p><p style={{ fontSize:11, color:'rgba(255,255,255,0.5)' }}>Avg Rating</p></div>
+            <div>
+              <p style={{ fontSize:18, fontWeight:900, color:'white', fontFamily:"'Playfair Display',serif" }}>{totalStudents}</p>
+              <p style={{ fontSize:11, color:'rgba(255,255,255,0.5)' }}>Total Students</p>
             </div>
           </div>
         </div>

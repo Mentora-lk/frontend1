@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/navbar/Navbar';
 import EnrollSidebar from './EnrollSidebar';
 import { getCourseById } from '@/services/classService';
-import { submitEnrollment } from '@/services/enrollmentService';
+import { submitEnrollment, updateEnrollment, getMyEnrollments } from '@/services/enrollmentService';
 import { usePalette } from '@/hooks/usePalette';
 
 
@@ -70,7 +70,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function EnrollPage() {
+function EnrollPageContent() {
   const palette = usePalette();
 
   const inputStyle = (hasErr?: boolean): React.CSSProperties => ({
@@ -89,17 +89,30 @@ export default function EnrollPage() {
   const params = useParams();
   const id     = Number(params?.id);
 
+  const searchParams = useSearchParams();
+  const enrollmentIdParam = searchParams.get('enrollmentId');
+  const isEditMode = !!enrollmentIdParam;
+
   // Course data from backend
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Existing enrollment (edit mode only) — no single-GET endpoint, so we fetch
+  // the student's full list and find this one by id.
+  const [existingEnrollment, setExistingEnrollment] = useState<any>(null);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(isEditMode);
+  const [editBlocked, setEditBlocked] = useState(false);
+  const [editBlockReason, setEditBlockReason] = useState('');
+  const prefilledRef = useRef(false);
+
   // Submission state
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Step state
-  const [step, setStep] = useState(1);
+  // Step state — edit mode opens straight on the schedule step, since that's
+  // the most common thing a student wants to change.
+  const [step, setStep] = useState(isEditMode ? 2 : 1);
   const [dashboardLink, setDashboardLink] = useState('/dashboard/student');
 
   useEffect(() => {
@@ -151,13 +164,54 @@ export default function EnrollPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!isEditMode) return;
+    const loadExisting = async () => {
+      setEnrollmentLoading(true);
+      try {
+        const all = await getMyEnrollments();
+        const found = all.find((e: any) => String(e.id) === String(enrollmentIdParam));
+        if (!found) {
+          setEditBlocked(true);
+          setEditBlockReason('This enrollment could not be found.');
+        } else if (found.status !== 'requested') {
+          setEditBlocked(true);
+          setEditBlockReason('This enrollment can no longer be edited — it has already been reviewed or is no longer pending.');
+        } else {
+          setExistingEnrollment(found);
+        }
+      } catch (err) {
+        setEditBlocked(true);
+        setEditBlockReason('Failed to load your enrollment details.');
+        console.error(err);
+      } finally {
+        setEnrollmentLoading(false);
+      }
+    };
+    loadExisting();
+  }, [isEditMode, enrollmentIdParam]);
+
+  useEffect(() => {
+    if (!isEditMode || prefilledRef.current || !course || !existingEnrollment) return;
+    setFullName(existingEnrollment.full_name || '');
+    setEmail(existingEnrollment.email || '');
+    setPhone(existingEnrollment.phone || '');
+    setSchool(existingEnrollment.school || '');
+    setGrade(existingEnrollment.grade || '');
+    setMessage(existingEnrollment.message || '');
+    if (course.mode === 'both') setPreferredMode(existingEnrollment.preferred_mode || '');
+    setSelectedDay(existingEnrollment.selected_day || '');
+    setSelectedTime(existingEnrollment.selected_time || '');
+    prefilledRef.current = true;
+  }, [isEditMode, course, existingEnrollment]);
+
+  useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   useEffect(() => { window.scrollTo({ top:0, behavior:'smooth' }); }, [step]);
 
-  if (loading) {
+  if (loading || (isEditMode && enrollmentLoading)) {
     return (
       <div style={{ minHeight:'100vh', background:'#F4F6F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
         <div style={{ width:40, height:40, border:'4px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
@@ -167,6 +221,22 @@ export default function EnrollPage() {
   }
 
   if (!course) return <div style={{ padding: 100, textAlign: 'center' }}>Course not found</div>;
+
+  if (isEditMode && editBlocked) {
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:52, marginBottom:16 }}>🔒</div>
+          <p style={{ fontSize:16, color:'#EF4444', fontWeight:600, marginBottom:20 }}>{editBlockReason}</p>
+          <Link href={dashboardLink}>
+            <button style={{ background:'#10B981', color:'white', border:'none', borderRadius:12, padding:'11px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+              Back to My Classes
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const tutor = course.tutor;
 
@@ -202,24 +272,30 @@ export default function EnrollPage() {
     setSubmitting(true);
     setSubmitError('');
 
+    const payload = {
+      classId:       course.id,
+      fullName,
+      email,
+      phone,
+      school,
+      grade,
+      message,
+      preferredMode: preferredMode || course.mode,
+      selectedDay,
+      selectedTime,
+    };
+
     try {
-      await submitEnrollment({
-        classId:       course.id,
-        fullName,
-        email,
-        phone,
-        school,
-        grade,
-        message,
-        preferredMode: preferredMode || course.mode,
-        selectedDay,
-        selectedTime,
-      });
+      if (isEditMode && existingEnrollment) {
+        await updateEnrollment(existingEnrollment.id, payload);
+      } else {
+        await submitEnrollment(payload);
+      }
 
       setStep(4);
     } catch (err: any) {
       setSubmitError(
-        err.response?.data?.message || 'Failed to submit enrollment. Please try again.'
+        err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'submit'} enrollment. Please try again.`
       );
     } finally {
       setSubmitting(false);
@@ -296,10 +372,12 @@ export default function EnrollPage() {
               <span style={{ fontSize:12, color:'#34D399', fontWeight:600 }}>Enroll</span>
             </div>
             <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(24px,3.5vw,44px)', fontWeight:900, color:'white', marginBottom:8, lineHeight:1.1 }}>
-              {step<4 ? 'Enroll in This Class' : 'Enrollment Requested!'}
+              {step<4 ? (isEditMode ? 'Edit Your Enrollment' : 'Enroll in This Class') : (isEditMode ? 'Enrollment Updated!' : 'Enrollment Requested!')}
             </h1>
             <p style={{ fontSize:14, color:'rgba(255,255,255,0.55)', fontWeight:300 }}>
-              {step<4 ? `Joining ${course?.tutor_name || 'tutor'}'s class · ${course?.title}` : 'Your request has been sent to the tutor'}
+              {step<4
+                ? (isEditMode ? `Editing your enrollment for ${course?.title}` : `Joining ${course?.tutor_name || 'tutor'}'s class · ${course?.title}`)
+                : (isEditMode ? 'Your changes have been saved' : 'Your request has been sent to the tutor')}
             </p>
           </div>
           <div style={{ position:'absolute', bottom:0, left:0, right:0, lineHeight:0 }}>
@@ -492,7 +570,7 @@ export default function EnrollPage() {
                     <label style={{ display:'flex', alignItems:'flex-start', gap:12, cursor:'pointer' }}>
                       <input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)} style={{ width:18, height:18, marginTop:1, flexShrink:0, cursor:'pointer' }}/>
                       <span style={{ fontSize:13, color:'#4B5563', lineHeight:1.6 }}>
-                        I agree to Mentora.lk's <a href="#" style={{ color:'#10B981', fontWeight:600 }}>Terms of Service</a> and <a href="#" style={{ color:'#10B981', fontWeight:600 }}>Privacy Policy</a>. I understand enrollment is subject to tutor approval.
+                        I understand enrollment is subject to tutor approval.
                       </span>
                     </label>
                     {errors.agreed && <span style={{ fontSize:11, color:'#EF4444', marginTop:8, display:'flex' }}>{errors.agreed}</span>}
@@ -521,12 +599,12 @@ export default function EnrollPage() {
                     {submitting ? (
                       <>
                         <div style={{ width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTop:'2px solid white', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
-                        Submitting...
+                        {isEditMode ? 'Saving...' : 'Submitting...'}
                       </>
                     ) : (
                       <>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        Submit Enrollment Request
+                        {isEditMode ? 'Save Changes' : 'Submit Enrollment Request'}
                       </>
                     )}
                   </button>
@@ -546,20 +624,26 @@ export default function EnrollPage() {
                 <div style={{ width:90, height:90, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', boxShadow:'0 12px 40px rgba(16,185,129,0.4)', animation:'scaleIn 0.5s cubic-bezier(.22,1,.36,1)' }}>
                   <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
-                <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900, color:palette.textPrimary, marginBottom:8 }}>You're Almost In! 🎉</h2>
+                <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900, color:palette.textPrimary, marginBottom:8 }}>{isEditMode ? 'Changes Saved! ✅' : "You're Almost In! 🎉"}</h2>
                 <p style={{ fontSize:15, color:palette.textSecondary, marginBottom:28, lineHeight:1.7, maxWidth:420, margin:'0 auto 28px' }}>
-                  Hi <strong style={{ color:palette.textPrimary }}>{fullName}</strong>! Your enrollment request for <strong style={{ color:'#10B981' }}>{course?.title}</strong> has been sent to <strong style={{ color:palette.textPrimary }}>{course?.tutor_name || 'tutor'}</strong>.
+                  {isEditMode
+                    ? <>Hi <strong style={{ color:palette.textPrimary }}>{fullName}</strong>! Your enrollment for <strong style={{ color:'#10B981' }}>{course?.title}</strong> has been updated.</>
+                    : <>Hi <strong style={{ color:palette.textPrimary }}>{fullName}</strong>! Your enrollment request for <strong style={{ color:'#10B981' }}>{course?.title}</strong> has been sent to <strong style={{ color:palette.textPrimary }}>{course?.tutor_name || 'tutor'}</strong>.</>}
                 </p>
 
                 <div style={{ background:'#F0FDF4', borderRadius:16, padding:'22px 24px', marginBottom:28, border:'1px solid #A7F3D0', textAlign:'left' }}>
                   <p style={{ fontSize:13, fontWeight:700, color:'#059669', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:14 }}>What happens next</p>
-                  {[
+                  {(isEditMode ? [
+                    { icon:'⏳', text:`${course?.tutor_name || 'Your tutor'} will review your updated request` },
+                    { icon:'✅', text:"You'll receive approval + payment details via email" },
+                    { icon:'🎓', text:`First class: ${selectedDay} at ${selectedTime}` },
+                  ] : [
                     { icon:'📧', text:'Confirmation email sent to your inbox' },
                     { icon:'⏳', text:`${course?.tutor_name || 'Your tutor'} will review your request within 24 hours` },
                     { icon:'✅', text:"You'll receive approval + payment details via email" },
                     { icon:'🎓', text:`First class: ${selectedDay} at ${selectedTime}` },
-                  ].map((item,i)=>(
-                    <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:i<3?'1px solid rgba(16,185,129,0.12)':'none' }}>
+                  ]).map((item,i,arr)=>(
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:i<arr.length-1?'1px solid rgba(16,185,129,0.12)':'none' }}>
                       <span style={{ fontSize:18 }}>{item.icon}</span>
                       <span style={{ fontSize:13, color:'#065F46', fontWeight:500 }}>{item.text}</span>
                     </div>
@@ -599,5 +683,22 @@ export default function EnrollPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function EnrollPageFallback() {
+  return (
+    <div style={{ minHeight:'100vh', background:'#F4F6F5', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ width:40, height:40, border:'4px solid #f3f4f6', borderTopColor:'#10B981', borderRadius:'50%', animation:'spin 1s linear infinite' }}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+}
+
+export default function EnrollPage() {
+  return (
+    <Suspense fallback={<EnrollPageFallback/>}>
+      <EnrollPageContent/>
+    </Suspense>
   );
 }

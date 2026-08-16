@@ -8,7 +8,6 @@ export interface ClassItem {
   subject: string;
   tutor: string;
   price: number;
-  rating: number;
   image: string;
   availability: string[];
 }
@@ -141,14 +140,6 @@ export default function ClassCard({ cls, index }: ClassCardProps) {
           font-size: 0.7rem; color: #64748b; font-weight: 500;
         }
 
-        .cc-rating {
-          display: flex; align-items: center; gap: 4px;
-          font-size: 0.78rem; font-weight: 700;
-          background: #fef3c7; color: #92400e;
-          padding: 3px 9px; border-radius: 100px;
-          font-family: 'Outfit', sans-serif;
-        }
-
         /* ── BUTTON ── */
         .cc-btn {
           width: 100%; margin-top: 12px; padding: 10px;
@@ -220,7 +211,6 @@ export default function ClassCard({ cls, index }: ClassCardProps) {
             <div className="cc-price">
               Rs.&nbsp;{cls.price.toLocaleString()} <span>/ hr</span>
             </div>
-            <div className="cc-rating">⭐ {cls.rating}</div>
           </div>
 
           <button className="cc-btn">Book a Session →</button>

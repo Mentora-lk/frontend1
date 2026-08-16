@@ -10,19 +10,6 @@ import { usePalette } from '@/hooks/usePalette';
 const BADGE_COLORS: Record<string,string> = { 'Best Seller':'#10B981', 'Top Rated':'#8B5CF6', 'New':'#3B82F6' };
 const MODE_COLOR: Record<string,string> = { online:'#10B981', offline:'#3B82F6', both:'#F59E0B' };
 
-// ── Stars ─────────────────────────────────────────────────────────────────────
-function Stars({ rating, size=14, light=false }: { rating:number; size?:number; light?:boolean }) {
-  return (
-    <span style={{ display:'inline-flex', gap:2 }}>
-      {[1,2,3,4,5].map(s=>(
-        <svg key={s} width={size} height={size} viewBox="0 0 24 24" fill={s<=Math.round(rating)?(light?'#FDE68A':'#F59E0B'):'none'} stroke={light?'#FDE68A':'#F59E0B'} strokeWidth="1.5">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-        </svg>
-      ))}
-    </span>
-  );
-}
-
 // All course data now comes from the backend API
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -50,7 +37,6 @@ export default function ClassDetailPage() {
     qualification:  course.tutor_qualifications
                     ? `${course.tutor_qualifications}, ${course.tutor_university || ''}`
                     : course.tutor_university || 'Professional Tutor',
-    average_rating: Number(course.tutor_average_rating) || 0,
     total_students: course.tutor_total_students || 0,
     total_classes:  0,
     is_verified:    course.tutor_is_verified,
@@ -169,11 +155,6 @@ export default function ClassDetailPage() {
                 {course.badge && <span style={{ display:'inline-block', background:BADGE_COLORS[course.badge]||'#10B981', borderRadius:99, padding:'4px 14px', fontSize:11, fontWeight:700, color:'white', marginBottom:10 }}>{course.badge}</span>}
                 <h1 className="fade-up" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(24px,3.5vw,46px)', fontWeight:900, color:'white', lineHeight:1.1, marginBottom:10, maxWidth:680 }}>{course.title}</h1>
                 <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                    <Stars rating={course.average_rating} size={15} light/>
-                    <span style={{ fontSize:14, fontWeight:700, color:'#FDE68A' }}>{course.average_rating}</span>
-                    <span style={{ fontSize:13, color:'rgba(255,255,255,0.5)' }}>({course.review_count} reviews)</span>
-                  </div>
                   <span style={{ fontSize:13, color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:5 }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     {course.location}
@@ -226,16 +207,12 @@ export default function ClassDetailPage() {
                     {tutor.is_verified && <span style={{ fontSize:11, fontWeight:700, background:'#ECFDF5', color:'#059669', borderRadius:6, padding:'2px 8px', border:'1px solid #A7F3D0' }}>✓ Verified</span>}
                   </div>
                   <p style={{ fontSize:12, color:palette.textMuted, marginBottom:8 }}>{tutor.qualification}</p>
-                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <Stars rating={tutor.average_rating}/>
-                    <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{tutor.average_rating}</span>
-                  </div>
                 </div>
               </div>
               <p style={{ fontSize:14, color:'#4B5563', lineHeight:1.7, marginBottom:16 }}>{tutor.bio}</p>
               <div style={{ display:'flex', gap:0, borderRadius:12, overflow:'hidden', border:`1px solid ${palette.border}` }}>
-                {[{l:'Rating',v:`${tutor.average_rating}★`},{l:'Students',v:`${tutor.total_students}+`},{l:'Classes',v:`${tutor.total_classes}`}].map((s,i)=>(
-                  <div key={i} style={{ flex:1, padding:'14px', textAlign:'center', borderRight:i<2?'1px solid #F3F4F6':'none', background:'#FAFAFA' }}>
+                {[{l:'Students',v:`${tutor.total_students}+`},{l:'Classes',v:`${tutor.total_classes}`}].map((s,i)=>(
+                  <div key={i} style={{ flex:1, padding:'14px', textAlign:'center', borderRight:i<1?'1px solid #F3F4F6':'none', background:'#FAFAFA' }}>
                     <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:900, color:'#10B981' }}>{s.v}</div>
                     <div style={{ fontSize:11, color:palette.textMuted, marginTop:3 }}>{s.l}</div>
                   </div>
@@ -298,13 +275,7 @@ export default function ClassDetailPage() {
             {/* Tab: Reviews */}
             {activeTab==='reviews' && (
               <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
-                <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:24 }}>
-                  <div style={{ textAlign:'center' }}>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize:52, fontWeight:900, color:palette.textPrimary, lineHeight:1 }}>{course.average_rating || 0}</div>
-                    <Stars rating={course.average_rating || 0} size={18}/>
-                    <p style={{ fontSize:12, color:palette.textMuted, marginTop:4 }}>{course.review_count || 0} reviews</p>
-                  </div>
-                </div>
+                <p style={{ fontSize:13, color:palette.textMuted, marginBottom:20 }}>{course.review_count || 0} reviews</p>
                 {reviews.length === 0 ? (
                   <p style={{ fontSize:14, color:palette.textMuted, textAlign:'center', padding:'20px 0' }}>
                     No reviews yet. Be the first to review!
@@ -313,19 +284,16 @@ export default function ClassDetailPage() {
                   <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
                     {reviews.map((r: any, i: number) => (
                       <div key={i} style={{ padding:'18px 20px', background:palette.surfaceAlt, borderRadius:14, border:`1px solid ${palette.border}` }}>
-                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                            <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700 }}>
-                              {r.student?.name?.[0] || 'S'}
-                            </div>
-                            <div>
-                              <p style={{ fontSize:13, fontWeight:700, color:palette.textPrimary }}>{r.student?.name || 'Student'}</p>
-                              <p style={{ fontSize:11, color:palette.textMuted }}>
-                                {new Date(r.createdAt).toLocaleDateString('en-US', { month:'long', year:'numeric' })}
-                              </p>
-                            </div>
+                        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                          <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700 }}>
+                            {r.student?.name?.[0] || 'S'}
                           </div>
-                          <Stars rating={r.rating} size={13}/>
+                          <div>
+                            <p style={{ fontSize:13, fontWeight:700, color:palette.textPrimary }}>{r.student?.name || 'Student'}</p>
+                            <p style={{ fontSize:11, color:palette.textMuted }}>
+                              {new Date(r.createdAt).toLocaleDateString('en-US', { month:'long', year:'numeric' })}
+                            </p>
+                          </div>
                         </div>
                         <p style={{ fontSize:13, color:'#4B5563', lineHeight:1.6 }}>{r.comment}</p>
                       </div>

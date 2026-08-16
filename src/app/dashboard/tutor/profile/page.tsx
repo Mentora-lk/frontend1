@@ -19,12 +19,11 @@ interface TutorProfile {
 interface TeachingStats {
   classesCount: number;
   activeClassesCount: number;
-  avgRating: number;
   totalStudents: number;
   pendingRequests: number;
 }
 
-const EMPTY_STATS: TeachingStats = { classesCount: 0, activeClassesCount: 0, avgRating: 0, totalStudents: 0, pendingRequests: 0 };
+const EMPTY_STATS: TeachingStats = { classesCount: 0, activeClassesCount: 0, totalStudents: 0, pendingRequests: 0 };
 
 export default function TutorProfilePage() {
   const palette = usePalette();
@@ -210,7 +209,6 @@ export default function TutorProfilePage() {
             {[
               { l: 'Classes Posted', v: String(stats.classesCount) },
               { l: 'Total Students', v: String(stats.totalStudents) },
-              { l: 'Avg Rating', v: stats.avgRating > 0 ? `${stats.avgRating.toFixed(1)}★` : '—' },
             ].map((s, i) => (
               <div key={i} style={{ padding: '10px 0', borderTop: `1px solid ${palette.border}`, textAlign: 'center' }}>
                 <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 900, color: '#10B981' }}>{s.v}</div>
@@ -224,7 +222,6 @@ export default function TutorProfilePage() {
               const experienceYears = parseInt(form.experience || '', 10) || 0;
               const badges: string[] = [];
               if (verified) badges.push('✅ Verified');
-              if (stats.avgRating >= 4.5) badges.push('⭐ Top Rated');
               if (experienceYears >= 5) badges.push(`🏆 ${experienceYears}+ Years`);
               return badges.length > 0 ? (
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${palette.border}` }}>

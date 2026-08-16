@@ -16,7 +16,6 @@ const TESTIMONIALS = [
     quote:
       "This teacher is highly effective; I achieved an A in A/L ICT within just six months of guidance.",
     name: "Sonal Perera",
-    rating: 5,
     tutorName: "Jehan Fernando",
     tutorDesc:
       "An A/L ICT tutor who is currently completing a BSc in IT at the University of Moratuwa.",
@@ -26,33 +25,12 @@ const TESTIMONIALS = [
     quote:
       "Found the perfect maths tutor within minutes. My daughter's grades improved dramatically in just two months!",
     name: "Priya Wickramasinghe",
-    rating: 5,
     tutorName: "Kasun Fernando",
     tutorDesc:
       "Senior Mathematics tutor with 10+ years of experience coaching A/L students across Sri Lanka.",
     tutorWorked: "National Schools",
   },
 ];
-
-function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
-  return (
-    <span style={{ display: "inline-flex", gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <svg
-          key={s}
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill={s <= Math.round(rating) ? "#F59E0B" : "none"}
-          stroke="#F59E0B"
-          strokeWidth="1.5"
-        >
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-        </svg>
-      ))}
-    </span>
-  );
-}
 
 function CourseCard({ course }: { course: any }) {
   const [hov, setHov] = useState(false);
@@ -61,8 +39,6 @@ function CourseCard({ course }: { course: any }) {
   // Handle both real backend data structure and missing fields
   const tutorName = (course.tutor?.name || course.tutor_name || course.tutor || 'Unknown Tutor').toString();
   const location  = (course.location || 'Sri Lanka').toString();
-  const rating    = course.average_rating || course.rating || 0;
-  const reviews   = course.review_count   || course.reviews || 0;
   const fee       = Number(course.fee)    || 0;
   const image     = (course.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80').toString();
   const badge     = course.badge || null;
@@ -178,12 +154,6 @@ function CourseCard({ course }: { course: any }) {
             {(course.title || 'Course').toString()}
           </h3>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
-            <Stars rating={rating} size={13} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B" }}>{rating}</span>
-            <span style={{ fontSize: 11, color: palette.textMuted }}>({reviews})</span>
-          </div>
-
           <p style={{ fontSize: 12, color: palette.textMuted, marginBottom: 4 }}>
             By <span style={{ fontWeight: 600, color: "#10B981" }}>{(tutorName || 'Unknown').toString()}</span>
           </p>
@@ -242,7 +212,6 @@ export default function LandingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState("IT");
   const [filterSubject, setFilterSubject] = useState("All");
-  const [filterRating, setFilterRating] = useState(0);
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [scrollY, setScrollY] = useState(0);
   const [priceRange, setPriceRange] = useState(5000);
@@ -305,9 +274,8 @@ export default function LandingPage() {
       subjectStr.includes(searchQuery.toLowerCase());
     const matchTag = activeTag === "IT" ? true : subjectStr.includes(activeTag.toLowerCase());
     const matchSubject = filterSubject === "All" || c.subject === filterSubject;
-    const matchRating = filterRating === 0 || (c.average_rating || c.rating || 0) >= filterRating;
     const matchFee = (c.fee || 0) <= priceRange;
-    return matchSearch && matchTag && matchSubject && matchRating && matchFee;
+    return matchSearch && matchTag && matchSubject && matchFee;
   });
 
   return (
@@ -739,54 +707,9 @@ export default function LandingPage() {
                   </div>
                 </FilterGroup>
 
-                <FilterGroup label="Minimum Rating" isDark={isDark}>
-                  {[
-                    { v: 0, l: "Any" },
-                    { v: 4.5, l: "4.5+" },
-                    { v: 4.0, l: "4.0+" },
-                  ].map((r) => (
-                    <label
-                      key={r.v}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        marginBottom: 8,
-                        cursor: "pointer",
-                        fontSize: 13,
-                        color: palette.textSecondary,
-                      }}
-                    >
-                      <input type="radio" name="rating" checked={filterRating === r.v} onChange={() => setFilterRating(r.v)} />
-                      {r.v > 0 && <Stars rating={r.v} size={12} />}
-                      <span>{r.l}</span>
-                    </label>
-                  ))}
-                </FilterGroup>
-
-                <FilterGroup label="Availability" isDark={isDark}>
-                  {["Weekdays", "Weekends", "Evening Slots", "Morning Slots"].map((opt) => (
-                    <label
-                      key={opt}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        marginBottom: 8,
-                        cursor: "pointer",
-                        fontSize: 13,
-                        color: palette.textSecondary,
-                      }}
-                    >
-                      <input type="radio" name="avail" /> {opt}
-                    </label>
-                  ))}
-                </FilterGroup>
-
                 <button
                   onClick={() => {
                     setFilterSubject("All");
-                    setFilterRating(0);
                     setPriceRange(5000);
                   }}
                   style={{
@@ -964,7 +887,7 @@ export default function LandingPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4,1fr)",
+                gridTemplateColumns: "repeat(3,1fr)",
                 gap: 1,
                 marginTop: 56,
                 borderRadius: 20,
@@ -976,7 +899,6 @@ export default function LandingPage() {
                 { n: "1,200+", l: "Verified Tutors" },
                 { n: "25,000+", l: "Active Students" },
                 { n: "50+", l: "Subjects" },
-                { n: "4.8★", l: "Avg. Rating" },
               ].map((s, i) => (
                 <div key={i} style={{ background: palette.surface, padding: "28px 24px", textAlign: "center" }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 900, color: "#10B981", lineHeight: 1 }}>
@@ -1055,8 +977,6 @@ export default function LandingPage() {
                   >
                     "{TESTIMONIALS[testimonialIdx].quote}"
                   </p>
-
-                  <Stars rating={TESTIMONIALS[testimonialIdx].rating} size={18} />
 
                   <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 12 }}>
                     <div
@@ -1142,9 +1062,8 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                   {[
-                    { l: "Rating", v: "4.9★" },
                     { l: "Students", v: "320+" },
                     { l: "Classes", v: "48" },
                   ].map((s, i) => (

@@ -21,12 +21,11 @@ interface AcademicStats {
   pendingApprovals: number;
   sessionsAttended: number;
   subjectsStudying: number;
-  avgRatingGiven: number;
 }
 
 const EMPTY_STATS: AcademicStats = {
   classesEnrolled: 0, activeClasses: 0, pendingApprovals: 0,
-  sessionsAttended: 0, subjectsStudying: 0, avgRatingGiven: 0,
+  sessionsAttended: 0, subjectsStudying: 0,
 };
 
 export default function ProfilePage() {
@@ -114,7 +113,7 @@ export default function ProfilePage() {
   // "Enrolled/Active Learner/Multi-Subject" claims shown for every student.
   const badges: string[] = [];
   if (stats.classesEnrolled > 0) badges.push('🎓 Enrolled');
-  if (stats.activeClasses > 0) badges.push('⭐ Active Learner');
+  if (stats.activeClasses > 0) badges.push('Active Learner');
   if (stats.subjectsStudying >= 2) badges.push('📚 Multi-Subject');
 
   return (
@@ -157,7 +156,6 @@ export default function ProfilePage() {
             {[
               { l: 'Classes Enrolled', v: String(stats.classesEnrolled) },
               { l: 'Sessions Attended', v: String(stats.sessionsAttended) },
-              { l: 'Avg Rating Given', v: stats.avgRatingGiven > 0 ? `${stats.avgRatingGiven.toFixed(1)}★` : '—' },
             ].map((s, i) => (
               <div key={i} style={{ padding:'10px 0', borderTop:`1px solid ${palette.border}`, textAlign:'center' }}>
                 <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:900, color:'#10B981' }}>{s.v}</div>

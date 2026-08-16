@@ -13,7 +13,6 @@ export interface MyClass {
   location: string;
   mode: 'online' | 'offline' | 'both';
   fee: number;
-  rating: number;
   status: 'active' | 'requested' | 'approved' | 'rejected';
   sessionsAttended: number;
   totalSessions: number;
@@ -37,21 +36,6 @@ const SUBJECT_COLORS: Record<string, string> = {
 const MODE_COLOR: Record<string, string> = {
   online: '#10B981', offline: '#3B82F6', both: '#F59E0B',
 };
-
-// ── Stars helper ──────────────────────────────────────────────────────────────
-function Stars({ rating, size = 12 }: { rating: number; size?: number }) {
-  return (
-    <span style={{ display: 'inline-flex', gap: 2 }}>
-      {[1,2,3,4,5].map(s => (
-        <svg key={s} width={size} height={size} viewBox="0 0 24 24"
-          fill={s <= Math.round(rating) ? '#F59E0B' : 'none'}
-          stroke="#F59E0B" strokeWidth="1.5">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-        </svg>
-      ))}
-    </span>
-  );
-}
 
 // ── MyClassCard ───────────────────────────────────────────────────────────────
 interface Props { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void; }
@@ -100,10 +84,6 @@ export default function MyClassCard({ cls, view, onCancel }: Props) {
               </span>
             </div>
             <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, marginBottom: 6 }}>By {cls.tutor}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10 }}>
-              <Stars rating={cls.rating} size={12}/>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B' }}>{cls.rating}</span>
-            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', gap: 12 }}>
@@ -188,11 +168,6 @@ export default function MyClassCard({ cls, view, onCancel }: Props) {
         <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>
           By <span style={{ fontWeight: 600, color: '#10B981' }}>{cls.tutor}</span>
         </p>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10 }}>
-          <Stars rating={cls.rating} size={12}/>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B' }}>{cls.rating}</span>
-        </div>
 
         {/* Progress bar — active only */}
         {cls.status === 'active' && (

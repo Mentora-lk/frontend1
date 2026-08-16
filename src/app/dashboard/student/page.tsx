@@ -19,7 +19,6 @@ type MyClass = {
   location: string;
   mode: MyClassMode;
   fee: number;
-  rating: number;
   status: MyClassStatus;
   sessionsAttended: number;
   totalSessions: number;
@@ -27,7 +26,7 @@ type MyClass = {
   image: string;
 };
 
-function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void }) {
+function MyClassCard({ cls, view, onCancel, onView }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void; onView?: () => void }) {
   const palette = usePalette();
   const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
   const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
@@ -35,6 +34,7 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
 
   return (
     <div
+      onClick={onView}
       style={{
         display: 'flex',
         flexDirection: view === 'grid' ? 'column' : 'row',
@@ -44,7 +44,11 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
         borderRadius: 16,
         padding: 14,
         boxShadow: palette.shadow,
+        cursor: onView ? 'pointer' : 'default',
+        transition: 'transform 0.2s, box-shadow 0.2s',
       }}
+      onMouseEnter={e => { if (onView) e.currentTarget.style.transform = 'translateY(-3px)'; }}
+      onMouseLeave={e => { if (onView) e.currentTarget.style.transform = 'none'; }}
     >
       <img
         src={thumbnail}
@@ -68,7 +72,88 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
         <div style={{ width: '100%', height: 7, borderRadius: 999, background: palette.surfaceAlt, overflow: 'hidden', marginBottom: 6 }}>
           <div style={{ width: `${progress}%`, height: '100%', background: '#10B981' }} />
         </div>
-        <p style={{ fontSize: 11, color: palette.textSecondary }}>{cls.sessionsAttended}/{cls.totalSessions} sessions • ⭐ {cls.rating.toFixed(1)}</p>
+        <p style={{ fontSize: 11, color: palette.textSecondary }}>{cls.sessionsAttended}/{cls.totalSessions} sessions</p>
+      </div>
+    </div>
+  );
+}
+
+// The backend has no route to edit an enrollment's submitted details yet — its
+// only PATCH /enrollments/:id is a status-transition endpoint (approved/rejected/
+// active/cancelled), not a content edit. Flip this once a real edit endpoint exists.
+const ENROLLMENT_EDIT_ENABLED = false;
+
+function EnrollmentDetailsModal({ enrollment, onClose }: { enrollment: any; onClose: () => void }) {
+  const palette = usePalette();
+  const mode = enrollment.preferred_mode || enrollment.mode;
+
+  const personalRows = [
+    { l: 'Full Name', v: enrollment.full_name },
+    { l: 'Email', v: enrollment.email },
+    { l: 'Phone', v: enrollment.phone },
+    { l: 'School', v: enrollment.school },
+    { l: 'Grade', v: enrollment.grade },
+    { l: 'Message', v: enrollment.message },
+  ].filter(row => row.v);
+
+  const scheduleRows = [
+    { l: 'Day', v: enrollment.selected_day },
+    { l: 'Time', v: enrollment.selected_time ? `🕐 ${enrollment.selected_time}` : undefined },
+    { l: 'Mode', v: mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : undefined },
+    { l: 'Location', v: mode === 'online' ? 'Online (video call)' : enrollment.location },
+    { l: 'Fee', v: enrollment.fee ? `LKR ${Number(enrollment.fee).toLocaleString()}/month` : undefined },
+  ].filter(row => row.v);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: palette.surface, borderRadius: 20, padding: '28px 30px', maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12 }}>
+          <div>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: palette.textPrimary, lineHeight: 1.3 }}>{enrollment.title}</h2>
+            <p style={{ fontSize: 12, color: palette.textMuted, marginTop: 4 }}>Your enrollment submission</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, fontSize: 20, lineHeight: 1, padding: 4, flexShrink: 0 }}>✕</button>
+        </div>
+
+        {personalRows.length > 0 && (
+          <div style={{ background: palette.surfaceAlt, borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: palette.textMuted, marginBottom: 10 }}>Personal Details</p>
+            {personalRows.map(row => (
+              <div key={row.l} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${palette.border}` }}>
+                <span style={{ fontSize: 13, color: palette.textSecondary, width: 110, flexShrink: 0 }}>{row.l}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: palette.textPrimary, flex: 1 }}>{row.v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {scheduleRows.length > 0 && (
+          <div style={{ background: '#F0FDF4', borderRadius: 14, padding: '16px 18px', border: '1px solid #A7F3D0' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#059669', marginBottom: 10 }}>Selected Schedule</p>
+            {scheduleRows.map(row => (
+              <div key={row.l} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(16,185,129,0.1)' }}>
+                <span style={{ fontSize: 13, color: '#065F46', width: 110, flexShrink: 0 }}>{row.l}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#065F46', flex: 1 }}>{row.v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {ENROLLMENT_EDIT_ENABLED && enrollment.status === 'requested' && (
+          <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
+            <Link href={`/classes/${enrollment.class_id}/enroll?enrollmentId=${enrollment.id}`}>
+              <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                Edit Enrollment
+              </button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -88,6 +173,7 @@ export default function StudentDashboard() {
   const [view,        setView]        = useState<'grid'|'list'>('grid');
   const [statusFilter, setStatus]     = useState<string>('all');
   const [searchQuery,  setSearch]     = useState('');
+  const [selectedEnrollment, setSelectedEnrollment] = useState<any | null>(null);
 
   // Fetch enrollments
   useEffect(() => {
@@ -254,6 +340,38 @@ export default function StudentDashboard() {
               ))}
             </div>
 
+            {/* ── AI RECOMMENDATIONS BANNER ───────────────────────────────── */}
+            <Link href="/dashboard/student/recommendations" style={{ textDecoration: 'none' }}>
+              <div
+                className="fade-up delay-1"
+                style={{
+                  background: 'linear-gradient(135deg,#064E3B 0%,#065F46 60%,#047857 100%)',
+                  borderRadius: 20, padding: '22px 28px', marginBottom: 28,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap',
+                  cursor: 'pointer', transition: 'transform 0.25s ease',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                    ✨
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 2 }}>
+                      Find Your Perfect Tutor
+                    </p>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                      Let our AI match you based on your subjects, budget and schedule
+                    </p>
+                  </div>
+                </div>
+                <span style={{ background: 'rgba(255,255,255,0.14)', color: 'white', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  Get Recommended Tutors →
+                </span>
+              </div>
+            </Link>
+
             {/* ── TWO COLUMN: Classes + Right panel ───────────────────────── */}
             <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
 
@@ -341,7 +459,6 @@ export default function StudentDashboard() {
                           location:         enrollment.location,
                           mode:             enrollment.preferred_mode || enrollment.mode,
                           fee:              Number(enrollment.fee),
-                          rating:           Number(enrollment.average_rating) || 0,
                           status:           enrollment.status,
                           sessionsAttended: enrollment.sessions_attended || 0,
                           totalSessions:    enrollment.max_students || 20,
@@ -356,6 +473,7 @@ export default function StudentDashboard() {
                         }}
                         view={view}
                         onCancel={() => handleCancel(enrollment.id)}
+                        onView={() => setSelectedEnrollment(enrollment)}
                       />
                     ))
                   ) : (
@@ -383,6 +501,10 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {selectedEnrollment && (
+        <EnrollmentDetailsModal enrollment={selectedEnrollment} onClose={() => setSelectedEnrollment(null)} />
+      )}
     </>
   );
 }
