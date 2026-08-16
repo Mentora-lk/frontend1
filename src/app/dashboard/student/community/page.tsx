@@ -134,6 +134,10 @@ export default function StudentCommunityPage() {
     setPendingCommunities(prev => prev.filter(cid => cid !== update.community_id));
 
     if (update.status === 'approved') {
+      // Now that the student has an approved membership, this community is
+      // no longer a valid Discover target — drop it so its card doesn't
+      // fall back to showing "Request Access" again.
+      setCommunities(prev => prev.filter(c => c.id !== update.community_id));
       // Refetch so the newly-approved community shows up under Active
       // Communities with correct member_count/tutor info from the server.
       getMyClasses().then(res => { if (res) setActiveCommunities(res); }).catch(err => console.error('Failed to refresh my classes', err));
