@@ -14,6 +14,7 @@ import {
   handleLinkHoverLeave,
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
+import { EmailVerificationField } from "./EmailVerificationField";
 
 export default function StudentRegistration() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function StudentRegistration() {
   // created with this ticket instead of a password (see handleSubmit).
   const [googleSignupToken, setGoogleSignupToken] = useState<string | null>(null);
   const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const grades = ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "O/L", "A/L"];
   const languages = ["Sinhala", "English", "Tamil", "Bilingual"];
@@ -58,6 +60,12 @@ export default function StudentRegistration() {
     setIsLoading(true);
 
     try {
+      if (!googleSignupToken && !emailVerified) {
+        setError("Please verify your email before creating an account.");
+        setIsLoading(false);
+        return;
+      }
+
       // Password fields don't apply once verified via Google.
       if (!googleSignupToken && formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
@@ -221,46 +229,44 @@ export default function StudentRegistration() {
         </select>
       </div>
 
-      {/* Email & Address */}
-      <div style={formGridStyle(2)}>
-        {googleSignupToken ? (
-          <div>
-            <div style={getInputStyle(hoveredField, "email")}>
-              ✓ {formData.email}
-            </div>
-            <button
-              type="button"
-              onClick={useDifferentEmail}
-              style={{ background: "none", border: "none", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0" }}
-            >
-              Use a different email
-            </button>
+      {/* Email */}
+      {googleSignupToken ? (
+        <div>
+          <div style={getInputStyle(hoveredField, "email")}>
+            ✓ {formData.email}
           </div>
-        ) : (
-          <input
-            type="email"
-            placeholder="Email Address"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            onFocus={() => setHoveredField("email")}
-            onBlur={() => setHoveredField(null)}
-            style={getInputStyle(hoveredField, "email")}
-            required
-          />
-        )}
-        <input
-          type="text"
-          placeholder="Address"
-          name="address"
-          value={formData.address}
-          onChange={handleInputChange}
-          onFocus={() => setHoveredField("address")}
-          onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "address")}
-          required
+          <button
+            type="button"
+            onClick={useDifferentEmail}
+            style={{ background: "none", border: "none", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0" }}
+          >
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <EmailVerificationField
+          email={formData.email}
+          onEmailChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
+          verified={emailVerified}
+          onVerifiedChange={setEmailVerified}
+          hoveredField={hoveredField}
+          setHoveredField={setHoveredField}
+          disabled={isLoading}
         />
-      </div>
+      )}
+
+      {/* Address */}
+      <input
+        type="text"
+        placeholder="Address"
+        name="address"
+        value={formData.address}
+        onChange={handleInputChange}
+        onFocus={() => setHoveredField("address")}
+        onBlur={() => setHoveredField(null)}
+        style={getInputStyle(hoveredField, "address")}
+        required
+      />
 
       {/* Password Fields — not needed once verified via Google */}
       {!googleSignupToken && (
