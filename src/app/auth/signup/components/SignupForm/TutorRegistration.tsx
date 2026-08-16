@@ -15,7 +15,6 @@ import {
   handleLinkHoverLeave,
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
-import { GoogleSignupButton } from "@/components/auth/GoogleSignupButton";
 
 type Qualification = {
   id: string;
@@ -165,17 +164,6 @@ export default function TutorRegistration() {
       classTypes: prev.classTypes.includes(classType)
         ? prev.classTypes.filter((c) => c !== classType)
         : [...prev.classTypes, classType],
-    }));
-  };
-
-  const handleGoogleVerified = ({ email, name, googleSignupToken: token }: { email: string; name: string | null; googleSignupToken: string }) => {
-    setError("");
-    setAlreadyHasAccount(false);
-    setGoogleSignupToken(token);
-    setFormData((prev) => ({
-      ...prev,
-      email,
-      fullName: prev.fullName || name || prev.fullName,
     }));
   };
 
@@ -380,22 +368,6 @@ export default function TutorRegistration() {
               </a>
               .
             </div>
-          )}
-
-          {!googleSignupToken && (
-            <>
-              <GoogleSignupButton
-                role="tutor"
-                onVerified={handleGoogleVerified}
-                onAlreadyExists={() => setAlreadyHasAccount(true)}
-                onError={setError}
-              />
-              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
-                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-                <span style={{ fontSize: 13, color: "#9ca3af" }}>or fill in the form</span>
-                <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-              </div>
-            </>
           )}
 
           <input

@@ -78,6 +78,20 @@ export const authService = {
     });
   },
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return apiCall<{ message: string }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPassword(email: string, otp: string, newPassword: string): Promise<{ message: string }> {
+    return apiCall<{ message: string }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
+  },
+
   async deleteAccount(): Promise<{ message: string }> {
     const token = localStorage.getItem("token");
     return apiCall<{ message: string }>("/api/auth/account", {
