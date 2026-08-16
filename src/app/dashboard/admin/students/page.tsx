@@ -115,13 +115,11 @@ export default function AdminStudentsPage() {
   return (
     <div
       style={{
-        display: 'grid',
-        gap: 22,
-        background: 'linear-gradient(160deg, #eef6ff 0%, #f0fdfa 55%, #f6f4ff 100%)',
-        borderRadius: 24,
-        padding: 20,
-        margin: -20,
-      }}
+      display: 'grid',
+      gap: 22,
+      background: 'linear-gradient(160deg, #eef6ff 0%, #f0fdfa 55%, #f6f4ff 100%)',
+      borderRadius: 24, padding: 20, margin: -20,
+     }}
     >
       <div>
         <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Students</h2>
