@@ -17,10 +17,10 @@ export const userAcquisitionData = [
 ];
 
 export const transactions = [
-  { id: 'TXN-88291', student: 'Amara Silva', tutor: 'Kasun Perera', amount: 2500.00, comm: '15%', revenue: 375.00, status: 'Success' },
-  { id: 'TXN-88290', student: 'Ruwan Jayasuriya', tutor: 'Nimali Fonseka', amount: 4200.00, comm: '15%', revenue: 630.00, status: 'Pending' },
-  { id: 'TXN-88289', student: 'Dinuka Perera', tutor: 'Sunil Edirisinghe', amount: 1800.00, comm: '20%', revenue: 360.00, status: 'Failed' },
-  { id: 'TXN-88288', student: 'Sachini Perera', tutor: 'Kasun Perera', amount: 3000.00, comm: '15%', revenue: 450.00, status: 'Success' },
+  { id: 'TXN-88291', student: 'Amara Silva', tutor: 'Kasun Perera', amount: 2500.00, comm: '15%', revenue: 375.00, status: 'Success', date: '2024-06-12' },
+  { id: 'TXN-88290', student: 'Ruwan Jayasuriya', tutor: 'Nimali Fonseka', amount: 4200.00, comm: '15%', revenue: 630.00, status: 'Pending', date: '2024-06-10' },
+  { id: 'TXN-88289', student: 'Dinuka Perera', tutor: 'Sunil Edirisinghe', amount: 1800.00, comm: '20%', revenue: 360.00, status: 'Failed', date: '2024-06-08' },
+  { id: 'TXN-88288', student: 'Sachini Perera', tutor: 'Kasun Perera', amount: 3000.00, comm: '15%', revenue: 450.00, status: 'Success', date: '2024-06-05' },
 ];
 
 export const tutorVerifications = [
