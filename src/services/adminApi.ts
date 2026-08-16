@@ -93,6 +93,7 @@ export const updateAdStatus = async (id: number, status: string) => {
   const res = await axios.put(`${API_URL}/admin/ads/${id}`, { status }, authHeaders());
   return res.data;
 };
+
 export const getSessions = async () => {
   const res = await axios.get(`${API_URL}/admin/sessions`, authHeaders());
   return res.data;
@@ -120,5 +121,32 @@ export const createSession = async (data: { fullName: string; phone?: string; sc
 
 export const createAd = async (data: { tutorId: number; title: string; description?: string; price?: string }) => {
   const res = await axios.post(`${API_URL}/admin/ads`, data, authHeaders());
+  return res.data;
+};
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+export type AdminProfile = {
+  id: number;
+  full_name: string;
+  email: string;
+  admin_code: string;
+  contact_number: string | null;
+  photo_url: string | null;
+  created_at: string;
+};
+
+export const getAdminProfile = async (): Promise<AdminProfile> => {
+  const res = await axios.get(`${API_URL}/admin/me`, authHeaders());
+  return res.data;
+};
+
+export const updateAdminProfile = async (data: { fullName: string; contactNumber?: string; photoUrl?: string }): Promise<AdminProfile> => {
+  const res = await axios.put(`${API_URL}/admin/me`, data, authHeaders());
+  return res.data;
+};
+
+export const changeAdminPassword = async (currentPassword: string, newPassword: string) => {
+  const res = await axios.put(`${API_URL}/admin/me/password`, { currentPassword, newPassword }, authHeaders());
   return res.data;
 };
