@@ -32,6 +32,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     role: "student" | "tutor" | "admin";
+    fullName?: string | null;
   };
   profile?: any;
 }
@@ -77,14 +78,13 @@ export const authService = {
     });
   },
 
-  // Identity check only for the SIGNUP flow — creates nothing server-side.
-  // Returns a short-lived googleSignupToken that proves this email was
-  // Google-verified; the account is only created once the detail form is
-  // submitted with that token (see registerStudent/registerTutorFormData).
-  async verifyGoogleForSignup(idToken: string, role: "student" | "tutor"): Promise<GoogleSignupVerifyResponse> {
-    return apiCall<GoogleSignupVerifyResponse>("/api/auth/google/verify-signup", {
-      method: "POST",
-      body: JSON.stringify({ idToken, role }),
+  async deleteAccount(): Promise<{ message: string }> {
+    const token = localStorage.getItem("token");
+    return apiCall<{ message: string }>("/api/auth/account", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   },
 

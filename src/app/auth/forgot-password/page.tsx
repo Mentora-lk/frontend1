@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePalette } from "@/hooks/usePalette";
 
 export default function ForgotPasswordPage() {
+  const palette = usePalette();
   const [email, setEmail] = useState("");
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +45,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", background: palette.bg, transition: "background 0.25s ease" }}>
       <div
         style={{
           maxWidth: 500,
@@ -58,7 +60,7 @@ export default function ForgotPasswordPage() {
               fontFamily: "'Playfair Display', serif",
               fontSize: 42,
               fontWeight: 900,
-              color: "#111827",
+              color: palette.textPrimary,
               margin: "0 0 12px",
               lineHeight: 1.2,
             }}
@@ -68,7 +70,7 @@ export default function ForgotPasswordPage() {
           <p
             style={{
               fontSize: 16,
-              color: "#5f646f",
+              color: palette.textSecondary,
               margin: 0,
               lineHeight: 1.6,
             }}
@@ -118,7 +120,7 @@ export default function ForgotPasswordPage() {
                     display: "block",
                     fontSize: 14,
                     fontWeight: 500,
-                    color: "#374151",
+                    color: palette.textSecondary,
                     marginBottom: 8,
                   }}
                 >
@@ -139,9 +141,10 @@ export default function ForgotPasswordPage() {
                     border:
                       hoveredField === "email"
                         ? "2px solid #10b981"
-                        : "1px solid #d1d5db",
+                        : `1px solid ${palette.border}`,
                     borderRadius: 10,
-                    background: "#ffffff",
+                    background: palette.inputBg,
+                    color: palette.textPrimary,
                     outline: "none",
                     transition: "all 0.3s ease",
                     boxSizing: "border-box",
@@ -198,7 +201,7 @@ export default function ForgotPasswordPage() {
           style={{
             textAlign: "center",
             fontSize: 14,
-            color: "#6b7280",
+            color: palette.textMuted,
             margin: "32px 0 0",
           }}
         >

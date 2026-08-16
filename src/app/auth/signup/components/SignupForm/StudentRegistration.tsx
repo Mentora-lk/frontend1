@@ -89,8 +89,15 @@ export default function StudentRegistration() {
         googleSignupToken: googleSignupToken || undefined,
       });
 
-      // Extract user info from nested response.user
-      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+      // Extract user info from nested response.user (fullName comes from
+      // the profile row the backend just created, since registration
+      // doesn't return it on user itself)
+      const user = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        fullName: response.profile?.full_name ?? formData.fullName,
+      };
 
       // Store token and user info
       localStorage.setItem("token", response.token);
