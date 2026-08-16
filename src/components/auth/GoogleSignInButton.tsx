@@ -80,6 +80,14 @@ export function GoogleSignInButton({ onError }: GoogleSignInButtonProps) {
     completeAuth(credentialResponse.credential);
   };
 
+  // <GoogleLogin> requires a <GoogleOAuthProvider> ancestor, which
+  // GoogleAuthProvider only renders when this env var is set. Without this
+  // guard, rendering <GoogleLogin> here throws "Google OAuth components
+  // must be used within GoogleOAuthProvider" — crashing prerender/build.
+  if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+    return null;
+  }
+
   if (pendingCredential) {
     return (
       <div className="role-picker">
