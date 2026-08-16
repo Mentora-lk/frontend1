@@ -27,6 +27,42 @@ function StatCard({ title, value, tone }: { title: string; value: string; tone: 
   );
 }
 
+// Builds a compact pagination range: first, last, current ±1 sibling, and 'dots' for gaps.
+function getPaginationRange(current: number, total: number, siblingCount = 1): (number | 'dots')[] {
+  const totalPageNumbers = siblingCount * 2 + 5; // first + last + current + 2*dots + siblings
+
+  if (totalPageNumbers >= total) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const leftSiblingIndex = Math.max(current - siblingCount, 1);
+  const rightSiblingIndex = Math.min(current + siblingCount, total);
+
+  const showLeftDots = leftSiblingIndex > 2;
+  const showRightDots = rightSiblingIndex < total - 1;
+
+  const firstPageIndex = 1;
+  const lastPageIndex = total;
+
+  if (!showLeftDots && showRightDots) {
+    const leftItemCount = 3 + 2 * siblingCount;
+    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+    return [...leftRange, 'dots', lastPageIndex];
+  }
+
+  if (showLeftDots && !showRightDots) {
+    const rightItemCount = 3 + 2 * siblingCount;
+    const rightRange = Array.from({ length: rightItemCount }, (_, i) => total - rightItemCount + i + 1);
+    return [firstPageIndex, 'dots', ...rightRange];
+  }
+
+  const middleRange = Array.from(
+    { length: rightSiblingIndex - leftSiblingIndex + 1 },
+    (_, i) => leftSiblingIndex + i
+  );
+  return [firstPageIndex, 'dots', ...middleRange, 'dots', lastPageIndex];
+}
+
 export default function AdminActivityPage() {
   const [logs, setLogs] = useState<AdminAuditItem[]>([]);
   const [query, setQuery] = useState('');
@@ -66,6 +102,7 @@ export default function AdminActivityPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visibleLogs = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const paginationRange = useMemo(() => getPaginationRange(page, totalPages), [page, totalPages]);
 
   const refreshLogs = () => {
     setLogs(getAuditTrail());
@@ -170,12 +207,46 @@ export default function AdminActivityPage() {
 
             <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
               <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filtered.length)} of {filtered.length} events</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Previous</button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                  <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
-                ))}
-                <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Next</button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={page === 1}
+                  style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+                >
+                  Previous
+                </button>
+
+                {paginationRange.map((item, idx) =>
+                  item === 'dots' ? (
+                    <span key={`dots-${idx}`} style={{ padding: '4px 6px', color: '#6b7280', fontSize: 13, userSelect: 'none' }}>
+                      &hellip;
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setPage(item)}
+                      style={{
+                        border: item === page ? '1px solid #0f766e' : '1px solid #99f6e4',
+                        background: item === page ? '#0f766e' : '#fff',
+                        borderRadius: 8,
+                        padding: '4px 10px',
+                        color: item === page ? '#fff' : '#0f766e',
+                        cursor: 'pointer',
+                        minWidth: 32,
+                      }}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={page === totalPages}
+                  style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+                >
+                  Next
+                </button>
               </div>
             </div>
           </>
