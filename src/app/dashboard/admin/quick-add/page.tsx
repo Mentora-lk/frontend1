@@ -12,9 +12,6 @@ const inputStyle: React.CSSProperties = {
 const inputErrorStyle: React.CSSProperties = { ...inputStyle, borderColor: '#fca5a5' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 };
 const fieldErrorStyle: React.CSSProperties = { color: '#dc2626', fontSize: 12, marginTop: 4 };
-const sectionCardStyle: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)', overflow: 'hidden' };
-const sectionHeaderStyle: React.CSSProperties = { padding: '20px 24px', borderBottom: '1px solid #ecf4ef', display: 'flex', alignItems: 'center', gap: 12 };
-const iconBoxStyle = (bg: string): React.CSSProperties => ({ width: 38, height: 38, borderRadius: 10, background: bg, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 16, flexShrink: 0 });
 const submitButtonStyle: React.CSSProperties = {
   background: 'linear-gradient(135deg,#0f766e,#14b8a6)', color: '#fff', border: 'none',
   borderRadius: 10, padding: '12px 24px', fontWeight: 700, cursor: 'pointer', fontSize: 14,
@@ -34,9 +31,99 @@ function Banner({ type, text }: { type: 'success' | 'error'; text: string }) {
   );
 }
 
+// ── Collapsible section shell ───────────────────────────────────────────────
+
+type SectionAccent = { solid: string; tint: string; border: string };
+
+const ACCENTS: Record<string, SectionAccent> = {
+  tutor:   { solid: '#0f766e', tint: 'linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)', border: '#99f6e4' },
+  student: { solid: '#1d4ed8', tint: 'linear-gradient(135deg, #eff6ff 0%, #f0f7ff 100%)', border: '#bfdbfe' },
+  session: { solid: '#7c3aed', tint: 'linear-gradient(135deg, #f6f4ff 0%, #f8f6ff 100%)', border: '#e5d9ff' },
+  ad:      { solid: '#d97706', tint: 'linear-gradient(135deg, #fffbeb 0%, #fffdf6 100%)', border: '#fde68a' },
+};
+
+function CollapsibleSection({
+  id, icon, accent, title, description, isOpen, onToggle, children,
+}: {
+  id: string;
+  icon: string;
+  accent: SectionAccent;
+  title: string;
+  description: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      background: '#fff',
+      borderTop: `1px solid ${isOpen ? accent.border : '#e5e7eb'}`,
+      borderRight: `1px solid ${isOpen ? accent.border : '#e5e7eb'}`,
+      borderBottom: `1px solid ${isOpen ? accent.border : '#e5e7eb'}`,
+      borderLeft: `4px solid ${accent.solid}`,
+      borderRadius: 16,
+      boxShadow: isOpen ? '0 10px 26px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.03)',
+      overflow: 'hidden',
+      transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+    }}>
+      <button
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`${id}-panel`}
+        style={{
+          width: '100%',
+          background: isOpen ? accent.tint : '#fff',
+          border: 'none',
+          padding: '18px 22px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'background 0.15s ease',
+        }}
+      >
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: accent.solid, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 16, flexShrink: 0 }}>
+          {icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{ margin: 0, color: '#111827', fontSize: 16, fontWeight: 700, fontFamily: "'Fraunces', serif" }}>{title}</h3>
+          <p style={{ margin: '2px 0 0', color: '#6b7280', fontSize: 12.5 }}>{description}</p>
+        </div>
+        <div
+          style={{
+            width: 28, height: 28, borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff',
+            display: 'grid', placeItems: 'center', flexShrink: 0,
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+            color: '#6b7280', fontSize: 12,
+          }}
+        >
+          ▾
+        </div>
+      </button>
+
+      <div
+        id={`${id}-panel`}
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.22s ease',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <div style={{ padding: 24, borderTop: '1px solid #ecf4ef' }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tutor Section ─────────────────────────────────────────────────────────
 
-function AddTutorSection() {
+function AddTutorSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const [form, setForm] = useState({ fullName: '', email: '', password: '', subject: '', city: '', phone: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -72,15 +159,8 @@ function AddTutorSection() {
   }
 
   return (
-    <div style={sectionCardStyle}>
-      <div style={sectionHeaderStyle}>
-        <div style={iconBoxStyle('#0f766e')}>🎓</div>
-        <div>
-          <h3 style={{ margin: 0, color: '#111827', fontSize: 16, fontWeight: 700, fontFamily: "'Fraunces', serif" }}>Add Tutor</h3>
-          <p style={{ margin: '2px 0 0', color: '#6b7280', fontSize: 12.5 }}>Create a new tutor account and profile</p>
-        </div>
-      </div>
-      <form onSubmit={handleSubmit} style={{ padding: 24 }}>
+    <CollapsibleSection id="add-tutor" icon="🎓" accent={ACCENTS.tutor} title="Add Tutor" description="Create a new tutor account and profile" isOpen={isOpen} onToggle={onToggle}>
+      <form onSubmit={handleSubmit}>
         {message && <Banner type="success" text={message} />}
         {error && <Banner type="error" text={error} />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -116,13 +196,13 @@ function AddTutorSection() {
           <button type="submit" disabled={loading} style={submitButtonStyle}>{loading ? 'Creating…' : 'Create Tutor'}</button>
         </div>
       </form>
-    </div>
+    </CollapsibleSection>
   );
 }
 
 // ── Student Section ───────────────────────────────────────────────────────
 
-function AddStudentSection() {
+function AddStudentSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const [form, setForm] = useState({ fullName: '', email: '', password: '', gradeLevel: '', schoolInstitute: '', phone: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -158,15 +238,8 @@ function AddStudentSection() {
   }
 
   return (
-    <div style={sectionCardStyle}>
-      <div style={sectionHeaderStyle}>
-        <div style={iconBoxStyle('#1d4ed8')}>🧑‍🎓</div>
-        <div>
-          <h3 style={{ margin: 0, color: '#111827', fontSize: 16, fontWeight: 700, fontFamily: "'Fraunces', serif" }}>Add Student</h3>
-          <p style={{ margin: '2px 0 0', color: '#6b7280', fontSize: 12.5 }}>Create a new student account and profile</p>
-        </div>
-      </div>
-      <form onSubmit={handleSubmit} style={{ padding: 24 }}>
+    <CollapsibleSection id="add-student" icon="🧑‍🎓" accent={ACCENTS.student} title="Add Student" description="Create a new student account and profile" isOpen={isOpen} onToggle={onToggle}>
+      <form onSubmit={handleSubmit}>
         {message && <Banner type="success" text={message} />}
         {error && <Banner type="error" text={error} />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -202,13 +275,13 @@ function AddStudentSection() {
           <button type="submit" disabled={loading} style={submitButtonStyle}>{loading ? 'Creating…' : 'Create Student'}</button>
         </div>
       </form>
-    </div>
+    </CollapsibleSection>
   );
 }
 
 // ── Session Section ───────────────────────────────────────────────────────
 
-function AddSessionSection() {
+function AddSessionSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const [form, setForm] = useState({ fullName: '', phone: '', school: '', grade: '', email: '', message: '', preferredMode: 'online', selectedDay: '', selectedTime: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -243,15 +316,8 @@ function AddSessionSection() {
   }
 
   return (
-    <div style={sectionCardStyle}>
-      <div style={sectionHeaderStyle}>
-        <div style={iconBoxStyle('#7c3aed')}>📅</div>
-        <div>
-          <h3 style={{ margin: 0, color: '#111827', fontSize: 16, fontWeight: 700, fontFamily: "'Fraunces', serif" }}>Add Session</h3>
-          <p style={{ margin: '2px 0 0', color: '#6b7280', fontSize: 12.5 }}>Manually schedule a session or enrollment</p>
-        </div>
-      </div>
-      <form onSubmit={handleSubmit} style={{ padding: 24 }}>
+    <CollapsibleSection id="add-session" icon="📅" accent={ACCENTS.session} title="Add Session" description="Manually schedule a session or enrollment" isOpen={isOpen} onToggle={onToggle}>
+      <form onSubmit={handleSubmit}>
         {message && <Banner type="success" text={message} />}
         {error && <Banner type="error" text={error} />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -287,7 +353,12 @@ function AddSessionSection() {
           </div>
           <div>
             <label style={labelStyle}>Selected Day *</label>
-            <input value={form.selectedDay} onChange={(e) => setForm({ ...form, selectedDay: e.target.value })} style={errors.selectedDay ? inputErrorStyle : inputStyle} placeholder="Monday" />
+            <select value={form.selectedDay} onChange={(e) => setForm({ ...form, selectedDay: e.target.value })} style={errors.selectedDay ? inputErrorStyle : inputStyle}>
+              <option value="">Select a day…</option>
+              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
             {errors.selectedDay && <div style={fieldErrorStyle}>{errors.selectedDay}</div>}
           </div>
           <div>
@@ -304,13 +375,13 @@ function AddSessionSection() {
           <button type="submit" disabled={loading} style={submitButtonStyle}>{loading ? 'Creating…' : 'Create Session'}</button>
         </div>
       </form>
-    </div>
+    </CollapsibleSection>
   );
 }
 
 // ── Advertisement Section ─────────────────────────────────────────────────
 
-function AddAdSection() {
+function AddAdSection({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
   const [form, setForm] = useState({ tutorId: '', title: '', description: '', price: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -344,15 +415,8 @@ function AddAdSection() {
   }
 
   return (
-    <div style={sectionCardStyle}>
-      <div style={sectionHeaderStyle}>
-        <div style={iconBoxStyle('#d97706')}>📣</div>
-        <div>
-          <h3 style={{ margin: 0, color: '#111827', fontSize: 16, fontWeight: 700, fontFamily: "'Fraunces', serif" }}>Create Advertisement</h3>
-          <p style={{ margin: '2px 0 0', color: '#6b7280', fontSize: 12.5 }}>Post an advertisement on behalf of a tutor</p>
-        </div>
-      </div>
-      <form onSubmit={handleSubmit} style={{ padding: 24 }}>
+    <CollapsibleSection id="add-ad" icon="📣" accent={ACCENTS.ad} title="Create Advertisement" description="Post an advertisement on behalf of a tutor" isOpen={isOpen} onToggle={onToggle}>
+      <form onSubmit={handleSubmit}>
         {message && <Banner type="success" text={message} />}
         {error && <Banner type="error" text={error} />}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -379,24 +443,41 @@ function AddAdSection() {
           <button type="submit" disabled={loading} style={submitButtonStyle}>{loading ? 'Creating…' : 'Create Advertisement'}</button>
         </div>
       </form>
-    </div>
+    </CollapsibleSection>
   );
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function QuickAddPage() {
+  const [openSection, setOpenSection] = useState<string | null>(null);
+
+  const toggle = (id: string) => {
+    setOpenSection((prev) => (prev === id ? null : id));
+  };
+
   return (
-    <div style={{ display: 'grid', gap: 22 }}>
+    <div
+      style={{
+        display: 'grid',
+        gap: 22,
+        background: 'linear-gradient(160deg, #f0fdfa 0%, #eef6ff 40%, #f6f4ff 70%, #fffbeb 100%)',
+        borderRadius: 24,
+        padding: 20,
+        margin: -20,
+      }}
+    >
       <div>
         <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Quick Add</h2>
-        <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Manually create tutors, students, sessions, and advertisements.</p>
+        <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Manually create tutors, students, sessions, and advertisements. Click a section to open it.</p>
       </div>
 
-      <AddTutorSection />
-      <AddStudentSection />
-      <AddSessionSection />
-      <AddAdSection />
+      <div style={{ display: 'grid', gap: 14 }}>
+        <AddTutorSection isOpen={openSection === 'add-tutor'} onToggle={() => toggle('add-tutor')} />
+        <AddStudentSection isOpen={openSection === 'add-student'} onToggle={() => toggle('add-student')} />
+        <AddSessionSection isOpen={openSection === 'add-session'} onToggle={() => toggle('add-session')} />
+        <AddAdSection isOpen={openSection === 'add-ad'} onToggle={() => toggle('add-ad')} />
+      </div>
     </div>
   );
 }
