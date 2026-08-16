@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
+import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
+import { usePalette } from '@/hooks/usePalette';
 
 type MyClassStatus = 'active' | 'requested' | 'approved';
 type MyClassMode = 'online' | 'offline' | 'both';
@@ -26,8 +28,10 @@ type MyClass = {
 };
 
 function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void }) {
+  const palette = usePalette();
   const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
   const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
+  const thumbnail = cls.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
 
   return (
     <div
@@ -35,15 +39,15 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
         display: 'flex',
         flexDirection: view === 'grid' ? 'column' : 'row',
         gap: 12,
-        background: 'white',
-        border: '1px solid #E5E7EB',
+        background: palette.surface,
+        border: `1px solid ${palette.border}`,
         borderRadius: 16,
         padding: 14,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+        boxShadow: palette.shadow,
       }}
     >
       <img
-        src={cls.image}
+        src={thumbnail}
         alt={cls.title}
         style={{
           width: view === 'grid' ? '100%' : 130,
@@ -55,114 +59,26 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.title}</h4>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: palette.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.title}</h4>
           <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, textTransform: 'capitalize' }}>{cls.status}</span>
         </div>
-        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
-        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
-        <p style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>Next: {cls.nextSession}</p>
-        <div style={{ width: '100%', height: 7, borderRadius: 999, background: '#F3F4F6', overflow: 'hidden', marginBottom: 6 }}>
+        <p style={{ fontSize: 12, color: palette.textSecondary, marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
+        <p style={{ fontSize: 12, color: palette.textMuted, marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
+        <p style={{ fontSize: 12, color: palette.textSecondary, marginBottom: 8 }}>Next: {cls.nextSession}</p>
+        <div style={{ width: '100%', height: 7, borderRadius: 999, background: palette.surfaceAlt, overflow: 'hidden', marginBottom: 6 }}>
           <div style={{ width: `${progress}%`, height: '100%', background: '#10B981' }} />
         </div>
-        <p style={{ fontSize: 11, color: '#6B7280' }}>{cls.sessionsAttended}/{cls.totalSessions} sessions • ⭐ {cls.rating.toFixed(1)}</p>
+        <p style={{ fontSize: 11, color: palette.textSecondary }}>{cls.sessionsAttended}/{cls.totalSessions} sessions • ⭐ {cls.rating.toFixed(1)}</p>
       </div>
     </div>
   );
 }
 
-// ── All dummy data lives here ──────────────────────────────────────────────────
-const MY_CLASSES: MyClass[] = [
-  {
-    id: 1, tutorId: 1,
-    title: 'A/L Combined Mathematics',
-    tutor: 'Kasun Fernando',
-    subject: 'Mathematics',
-    location: 'Moratuwa',
-    mode: 'online',
-    fee: 2500,
-    rating: 4.8,
-    status: 'active',
-    sessionsAttended: 12,
-    totalSessions: 20,
-    nextSession: 'Monday, 6:00 PM',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-  },
-  {
-    id: 2, tutorId: 2,
-    title: 'Advanced Level : ICT',
-    tutor: 'Nimesh Dissanayake',
-    subject: 'ICT',
-    location: 'Piliyandala',
-    mode: 'online',
-    fee: 3000,
-    rating: 4.6,
-    status: 'active',
-    sessionsAttended: 8,
-    totalSessions: 24,
-    nextSession: 'Wednesday, 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',
-  },
-  {
-    id: 3, tutorId: 3,
-    title: 'A/L Physics Full Syllabus',
-    tutor: 'Thilak Perera',
-    subject: 'Physics',
-    location: 'Moratuwa',
-    mode: 'offline',
-    fee: 2000,
-    rating: 4.9,
-    status: 'requested',
-    sessionsAttended: 0,
-    totalSessions: 18,
-    nextSession: 'Awaiting tutor approval',
-    image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80',
-  },
-  {
-    id: 4, tutorId: 4,
-    title: 'Music : Guitar For Beginners',
-    tutor: 'Manoj Kumara',
-    subject: 'Music',
-    location: 'Matale',
-    mode: 'offline',
-    fee: 1500,
-    rating: 4.7,
-    status: 'approved',
-    sessionsAttended: 0,
-    totalSessions: 12,
-    nextSession: 'Starts Saturday, 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80',
-  },
-  {
-    id: 5, tutorId: 5,
-    title: 'A/L Chemistry',
-    tutor: 'Dilshan Rajapaksa',
-    subject: 'Chemistry',
-    location: 'Colombo',
-    mode: 'both',
-    fee: 3500,
-    rating: 4.5,
-    status: 'active',
-    sessionsAttended: 5,
-    totalSessions: 22,
-    nextSession: 'Friday, 4:00 PM',
-    image: 'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80',
-  },
-];
-
-const UPCOMING_SESSIONS = [
-  { id: 1, subject: 'Mathematics', tutor: 'Kasun Fernando',   time: 'Mon, 6:00 PM · Tomorrow',   color: '#8B5CF6' },
-  { id: 2, subject: 'ICT',         tutor: 'Nimesh Dissanayake', time: 'Wed, 5:00 PM · In 3 days',  color: '#F59E0B' },
-  { id: 3, subject: 'Chemistry',   tutor: 'Dilshan Rajapaksa',  time: 'Fri, 4:00 PM · In 5 days',  color: '#10B981' },
-];
-
-const SUBJECT_COLORS: Record<string, string> = {
-  Mathematics: '#8B5CF6', Physics: '#3B82F6', Chemistry: '#10B981',
-  ICT: '#F59E0B', Music: '#EC4899', Business: '#F97316',
-  English: '#06B6D4', Biology: '#84CC16', Default: '#6B7280',
-};
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function StudentDashboard() {
+  const user = useCurrentUser();
+  const palette = usePalette();
+
   // Real data from backend
   const [classes,  setClasses]  = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -211,9 +127,6 @@ export default function StudentDashboard() {
   // These now calculated from real backend data
   const activeClasses  = classes.filter(c => c.status === 'active');
   const pendingClasses  = classes.filter(c => c.status === 'requested');
-  const totalSpend      = classes
-    .filter(c => ['active','approved'].includes(c.status))
-    .reduce((s, c) => s + Number(c.fee || 0), 0);
 
   // Filter by search query on the frontend (status filter is done by backend)
   const filtered = classes.filter(c => {
@@ -228,7 +141,7 @@ export default function StudentDashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: #F8FAF9; }
+        body { font-family: 'DM Sans', sans-serif; background: ${palette.bg}; transition: background 0.25s ease; }
         a { text-decoration: none; color: inherit; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 99px; }
@@ -242,9 +155,9 @@ export default function StudentDashboard() {
         .delay-4 { animation-delay: 0.32s; }
 
         .stat-card {
-          background: white; border-radius: 18px; padding: 20px 22px; flex: 1;
+          background: ${palette.surface}; border-radius: 18px; padding: 20px 22px; flex: 1;
           transition: all 0.28s cubic-bezier(.22,1,.36,1);
-          border: 1px solid rgba(0,0,0,0.04);
+          border: 1px solid ${palette.border};
         }
         .stat-card:hover { transform: translateY(-5px); }
 
@@ -266,34 +179,36 @@ export default function StudentDashboard() {
       {/* ── Top nav bar ─────────────────────────────────────────────────────── */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.07)', padding: '0 5%',
+        background: palette.navBg, backdropFilter: 'blur(20px)',
+        boxShadow: palette.shadow, padding: '0 5%',
+        transition: 'background 0.25s ease',
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
           <Link href="/">
-            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, color: '#111' }}>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, color: palette.textPrimary }}>
               Mentora<span style={{ color: '#10B981' }}>.lk</span>
             </span>
           </Link>
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Notification bell */}
+            {/* Notification bell — no unread badge shown: there's no real
+                notification backend yet (src/services/notification.ts is a
+                stub), so this used to show a fake "3" regardless of reality. */}
             <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: palette.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </div>
-              <span style={{ position: 'absolute', top: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
             </div>
 
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>D</div>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{getInitial(user)}</div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>D.M.S.N. Dissanayake</span>
-                <span style={{ fontSize: 11, color: '#9CA3AF' }}>Student</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary, lineHeight: 1.2 }}>{getDisplayName(user)}</span>
+                <span style={{ fontSize: 11, color: palette.textMuted }}>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : ''}</span>
               </div>
             </div>
           </div>
@@ -315,10 +230,10 @@ export default function StudentDashboard() {
             {/* Welcome header */}
             <div className="fade-up" style={{ marginBottom: 28 }}>
               <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Welcome back 👋</p>
-              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,3vw,36px)', fontWeight: 900, color: '#111827', lineHeight: 1.15 }}>
+              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,3vw,36px)', fontWeight: 900, color: palette.textPrimary, lineHeight: 1.15 }}>
                 My Learning Dashboard
               </h1>
-              <p style={{ fontSize: 14, color: '#6B7280', marginTop: 6 }}>Track your classes, progress, and upcoming sessions.</p>
+              <p style={{ fontSize: 14, color: palette.textSecondary, marginTop: 6 }}>Track your classes, progress, and upcoming sessions.</p>
             </div>
 
             {/* ── STAT CARDS ──────────────────────────────────────────────── */}
@@ -327,14 +242,14 @@ export default function StudentDashboard() {
                 { label: 'Total Classes',    value: classes.length,        icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
                 { label: 'Active Classes',   value: activeClasses.length,  icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
                 { label: 'Pending Approval', value: pendingClasses.length, icon: '⏳', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', shadow: 'rgba(245,158,11,0.1)'  },
-                { label: 'Monthly Spend',    value: `LKR ${totalSpend.toLocaleString()}`, icon: '💰', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', shadow: 'rgba(59,130,246,0.1)' },
+
               ].map((s, i) => (
                 <div key={i} className="stat-card" style={{ boxShadow: `0 4px 20px ${s.shadow}`, border: `1px solid ${s.border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{s.icon}</div>
                   </div>
-                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: '#111827', lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
-                  <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>{s.label}</div>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: palette.textPrimary, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+                  <div style={{ fontSize: 13, color: palette.textSecondary, fontWeight: 500 }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -357,9 +272,9 @@ export default function StudentDashboard() {
                     ].map(tab => (
                       <button key={tab.key} className="filter-tab" onClick={() => setStatus(tab.key)}
                         style={{
-                          background:   statusFilter === tab.key ? '#10B981' : 'white',
-                          color:        statusFilter === tab.key ? 'white'   : '#6B7280',
-                          borderColor:  statusFilter === tab.key ? '#10B981' : '#E5E7EB',
+                          background:   statusFilter === tab.key ? '#10B981' : palette.surface,
+                          color:        statusFilter === tab.key ? 'white'   : palette.textSecondary,
+                          borderColor:  statusFilter === tab.key ? '#10B981' : palette.border,
                           boxShadow:    statusFilter === tab.key ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
                         }}>
                         {tab.label}
@@ -369,23 +284,23 @@ export default function StudentDashboard() {
 
                   {/* Search + view toggle */}
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 11, padding: '8px 14px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: palette.surface, border: `1.5px solid ${palette.border}`, borderRadius: 11, padding: '8px 14px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
                         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                       </svg>
                       <input
                         type="text" placeholder="Search classes..."
                         value={searchQuery} onChange={e => setSearch(e.target.value)}
-                        style={{ border: 'none', outline: 'none', fontSize: 13, color: '#374151', background: 'transparent', width: 130, fontFamily: "'DM Sans',sans-serif" }}
+                        style={{ border: 'none', outline: 'none', fontSize: 13, color: palette.textSecondary, background: 'transparent', width: 130, fontFamily: "'DM Sans',sans-serif" }}
                       />
                     </div>
                     {/* Grid / List toggle */}
-                    <div style={{ display: 'flex', background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 11, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', background: palette.surface, border: `1.5px solid ${palette.border}`, borderRadius: 11, overflow: 'hidden' }}>
                       {(['grid', 'list'] as const).map(v => (
                         <button key={v} onClick={() => setView(v)} style={{
                           padding: '8px 13px', border: 'none', cursor: 'pointer',
                           background: view === v ? '#10B981' : 'transparent',
-                          color: view === v ? 'white' : '#9CA3AF',
+                          color: view === v ? 'white' : palette.textMuted,
                           transition: 'all 0.2s', display: 'flex', alignItems: 'center',
                         }}>
                           {v === 'grid'
@@ -402,8 +317,8 @@ export default function StudentDashboard() {
                 <div className={`fade-up delay-3 ${view === 'grid' ? 'class-grid' : 'class-list'}`}>
                   {loading ? (
                     <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1' }}>
-                      <div style={{ width:40, height:40, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
-                      <p style={{ color:'#9CA3AF', fontSize:14 }}>Loading your classes...</p>
+                      <div style={{ width:40, height:40, border:`3px solid ${palette.border}`, borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+                      <p style={{ color:palette.textMuted, fontSize:14 }}>Loading your classes...</p>
                     </div>
                   ) : error ? (
                     <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1' }}>
@@ -444,7 +359,7 @@ export default function StudentDashboard() {
                       />
                     ))
                   ) : (
-                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1', color:'#9CA3AF' }}>
+                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1', color:palette.textMuted }}>
                       <div style={{ fontSize:48, marginBottom:12 }}>🎓</div>
                       <p style={{ fontSize:16, fontWeight:600 }}>No classes found</p>
                       <p style={{ fontSize:13, marginTop:6 }}>

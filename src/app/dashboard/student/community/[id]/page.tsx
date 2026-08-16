@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import { getCommunityFeed } from '@/services/studentCommunityService';
 
 // ── Community Detail Data ─────────────────────────────────────────────────────
 const COMMUNITY_DATA: Record<string, {
@@ -60,8 +61,51 @@ export default function CommunityDetailPage() {
   const community = COMMUNITY_DATA[communityId] || COMMUNITY_DATA['al-maths-2025'];
 
   const [activeTab, setActiveTab] = useState<'discussions' | 'files' | 'members'>('discussions');
-  const [discussions, setDiscussions] = useState(DISCUSSIONS);
+  const [discussions, setDiscussions] = useState<any[]>([]);
+  const [files, setFiles] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      try {
+        const res = await getCommunityFeed(communityId);
+        const fetchedPosts = (Array.isArray(res) ? res : []).map((p: any) => {
+          let mediaUrl = p.media_url;
+          if (mediaUrl === 'undefined' || mediaUrl === 'null') mediaUrl = null;
+          return {
+            id: p.id,
+            author: p.author_name,
+            avatar: p.author_avatar || (p.author_name ? p.author_name[0] : 'U'),
+            color: '#10B981',
+            time: new Date(p.created_at).toLocaleString(),
+            content: p.content,
+            likes: p.reaction_count || 0,
+            replies: 0,
+            pinned: p.is_pinned,
+            isTutor: p.role === 'Tutor',
+            type: p.type || 'text',
+            media_url: mediaUrl,
+            mediaName: mediaUrl ? mediaUrl.split('/').pop() : '',
+            size: 'Unknown'
+          };
+        });
+        setDiscussions(fetchedPosts);
+        
+        setFiles(fetchedPosts.filter((p: any) => !!p.media_url).map((p: any) => ({
+          id: p.id,
+          name: p.mediaName || 'File',
+          type: p.type,
+          size: p.size,
+          uploadedBy: p.author,
+          date: p.time,
+          downloads: 0
+        })));
+      } catch (err) {
+        console.error("Failed to fetch feed", err);
+      }
+    };
+    fetchFeed();
+  }, [communityId]);
 
   const submitPost = () => {
     if (!newMessage.trim()) return;
@@ -78,7 +122,7 @@ export default function CommunityDetailPage() {
 
   const tabs = [
     { key: 'discussions' as const, label: 'Feed & Discussions', count: discussions.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
-    { key: 'files' as const, label: 'Materials', count: FILES.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+    { key: 'files' as const, label: 'Materials', count: files.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
     { key: 'members' as const, label: 'Members', count: MEMBERS.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> },
   ];
 
@@ -204,37 +248,68 @@ export default function CommunityDetailPage() {
 
                   <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, marginBottom: 16 }}>{post.content}</p>
 
-                  {/* Media Content (Video/PDF) */}
-                  {post.type === 'video' && (
+                  {/* Media Content (Video/PDF/Image) */}
+                  {post.type === 'image' && post.media_url && (
+                    <div style={{ marginBottom: 16, padding: 12, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 12 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12 }} />
+                        <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
+                        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            Download Image
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {['document', 'pdf', 'doc'].includes(post.type) && post.media_url && (
+                    <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached Document'}</p>
+                          <p style={{ color: '#6B7280', fontSize: 12, textTransform: 'uppercase' }}>{post.type}</p>
+                        </div>
+                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#3B82F6', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {post.type === 'video' && post.media_url && (
                     <div style={{ background: '#111827', borderRadius: 12, padding: 20, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                         </div>
                         <div>
-                          <p style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{post.mediaName}</p>
-                          <p style={{ color: '#9CA3AF', fontSize: 12 }}>Video • {post.duration}</p>
+                          <p style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{post.mediaName || 'Attached Video'}</p>
+                          <p style={{ color: '#9CA3AF', fontSize: 12 }}>Video</p>
                         </div>
                       </div>
-                      <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Watch Now</button>
+                      <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#10B981', color: 'white', textDecoration: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Watch Now</a>
                     </div>
                   )}
 
-                  {post.type === 'pdf' && (
-                    <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {post.type === 'announcement' && post.media_url && (
+                    <div style={{ background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                         </div>
-                        <div>
-                          <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
-                          <p style={{ color: '#6B7280', fontSize: 12 }}>PDF • {post.size}</p>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached File'}</p>
+                          <p style={{ color: '#6B7280', fontSize: 12 }}>Attachment</p>
                         </div>
+                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#4F46E5', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                          Download
+                        </a>
                       </div>
-                      <button style={{ background: 'white', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Download
-                      </button>
                     </div>
                   )}
 
@@ -268,10 +343,10 @@ export default function CommunityDetailPage() {
               </div>
 
               <div style={{ background: 'white', borderRadius: 18, boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.04)', overflow: 'hidden' }}>
-                {FILES.map((file, i) => (
+                {files.map((file, i) => (
                   <div key={file.id} className="file-row" style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px',
-                    borderBottom: i < FILES.length - 1 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer',
+                    borderBottom: i < files.length - 1 ? '1px solid #F3F4F6' : 'none', cursor: 'pointer',
                   }}>
                     <FileIcon type={file.type} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -282,13 +357,13 @@ export default function CommunityDetailPage() {
                       <p style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{file.size}</p>
                       <p style={{ fontSize: 10, color: '#9CA3AF' }}>{file.downloads} downloads</p>
                     </div>
-                    <button style={{
+                    <a href={file.media_url} target="_blank" rel="noreferrer" style={{
                       background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 12px',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#4B5563'
+                      textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#4B5563'
                     }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                       Download
-                    </button>
+                    </a>
                   </div>
                 ))}
               </div>

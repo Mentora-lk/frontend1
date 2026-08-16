@@ -23,6 +23,23 @@ export const requestCommunityAccess = async (communityId: string | number) => {
     });
 };
 
+export const cancelCommunityRequest = async (communityId: string | number) => {
+    return apiCall<any>(`/api/student/communities/${communityId}/request`, {
+        method: "DELETE",
+        headers: getAuthHeaders()
+    });
+};
+
+// Pending membership requests — persists across refresh, since discoverCommunities
+// deliberately excludes communities the student already has a pending/approved
+// request for.
+export const getMyPendingRequests = async () => {
+    return apiCall<any>("/api/student/communities/my-requests", {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
 export const getMyClasses = async () => {
     return apiCall<any>("/api/student/communities/my-classes", {
         method: "GET",
@@ -32,6 +49,13 @@ export const getMyClasses = async () => {
 
 export const getMyDeadlines = async () => {
     return apiCall<any>("/api/student/deadlines", {
+        method: "GET",
+        headers: getAuthHeaders()
+    });
+};
+
+export const getCommunityStats = async () => {
+    return apiCall<any>("/api/student/communities/stats", {
         method: "GET",
         headers: getAuthHeaders()
     });

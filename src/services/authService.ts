@@ -14,6 +14,9 @@ export interface RegisterStudentRequest {
   language: string;
   gradeLevel: string;
   address: string;
+  // Present when the email was verified via "Sign up with Google" instead
+  // of a manually-typed password — see GoogleSignupButton.
+  googleSignupToken?: string;
 }
 
 export interface RegisterTutorRequest {
@@ -29,8 +32,16 @@ export interface AuthResponse {
     id: string;
     email: string;
     role: "student" | "tutor" | "admin";
+    fullName?: string | null;
   };
   profile?: any;
+}
+
+export interface GoogleSignupVerifyResponse {
+  email: string;
+  name: string | null;
+  picture: string | null;
+  googleSignupToken: string;
 }
 
 export interface StudentDashboardResponse {
@@ -57,6 +68,23 @@ export const authService = {
     return apiCall<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  },
+
+  async loginWithGoogle(idToken: string, role?: "student" | "tutor"): Promise<AuthResponse> {
+    return apiCall<AuthResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ idToken, role }),
+    });
+  },
+
+  async deleteAccount(): Promise<{ message: string }> {
+    const token = localStorage.getItem("token");
+    return apiCall<{ message: string }>("/api/auth/account", {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   },
 

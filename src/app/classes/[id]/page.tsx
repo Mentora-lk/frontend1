@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/navbar/Navbar';
 import { getCourseById, getCourseReviews } from '@/services/classService';
+import { usePalette } from '@/hooks/usePalette';
 
 const BADGE_COLORS: Record<string,string> = { 'Best Seller':'#10B981', 'Top Rated':'#8B5CF6', 'New':'#3B82F6' };
 const MODE_COLOR: Record<string,string> = { online:'#10B981', offline:'#3B82F6', both:'#F59E0B' };
@@ -26,6 +27,7 @@ function Stars({ rating, size=14, light=false }: { rating:number; size?:number; 
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ClassDetailPage() {
+  const palette = usePalette();
   const params = useParams();
   const id     = Number(params?.id);
 
@@ -37,6 +39,8 @@ export default function ClassDetailPage() {
   const [activeTab, setActiveTab] = useState<'about'|'schedule'|'reviews'>('about');
   const [imgLoaded, setImgLoaded] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  const thumbnail = course?.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
 
   // Map flat tutor fields from backend into a tutor object
   const tutor = course?.tutor_name ? {
@@ -89,10 +93,10 @@ export default function ClassDetailPage() {
   if (loading) return (
     <>
       <Navbar scrollY={scrollY} />
-      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:palette.bg }}>
         <div style={{ textAlign:'center' }}>
           <div style={{ width:48, height:48, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
-          <p style={{ color:'#9CA3AF', fontSize:15 }}>Loading class details...</p>
+          <p style={{ color:palette.textMuted, fontSize:15 }}>Loading class details...</p>
         </div>
       </div>
     </>
@@ -102,7 +106,7 @@ export default function ClassDetailPage() {
   if (error) return (
     <>
       <Navbar scrollY={scrollY} />
-      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F4F6F5' }}>
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:palette.bg }}>
         <div style={{ textAlign:'center' }}>
           <div style={{ fontSize:52, marginBottom:16 }}>⚠️</div>
           <p style={{ fontSize:16, fontWeight:600, color:'#EF4444', marginBottom:20 }}>{error}</p>
@@ -124,7 +128,7 @@ export default function ClassDetailPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'DM Sans',sans-serif;background:#F4F6F5;color:#1a1a1a;}
+        body{font-family:'DM Sans',sans-serif;background:${palette.bg};color:${palette.textPrimary};}
         a{text-decoration:none;color:inherit;}
         ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#10B981;border-radius:99px;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
@@ -136,11 +140,11 @@ export default function ClassDetailPage() {
         .tab-btn{padding:10px 22px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.22s;}
         .shimmer{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:600px 100%;animation:shimmer 1.4s infinite;}
         .modal-overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease;}
-        .modal-box{background:white;border-radius:24px;padding:40px;max-width:420px;width:90%;animation:scaleIn 0.3s cubic-bezier(.22,1,.36,1);text-align:center;}
+        .modal-box{background:${palette.surface};border-radius:24px;padding:40px;max-width:420px;width:90%;animation:scaleIn 0.3s cubic-bezier(.22,1,.36,1);text-align:center;}
         @media(max-width:1024px){.right-col{display:none!important;} .mobile-enroll{display:flex!important;}}
       `}</style>
 
-      <div style={{ minHeight:'100vh', background:'#F4F6F5' }}>
+      <div style={{ minHeight:'100vh', background:palette.bg }}>
         <Navbar scrollY={scrollY} />
 
         {/* Hero */}
@@ -181,7 +185,7 @@ export default function ClassDetailPage() {
           </div>
           <div style={{ position:'absolute', bottom:0, left:0, right:0, lineHeight:0 }}>
             <svg viewBox="0 0 1440 36" preserveAspectRatio="none" style={{ display:'block', width:'100%', height:36 }}>
-              <path d="M0,16 C360,40 1080,0 1440,20 L1440,36 L0,36 Z" fill="#F4F6F5"/>
+              <path d="M0,16 C360,40 1080,0 1440,20 L1440,36 L0,36 Z" fill={palette.bg}/>
             </svg>
           </div>
         </div>
@@ -195,7 +199,7 @@ export default function ClassDetailPage() {
             {/* Image */}
             <div className="fade-up" style={{ borderRadius:22, overflow:'hidden', marginBottom:28, boxShadow:'0 12px 40px rgba(0,0,0,0.12)', position:'relative', maxWidth:520 }}>
               {!imgLoaded && <div className="shimmer" style={{ position:'absolute', inset:0, borderRadius:22, zIndex:1 }}/>}
-              <img src={course.image} alt={course.title} style={{ width:'100%', height:300, objectFit:'cover', display:'block', transition:'opacity 0.4s', opacity:imgLoaded?1:0 }} onLoad={()=>setImgLoaded(true)}/>
+              <img src={thumbnail} alt={course.title} style={{ width:'100%', height:300, objectFit:'cover', display:'block', transition:'opacity 0.4s', opacity:imgLoaded?1:0 }} onLoad={()=>setImgLoaded(true)}/>
               <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 100%)', padding:'24px 20px 16px', borderRadius:'0 0 22px 22px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <span style={{ color:'white', fontSize:13 }}>
@@ -208,7 +212,7 @@ export default function ClassDetailPage() {
 
             {/* Tutor card */}
             {tutor && (
-            <div style={{ background:'white', borderRadius:20, padding:'24px', marginBottom:24, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)' }}>
+            <div style={{ background:palette.surface, borderRadius:20, padding:'24px', marginBottom:24, boxShadow:palette.shadow, border:`1px solid ${palette.border}` }}>
               <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:16 }}>
                 <div style={{ position:'relative', flexShrink:0 }}>
                   <img src={tutor.avatar} alt={tutor.name} style={{ width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'3px solid #d1fae5' }}/>
@@ -218,10 +222,10 @@ export default function ClassDetailPage() {
                 </div>
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                    <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827' }}>{tutor.name}</h3>
+                    <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary }}>{tutor.name}</h3>
                     {tutor.is_verified && <span style={{ fontSize:11, fontWeight:700, background:'#ECFDF5', color:'#059669', borderRadius:6, padding:'2px 8px', border:'1px solid #A7F3D0' }}>✓ Verified</span>}
                   </div>
-                  <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:8 }}>{tutor.qualification}</p>
+                  <p style={{ fontSize:12, color:palette.textMuted, marginBottom:8 }}>{tutor.qualification}</p>
                   <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                     <Stars rating={tutor.average_rating}/>
                     <span style={{ fontSize:12, fontWeight:700, color:'#F59E0B' }}>{tutor.average_rating}</span>
@@ -229,11 +233,11 @@ export default function ClassDetailPage() {
                 </div>
               </div>
               <p style={{ fontSize:14, color:'#4B5563', lineHeight:1.7, marginBottom:16 }}>{tutor.bio}</p>
-              <div style={{ display:'flex', gap:0, borderRadius:12, overflow:'hidden', border:'1px solid #F3F4F6' }}>
+              <div style={{ display:'flex', gap:0, borderRadius:12, overflow:'hidden', border:`1px solid ${palette.border}` }}>
                 {[{l:'Rating',v:`${tutor.average_rating}★`},{l:'Students',v:`${tutor.total_students}+`},{l:'Classes',v:`${tutor.total_classes}`}].map((s,i)=>(
                   <div key={i} style={{ flex:1, padding:'14px', textAlign:'center', borderRight:i<2?'1px solid #F3F4F6':'none', background:'#FAFAFA' }}>
                     <div style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:900, color:'#10B981' }}>{s.v}</div>
-                    <div style={{ fontSize:11, color:'#9CA3AF', marginTop:3 }}>{s.l}</div>
+                    <div style={{ fontSize:11, color:palette.textMuted, marginTop:3 }}>{s.l}</div>
                   </div>
                 ))}
               </div>
@@ -241,7 +245,7 @@ export default function ClassDetailPage() {
             )}
 
             {/* Tabs */}
-            <div style={{ display:'flex', gap:6, marginBottom:22, background:'white', borderRadius:14, padding:5, boxShadow:'0 2px 12px rgba(0,0,0,0.05)', width:'fit-content', border:'1px solid rgba(0,0,0,0.04)' }}>
+            <div style={{ display:'flex', gap:6, marginBottom:22, background:palette.surface, borderRadius:14, padding:5, boxShadow:'0 2px 12px rgba(0,0,0,0.05)', width:'fit-content', border:`1px solid ${palette.border}` }}>
               {([['about','About Me'],['schedule','Free Time Slots'],['reviews','Reviews']] as const).map(([key,label])=>(
                 <button key={key} className="tab-btn" onClick={()=>setActiveTab(key)} style={{ background:activeTab===key?'#10B981':'transparent', color:activeTab===key?'white':'#6B7280', boxShadow:activeTab===key?'0 4px 12px rgba(16,185,129,0.35)':'none' }}>{label}</button>
               ))}
@@ -249,10 +253,10 @@ export default function ClassDetailPage() {
 
             {/* Tab: About */}
             {activeTab==='about' && (
-              <div style={{ background:'white', borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)' }}>
-                <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827', marginBottom:12 }}>About This Class</h3>
+              <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
+                <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:12 }}>About This Class</h3>
                 <p style={{ fontSize:14, color:'#4B5563', lineHeight:1.75, marginBottom:20 }}>{course.description}</p>
-                <h4 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:'#111827', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
+                <h4 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:palette.textPrimary, marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                   What You'll Learn
                 </h4>
@@ -271,12 +275,12 @@ export default function ClassDetailPage() {
 
             {/* Tab: Schedule */}
             {activeTab==='schedule' && (
-              <div style={{ background:'white', borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)' }}>
-                <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:'#111827', marginBottom:20 }}>Available Time Slots</h3>
+              <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
+                <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:20 }}>Available Time Slots</h3>
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                   {course.schedule && Object.entries(course.schedule).map(([day, times]: [string, any]) => (
-                    <div key={day} style={{ background:'#F9FAFB', borderRadius:14, padding:'16px 20px', border:'1px solid #F3F4F6' }}>
-                      <p style={{ fontWeight:700, fontSize:14, color:'#111827', marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+                    <div key={day} style={{ background:palette.surfaceAlt, borderRadius:14, padding:'16px 20px', border:`1px solid ${palette.border}` }}>
+                      <p style={{ fontWeight:700, fontSize:14, color:palette.textPrimary, marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         {day}
                       </p>
@@ -293,30 +297,30 @@ export default function ClassDetailPage() {
 
             {/* Tab: Reviews */}
             {activeTab==='reviews' && (
-              <div style={{ background:'white', borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)' }}>
+              <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
                 <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:24 }}>
                   <div style={{ textAlign:'center' }}>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize:52, fontWeight:900, color:'#111827', lineHeight:1 }}>{course.average_rating || 0}</div>
+                    <div style={{ fontFamily:"'Playfair Display',serif", fontSize:52, fontWeight:900, color:palette.textPrimary, lineHeight:1 }}>{course.average_rating || 0}</div>
                     <Stars rating={course.average_rating || 0} size={18}/>
-                    <p style={{ fontSize:12, color:'#9CA3AF', marginTop:4 }}>{course.review_count || 0} reviews</p>
+                    <p style={{ fontSize:12, color:palette.textMuted, marginTop:4 }}>{course.review_count || 0} reviews</p>
                   </div>
                 </div>
                 {reviews.length === 0 ? (
-                  <p style={{ fontSize:14, color:'#9CA3AF', textAlign:'center', padding:'20px 0' }}>
+                  <p style={{ fontSize:14, color:palette.textMuted, textAlign:'center', padding:'20px 0' }}>
                     No reviews yet. Be the first to review!
                   </p>
                 ) : (
                   <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
                     {reviews.map((r: any, i: number) => (
-                      <div key={i} style={{ padding:'18px 20px', background:'#F9FAFB', borderRadius:14, border:'1px solid #F3F4F6' }}>
+                      <div key={i} style={{ padding:'18px 20px', background:palette.surfaceAlt, borderRadius:14, border:`1px solid ${palette.border}` }}>
                         <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                             <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700 }}>
                               {r.student?.name?.[0] || 'S'}
                             </div>
                             <div>
-                              <p style={{ fontSize:13, fontWeight:700, color:'#111827' }}>{r.student?.name || 'Student'}</p>
-                              <p style={{ fontSize:11, color:'#9CA3AF' }}>
+                              <p style={{ fontSize:13, fontWeight:700, color:palette.textPrimary }}>{r.student?.name || 'Student'}</p>
+                              <p style={{ fontSize:11, color:palette.textMuted }}>
                                 {new Date(r.createdAt).toLocaleDateString('en-US', { month:'long', year:'numeric' })}
                               </p>
                             </div>
@@ -332,9 +336,9 @@ export default function ClassDetailPage() {
             )}
 
             {/* Fee row */}
-            <div style={{ background:'white', borderRadius:20, padding:'22px 28px', marginTop:24, boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:'1px solid rgba(0,0,0,0.04)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <span style={{ fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900, color:'#111827' }}>
-                Rs: {course.fee.toLocaleString()}<span style={{ fontSize:14, fontWeight:400, color:'#9CA3AF' }}>/2Hrs</span>
+            <div style={{ background:palette.surface, borderRadius:20, padding:'22px 28px', marginTop:24, boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900, color:palette.textPrimary }}>
+                Rs: {course.fee.toLocaleString()}<span style={{ fontSize:14, fontWeight:400, color:palette.textMuted }}>/2Hrs</span>
               </span>
               <Link href={`/classes/${course.id}/enroll`}>
                 <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:13, padding:'13px 32px', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 22px rgba(16,185,129,0.38)', transition:'all 0.25s' }}
@@ -349,9 +353,9 @@ export default function ClassDetailPage() {
           {/* Right Sidebar */}
           <div className="right-col" style={{ width:300, flexShrink:0 }}>
             <div style={{ position:'sticky', top:84 }}>
-              <div style={{ background:'white', borderRadius:20, overflow:'hidden', boxShadow:'0 8px 32px rgba(0,0,0,0.1)', border:'1px solid rgba(0,0,0,0.05)', marginBottom:16 }}>
+              <div style={{ background:palette.surface, borderRadius:20, overflow:'hidden', boxShadow:'0 8px 32px rgba(0,0,0,0.1)', border:'1px solid rgba(0,0,0,0.05)', marginBottom:16 }}>
                 <div style={{ position:'relative', height:180, overflow:'hidden' }}>
-                  <img src={course.image} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                  <img src={thumbnail} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                   <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 50%)' }}/>
                   <div style={{ position:'absolute', bottom:12, left:16, right:16 }}>
                     <div style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:900, color:'white' }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:13, fontWeight:400, opacity:0.7 }}>/mo</span></div>
@@ -366,8 +370,8 @@ export default function ClassDetailPage() {
                   ].map((row,i)=>(
                     <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:i<3?'1px solid #F3F4F6':'none' }}>
                       <span style={{ fontSize:16 }}>{row.icon}</span>
-                      <span style={{ fontSize:13, color:'#9CA3AF', width:70 }}>{row.label}</span>
-                      <span style={{ fontSize:13, fontWeight:600, color:'#111827' }}>{row.val}</span>
+                      <span style={{ fontSize:13, color:palette.textMuted, width:70 }}>{row.label}</span>
+                      <span style={{ fontSize:13, fontWeight:600, color:palette.textPrimary }}>{row.val}</span>
                     </div>
                   ))}
 
@@ -378,7 +382,7 @@ export default function ClassDetailPage() {
                       Enroll Now →
                     </button>
                   </Link>
-                  <button onClick={()=>setShowModal(true)} style={{ width:'100%', marginTop:10, background:'none', border:'1.5px solid #E5E7EB', borderRadius:12, padding:'12px', fontSize:14, fontWeight:600, color:'#6B7280', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
+                  <button onClick={()=>setShowModal(true)} style={{ width:'100%', marginTop:10, background:'none', border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'12px', fontSize:14, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor='#10B981'; e.currentTarget.style.color='#10B981';}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor='#E5E7EB'; e.currentTarget.style.color='#6B7280';}}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -391,10 +395,10 @@ export default function ClassDetailPage() {
         </div>
 
         {/* Mobile enroll bar */}
-        <div className="mobile-enroll" style={{ display:'none', position:'fixed', bottom:0, left:0, right:0, zIndex:900, background:'white', borderTop:'1px solid #E5E7EB', padding:'14px 6%', alignItems:'center', justifyContent:'space-between', boxShadow:'0 -4px 20px rgba(0,0,0,0.08)' }}>
+        <div className="mobile-enroll" style={{ display:'none', position:'fixed', bottom:0, left:0, right:0, zIndex:900, background:palette.surface, borderTop:'1px solid #E5E7EB', padding:'14px 6%', alignItems:'center', justifyContent:'space-between', boxShadow:'0 -4px 20px rgba(0,0,0,0.08)' }}>
           <div>
             <span style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:900 }}>LKR {course.fee.toLocaleString()}</span>
-            <span style={{ fontSize:12, color:'#9CA3AF', marginLeft:4 }}>/mo</span>
+            <span style={{ fontSize:12, color:palette.textMuted, marginLeft:4 }}>/mo</span>
           </div>
           <Link href={`/classes/${course.id}/enroll`}>
             <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'13px 32px', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Enroll Now →</button>
@@ -414,10 +418,10 @@ export default function ClassDetailPage() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
             <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:700, marginBottom:8 }}>Message Tutor</h3>
-            <p style={{ fontSize:14, color:'#6B7280', marginBottom:20 }}>Please sign in to message {tutor?.name || "Tutor"}</p>
+            <p style={{ fontSize:14, color:palette.textSecondary, marginBottom:20 }}>Please sign in to message {tutor?.name || "Tutor"}</p>
             <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
               <Link href="/auth/login"><button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Sign In</button></Link>
-              <button onClick={()=>setShowModal(false)} style={{ background:'white', color:'#6B7280', border:'1.5px solid #E5E7EB', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
+              <button onClick={()=>setShowModal(false)} style={{ background:palette.surface, color:palette.textSecondary, border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
             </div>
           </div>
         </div>
