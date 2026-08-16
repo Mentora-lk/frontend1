@@ -347,9 +347,10 @@ export default function AdvertisementsPage() {
   return (
     <div
       style={{
-        display: 'grid', gap: 22,
-        background: 'linear-gradient(160deg, #fffbeb 0%, #fffdf6 100%)',
-        borderRadius: 24, padding: 20, margin: -20,
+      display: 'grid',
+      gap: 22,
+      background: 'linear-gradient(160deg, #eef6ff 0%, #f0fdfa 55%, #f6f4ff 100%)',
+      borderRadius: 24, padding: 20, margin: -20,
       }}
     >
       <div>
