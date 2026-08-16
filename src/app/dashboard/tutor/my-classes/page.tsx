@@ -5,6 +5,7 @@ import Link from 'next/link';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { authService } from '@/services/authService';
 import { classService } from '@/services/classService';
+import { usePalette } from '@/hooks/usePalette';
 
 type TutorClass = {
   id: number; title: string; subject: string; location: string;
@@ -20,6 +21,7 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
 };
 
 export default function MyClassesPage() {
+  const palette = usePalette();
   const [statusFilter, setStatus] = useState('all');
   const [searchQuery,  setSearch] = useState('');
   const [view, setView] = useState<'grid'|'list'>('grid');
@@ -80,11 +82,11 @@ export default function MyClassesPage() {
           { label:'Total Classes',    v:classes.length, color:'#8B5CF6', bg:'#F5F3FF', border:'#DDD6FE' },
           { label:'Active Classes',   v:active.length,     color:'#10B981', bg:'#ECFDF5', border:'#A7F3D0' },
           { label:'Pending Approval', v:pending.length,    color:'#F59E0B', bg:'#FFFBEB', border:'#FDE68A' },
-          { label:'Completed',        v:completed.length,  color:'#6B7280', bg:'#F3F4F6', border:'#E5E7EB' },
+          { label:'Completed',        v:completed.length,  color:palette.textSecondary, bg:'#F3F4F6', border:'#E5E7EB' },
         ].map((s,i) => (
-          <div key={i} style={{ background:'white', borderRadius:16, padding:'16px 20px', border:`1px solid ${s.border}`, flex:1, minWidth:120 }}>
+          <div key={i} style={{ background:palette.surface, borderRadius:16, padding:'16px 20px', border:`1px solid ${s.border}`, flex:1, minWidth:120 }}>
             <div style={{ fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900, color:s.color }}>{s.v}</div>
-            <div style={{ fontSize:12, color:'#6B7280', marginTop:2 }}>{s.label}</div>
+            <div style={{ fontSize:12, color:palette.textSecondary, marginTop:2 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -99,19 +101,19 @@ export default function MyClassesPage() {
             { key:'completed', label:'Completed' },
           ].map(tab => (
             <button key={tab.key} className="filter-tab" onClick={() => setStatus(tab.key)}
-              style={{ background:statusFilter===tab.key?'#10B981':'white', color:statusFilter===tab.key?'white':'#6B7280', borderColor:statusFilter===tab.key?'#10B981':'#E5E7EB', boxShadow:statusFilter===tab.key?'0 4px 12px rgba(16,185,129,0.3)':'none' }}>
+              style={{ background:statusFilter===tab.key?'#10B981':palette.surface, color:statusFilter===tab.key?'white':palette.textSecondary, borderColor:statusFilter===tab.key?'#10B981':palette.border, boxShadow:statusFilter===tab.key?'0 4px 12px rgba(16,185,129,0.3)':'none' }}>
               {tab.label}
             </button>
           ))}
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, background:'white', border:'1.5px solid #E5E7EB', borderRadius:11, padding:'8px 14px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, padding:'8px 14px' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search classes..." value={searchQuery} onChange={e => setSearch(e.target.value)} style={{ border:'none', outline:'none', fontSize:13, color:'#374151', background:'transparent', width:130, fontFamily:"'DM Sans',sans-serif" }} />
+            <input type="text" placeholder="Search classes..." value={searchQuery} onChange={e => setSearch(e.target.value)} style={{ border:'none', outline:'none', fontSize:13, color:palette.textSecondary, background:'transparent', width:130, fontFamily:"'DM Sans',sans-serif" }} />
           </div>
-          <div style={{ display:'flex', background:'white', border:'1.5px solid #E5E7EB', borderRadius:11, overflow:'hidden' }}>
+          <div style={{ display:'flex', background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, overflow:'hidden' }}>
             {(['grid','list'] as const).map(v => (
-              <button key={v} onClick={() => setView(v)} style={{ padding:'8px 13px', border:'none', cursor:'pointer', background:view===v?'#10B981':'transparent', color:view===v?'white':'#9CA3AF', transition:'all 0.2s', display:'flex', alignItems:'center' }}>
+              <button key={v} onClick={() => setView(v)} style={{ padding:'8px 13px', border:'none', cursor:'pointer', background:view===v?'#10B981':'transparent', color:view===v?'white':palette.textMuted, transition:'all 0.2s', display:'flex', alignItems:'center' }}>
                 {v === 'grid'
                   ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                   : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>}
@@ -129,23 +131,24 @@ export default function MyClassesPage() {
         {filtered.length > 0 ? filtered.map(cls => {
           const st = STATUS_COLOR[cls.status];
           const progress = Math.round((cls.studentsEnrolled / cls.totalSlots) * 100);
+          const thumbnail = cls.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
           return view === 'grid' ? (
-            <div key={cls.id} className="cls-card" style={{ background:'white', borderRadius:18, boxShadow:'0 4px 20px rgba(0,0,0,0.07)', border:'1px solid rgba(0,0,0,0.04)', overflow:'hidden' }}>
+            <div key={cls.id} className="cls-card" style={{ background:palette.surface, borderRadius:18, boxShadow:'0 4px 20px rgba(0,0,0,0.07)', border:`1px solid ${palette.border}`, overflow:'hidden' }}>
               <div style={{ position:'relative', height:140, overflow:'hidden' }}>
-                <img src={cls.image} alt={cls.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                <img src={thumbnail} alt={cls.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                 <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,0.5),transparent)' }} />
                 <span style={{ position:'absolute', top:12, right:12, background:st.bg, color:st.color, fontSize:10, fontWeight:700, borderRadius:6, padding:'3px 8px' }}>{st.label}</span>
                 <span style={{ position:'absolute', bottom:12, left:12, color:'white', fontSize:12, fontWeight:600 }}>⭐ {cls.rating}</span>
               </div>
               <div style={{ padding:'16px 18px' }}>
-                <p style={{ fontSize:14, fontWeight:700, color:'#111827', marginBottom:4, lineHeight:1.3 }}>{cls.title}</p>
-                <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:12 }}>{cls.subject} · {cls.mode} · {cls.location}</p>
+                <p style={{ fontSize:14, fontWeight:700, color:palette.textPrimary, marginBottom:4, lineHeight:1.3 }}>{cls.title}</p>
+                <p style={{ fontSize:12, color:palette.textMuted, marginBottom:12 }}>{cls.subject} · {cls.mode} · {cls.location}</p>
                 <div style={{ marginBottom:12 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'#6B7280', marginBottom:5 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:palette.textSecondary, marginBottom:5 }}>
                     <span>{cls.studentsEnrolled}/{cls.totalSlots} students</span>
                     <span style={{ color:'#10B981', fontWeight:600 }}>{progress}%</span>
                   </div>
-                  <div style={{ height:5, background:'#F3F4F6', borderRadius:99, overflow:'hidden' }}>
+                  <div style={{ height:5, background:palette.surfaceAlt, borderRadius:99, overflow:'hidden' }}>
                     <div style={{ width:`${progress}%`, height:'100%', background:'linear-gradient(90deg,#10B981,#059669)', borderRadius:99 }} />
                   </div>
                 </div>
@@ -161,14 +164,14 @@ export default function MyClassesPage() {
               </div>
             </div>
           ) : (
-            <div key={cls.id} className="cls-card" style={{ background:'white', borderRadius:16, boxShadow:'0 4px 16px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', padding:'18px 20px', display:'flex', alignItems:'center', gap:16 }}>
-              <img src={cls.image} alt={cls.title} style={{ width:64, height:64, borderRadius:12, objectFit:'cover', flexShrink:0 }} />
+            <div key={cls.id} className="cls-card" style={{ background:palette.surface, borderRadius:16, boxShadow:palette.shadow, border:`1px solid ${palette.border}`, padding:'18px 20px', display:'flex', alignItems:'center', gap:16 }}>
+              <img src={thumbnail} alt={cls.title} style={{ width:64, height:64, borderRadius:12, objectFit:'cover', flexShrink:0 }} />
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
-                  <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{cls.title}</p>
+                  <p style={{ fontSize:15, fontWeight:700, color:palette.textPrimary }}>{cls.title}</p>
                   <span style={{ fontSize:10, fontWeight:700, color:st.color, background:st.bg, borderRadius:5, padding:'2px 7px' }}>{st.label}</span>
                 </div>
-                <p style={{ fontSize:12, color:'#9CA3AF' }}>{cls.subject} · {cls.studentsEnrolled}/{cls.totalSlots} students · {cls.nextSession}</p>
+                <p style={{ fontSize:12, color:palette.textMuted }}>{cls.subject} · {cls.studentsEnrolled}/{cls.totalSlots} students · {cls.nextSession}</p>
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <p style={{ fontSize:14, fontWeight:700, color:'#10B981', marginBottom:6 }}>Rs. {cls.fee.toLocaleString()}</p>
@@ -182,7 +185,7 @@ export default function MyClassesPage() {
             </div>
           );
         }) : (
-          <div style={{ textAlign:'center', padding:'60px 0', color:'#9CA3AF', gridColumn:'1/-1' }}>
+          <div style={{ textAlign:'center', padding:'60px 0', color:palette.textMuted, gridColumn:'1/-1' }}>
             <div style={{ fontSize:48, marginBottom:12 }}>📭</div>
             <p style={{ fontSize:16, fontWeight:600 }}>No classes found</p>
             <Link href="/dashboard/tutor/post-ad">

@@ -14,6 +14,7 @@ import {
   handleLinkHoverLeave,
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
+import { GoogleSignupButton } from "@/components/auth/GoogleSignupButton";
 
 export default function StudentRegistration() {
   const router = useRouter();
@@ -33,6 +34,11 @@ export default function StudentRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Set once "Sign up with Google" verifies an email — the account is
+  // created with this ticket instead of a password (see handleSubmit).
+  const [googleSignupToken, setGoogleSignupToken] = useState<string | null>(null);
+  const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
+
   const grades = ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "O/L", "A/L"];
   const languages = ["Sinhala", "English", "Tamil", "Bilingual"];
 
@@ -42,14 +48,30 @@ export default function StudentRegistration() {
     setError("");
   };
 
+  const handleGoogleVerified = ({ email, name, googleSignupToken: token }: { email: string; name: string | null; googleSignupToken: string }) => {
+    setError("");
+    setAlreadyHasAccount(false);
+    setGoogleSignupToken(token);
+    setFormData((prev) => ({
+      ...prev,
+      email,
+      fullName: prev.fullName || name || prev.fullName,
+    }));
+  };
+
+  const useDifferentEmail = () => {
+    setGoogleSignupToken(null);
+    setFormData((prev) => ({ ...prev, email: "" }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      // Validate passwords match
-      if (formData.password !== formData.confirmPassword) {
+      // Password fields don't apply once verified via Google.
+      if (!googleSignupToken && formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
         setIsLoading(false);
         return;
@@ -64,10 +86,18 @@ export default function StudentRegistration() {
         language: formData.language,
         gradeLevel: formData.grade,   // form field is "grade", backend expects "gradeLevel"
         address: formData.address,
+        googleSignupToken: googleSignupToken || undefined,
       });
 
-      // Extract user info from nested response.user
-      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+      // Extract user info from nested response.user (fullName comes from
+      // the profile row the backend just created, since registration
+      // doesn't return it on user itself)
+      const user = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        fullName: response.profile?.full_name ?? formData.fullName,
+      };
 
       // Store token and user info
       localStorage.setItem("token", response.token);
@@ -104,6 +134,43 @@ export default function StudentRegistration() {
         >
           {error}
         </div>
+      )}
+
+      {alreadyHasAccount && (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: 10,
+            color: "#92400e",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 12,
+          }}
+        >
+          An account already exists for that email.{" "}
+          <a href="/auth/login" style={{ color: "#92400e", fontWeight: 700 }}>
+            Log in instead
+          </a>
+          .
+        </div>
+      )}
+
+      {!googleSignupToken && (
+        <>
+          <GoogleSignupButton
+            role="student"
+            onVerified={handleGoogleVerified}
+            onAlreadyExists={() => setAlreadyHasAccount(true)}
+            onError={setError}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
+            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+            <span style={{ fontSize: 13, color: "#9ca3af" }}>or fill in the form</span>
+            <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
+          </div>
+        </>
       )}
 
       {/* Full Name */}
@@ -184,17 +251,32 @@ export default function StudentRegistration() {
 
       {/* Email & Address */}
       <div style={formGridStyle(2)}>
-        <input
-          type="email"
-          placeholder="Email Address"
-          name="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          onFocus={() => setHoveredField("email")}
-          onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "email")}
-          required
-        />
+        {googleSignupToken ? (
+          <div>
+            <div style={getInputStyle(hoveredField, "email")}>
+              ✓ {formData.email}
+            </div>
+            <button
+              type="button"
+              onClick={useDifferentEmail}
+              style={{ background: "none", border: "none", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0" }}
+            >
+              Use a different email
+            </button>
+          </div>
+        ) : (
+          <input
+            type="email"
+            placeholder="Email Address"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("email")}
+            onBlur={() => setHoveredField(null)}
+            style={getInputStyle(hoveredField, "email")}
+            required
+          />
+        )}
         <input
           type="text"
           placeholder="Address"
@@ -208,7 +290,8 @@ export default function StudentRegistration() {
         />
       </div>
 
-      {/* Password Fields */}
+      {/* Password Fields — not needed once verified via Google */}
+      {!googleSignupToken && (
       <div style={formGridStyle(2)}>
         <input
           type="password"
@@ -233,6 +316,7 @@ export default function StudentRegistration() {
           required
         />
       </div>
+      )}
 
       {/* Submit Button */}
       <button
