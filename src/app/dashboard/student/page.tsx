@@ -340,35 +340,39 @@ export default function StudentDashboard() {
               ))}
             </div>
 
-            {/* ── AI RECOMMENDATIONS BANNER ───────────────────────────────── */}
-            <Link href="/dashboard/student/recommendations" style={{ textDecoration: 'none' }}>
+            <Link href="/dashboard/student/recommendations">
               <div
-                className="fade-up delay-1"
                 style={{
-                  background: 'linear-gradient(135deg,#064E3B 0%,#065F46 60%,#047857 100%)',
-                  borderRadius: 20, padding: '22px 28px', marginBottom: 28,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap',
-                  cursor: 'pointer', transition: 'transform 0.25s ease',
+                  background:'linear-gradient(135deg,#064E3B,#065F46)',
+                  borderRadius:16, padding:'20px 24px', marginBottom:24,
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  cursor:'pointer', transition:'all 0.2s', flexWrap:'wrap', gap:12,
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+                onMouseEnter={e=>{
+                  (e.currentTarget as HTMLDivElement).style.transform='translateY(-2px)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow='0 12px 32px rgba(0,0,0,0.2)';
+                }}
+                onMouseLeave={e=>{
+                  (e.currentTarget as HTMLDivElement).style.transform='translateY(0)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow='none';
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                  <div style={{ width:48, height:48, borderRadius:14, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
                     ✨
                   </div>
                   <div>
-                    <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: 'white', marginBottom: 2 }}>
+                    <p style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:'white', margin:'0 0 4px' }}>
                       Find Your Perfect Tutor
                     </p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                    <p style={{ fontSize:13, color:'rgba(255,255,255,0.65)', margin:0 }}>
                       Let our AI match you based on your subjects, budget and schedule
                     </p>
                   </div>
                 </div>
-                <span style={{ background: 'rgba(255,255,255,0.14)', color: 'white', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                <div style={{ background:'rgba(255,255,255,0.15)', borderRadius:10, padding:'10px 18px', color:'white', fontSize:13, fontWeight:700, flexShrink:0, border:'1px solid rgba(255,255,255,0.2)' }}>
                   Get Recommended Tutors →
-                </span>
+                </div>
               </div>
             </Link>
 
