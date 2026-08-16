@@ -41,13 +41,11 @@ export const submitReview = async (id: number | string, rating: number, comment:
   return data;
 };
 
-// POST /api/courses — create a course
 export const createClass = async (data: any) => {
   const response = await api.post('/courses', data);
   return response.data;
 };
 
-// PUT /api/courses/:id — update a course
 export const updateClass = async (id: number | string, data: any) => {
   const response = await api.put(`/courses/${id}`, data);
   return response.data;

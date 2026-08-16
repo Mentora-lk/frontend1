@@ -17,6 +17,11 @@ api.interceptors.request.use((config: any) => {
     config.url = config.url.substring(4);
   }
 
+  // Let the browser set Content-Type with boundary for FormData
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
     if (token) {

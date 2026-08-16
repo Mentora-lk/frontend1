@@ -436,7 +436,7 @@ export default function ContactClient() {
           {/* Split */}
           <div className="cc-split">
             <div className="cc-split-img-wrap">
-              <img src="/teacher.jpg" alt="Teaching" />
+              <img src="/images/profiles/teacher.jpg" alt="Teaching" />
               <div className="cc-split-img-badge">
                 98% <span>Success Rate</span>
               </div>

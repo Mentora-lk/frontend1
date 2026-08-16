@@ -3,6 +3,13 @@
 import React, { useState, ChangeEvent, DragEvent } from "react";
 import { classService } from "@/services/classService";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
+
+declare global {
+  interface Window {
+    payhere: any;
+  }
+}
 
 interface AdFormData {
   name: string;
@@ -92,11 +99,36 @@ export default function PostAdPage() {
         formData.append("banner", form.banner);
       }
 
-      await classService.createClass(formData);
-      setSubmitted(true);
-      setTimeout(() => {
-        router.push('/dashboard/tutor/my-classes');
-      }, 1500);
+      const response = await classService.createClass(formData);
+      
+      if (response && response.payment && window.payhere) {
+        window.payhere.onCompleted = function onCompleted(orderId: string) {
+          console.log("Payment completed. OrderID:" + orderId);
+          setSubmitted(true);
+          setTimeout(() => {
+            router.push('/dashboard/tutor/my-classes');
+          }, 1500);
+        };
+
+        window.payhere.onDismissed = function onDismissed() {
+          console.log("Payment dismissed");
+          alert("Payment was dismissed. Your ad is pending payment.");
+          router.push('/dashboard/tutor/my-classes');
+        };
+
+        window.payhere.onError = function onError(error: string) {
+          console.log("Error:"  + error);
+          alert("Payment error: " + error);
+          router.push('/dashboard/tutor/my-classes');
+        };
+
+        window.payhere.startPayment(response.payment);
+      } else {
+        setSubmitted(true);
+        setTimeout(() => {
+          router.push('/dashboard/tutor/my-classes');
+        }, 1500);
+      }
     } catch (err) {
       console.error("Failed to post ad", err);
       alert("Failed to post ad. Please try again.");
@@ -111,6 +143,7 @@ export default function PostAdPage() {
 
   return (
     <>
+      <Script src="https://www.payhere.lk/lib/payhere.js" strategy="lazyOnload" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 

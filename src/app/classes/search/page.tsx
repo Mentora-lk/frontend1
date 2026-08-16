@@ -31,6 +31,19 @@ type Course = {         //!TypeScript type declaration:creating a blueprint of c
   desc?: string;
   badge?: string;
 };
+
+const resolveImage = (c: Course) => {
+  if (c.image && !c.image.startsWith('blob:')) {
+    if (c.image.startsWith('http')) return c.image;
+    if (c.image.startsWith('/')) return c.image;
+    return `/images/courses/${c.image}`;
+  }
+  const t = c.title.toLowerCase();
+  if (t.includes('physics')) return '/images/courses/class1.jpg';
+  if (t.includes('ict')) return '/images/courses/class2.jpg';
+  if (t.includes('science') || t.includes('web')) return '/images/courses/class3.jpg';
+  return '/images/courses/class4.jpg';
+};
 const SUBJECT_COLORS: Record<string,string> = {
   Mathematics:'#8B5CF6', Physics:'#3B82F6', Chemistry:'#10B981',  //!colors used for subjects
   ICT:'#F59E0B', Music:'#EC4899', Business:'#F97316', English:'#06B6D4',
@@ -64,7 +77,7 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
           <div style={{ width:5, background:sc, flexShrink:0 }}/>
         {/* course img */}
           <div style={{ width:180, flexShrink:0, overflow:'hidden' }}>
-           <img src={course.image} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.06)':'scale(1)' }}/>
+           <img src={resolveImage(course)} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.06)':'scale(1)' }}/>
           </div>
 
            {/* right-side content area */}
@@ -104,7 +117,7 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
         style={{ background:'white', borderRadius:20, overflow:'hidden', transition:'all 0.32s cubic-bezier(.22,1,.36,1)', transform:hov?'translateY(-8px)':'translateY(0)', boxShadow:hov?`0 20px 44px ${sc}20`:'0 4px 18px rgba(0,0,0,0.06)', border:hov?`1px solid ${sc}30`:'1px solid rgba(0,0,0,0.04)' }}>
         <div style={{ position:'relative', height:185, overflow:'hidden' }}>
-          <img src={course.image} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.08)':'scale(1)' }}/>
+          <img src={resolveImage(course)} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.08)':'scale(1)' }}/>
           <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 55%)' }}/>
           <div style={{ position:'absolute', top:12, left:12, background:sc, borderRadius:7, padding:'4px 10px', fontSize:11, fontWeight:700, color:'white' }}>{course.subject}</div>
           {course.badge && <div style={{ position:'absolute', top:12, right:12, background:'linear-gradient(135deg,#F59E0B,#EF4444)', borderRadius:7, padding:'4px 10px', fontSize:11, fontWeight:700, color:'white' }}>{course.badge}</div>}

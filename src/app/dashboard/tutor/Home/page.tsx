@@ -6,7 +6,7 @@ export default function Home() {
 
       {/* HERO */}
       <div className="relative h-72 bg-cover bg-center flex items-center justify-center"
-        style={{ backgroundImage: "url('/banner.jpg')" }}
+        style={{ backgroundImage: "url('/images/hero/banner.jpg')" }}
       >
         <div className="bg-black/50 absolute inset-0"></div>
 
@@ -33,19 +33,19 @@ export default function Home() {
         <div className="grid grid-cols-3 gap-6">
 
           <div className="bg-white p-4 rounded-xl shadow">
-            <img src="/class1.jpg" className="rounded-lg mb-2" alt="Class 1" />
+            <img src="/images/courses/class1.jpg" className="rounded-lg mb-2" alt="Class 1" />
             <h3 className="font-semibold">Advanced Level Physics</h3>
             <p className="text-sm text-gray-500">Thilak Perera</p>
           </div>
 
           <div className="bg-white p-4 rounded-xl shadow">
-            <img src="/class2.jpg" className="rounded-lg mb-2" alt="Class 2" />
+            <img src="/images/courses/class2.jpg" className="rounded-lg mb-2" alt="Class 2" />
             <h3 className="font-semibold">Advanced Level ICT</h3>
             <p className="text-sm text-gray-500">Nimesh</p>
           </div>
 
           <div className="bg-white p-4 rounded-xl shadow">
-            <img src="/class3.jpg" className="rounded-lg mb-2" alt="Class 3" />
+            <img src="/images/courses/class3.jpg" className="rounded-lg mb-2" alt="Class 3" />
             <h3 className="font-semibold">Web Development</h3>
             <p className="text-sm text-gray-500">Ravi</p>
           </div>

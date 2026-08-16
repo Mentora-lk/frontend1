@@ -25,6 +25,19 @@ type MyClass = {
   image: string;
 };
 
+const resolveImage = (cls: MyClass) => {
+  if (cls.image && !cls.image.startsWith('blob:')) {
+    if (cls.image.startsWith('http')) return cls.image;
+    if (cls.image.startsWith('/')) return cls.image;
+    return `/images/courses/${cls.image}`;
+  }
+  const t = cls.title.toLowerCase();
+  if (t.includes('physics')) return '/images/courses/class1.jpg';
+  if (t.includes('ict')) return '/images/courses/class2.jpg';
+  if (t.includes('science') || t.includes('web')) return '/images/courses/class3.jpg';
+  return '/images/courses/class4.jpg';
+};
+
 function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void }) {
   const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
   const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
@@ -43,7 +56,7 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
       }}
     >
       <img
-        src={cls.image}
+        src={resolveImage(cls)}
         alt={cls.title}
         style={{
           width: view === 'grid' ? '100%' : 130,

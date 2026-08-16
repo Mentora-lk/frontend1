@@ -154,7 +154,7 @@ export default function TutorDashboard() {
               return view === 'grid' ? (
                 <div key={cls.id} className="class-card-hover" style={{ background:'white', borderRadius:18, boxShadow:'0 4px 20px rgba(0,0,0,0.07)', border:'1px solid rgba(0,0,0,0.04)', overflow:'hidden' }}>
                   <div style={{ position:'relative', height:140, overflow:'hidden' }}>
-                    <img src={cls.image} alt={cls.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    <img src={cls.image || 'https://via.placeholder.com/300x200?text=No+Image'} alt={cls.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,0.5),transparent)' }} />
                     <span style={{ position:'absolute', top:12, right:12, background:st.bg, color:st.color, fontSize:10, fontWeight:700, borderRadius:6, padding:'3px 8px', letterSpacing:'0.06em' }}>{st.label}</span>
                     <span style={{ position:'absolute', bottom:12, left:12, color:'white', fontSize:12, fontWeight:600 }}>⭐ {cls.rating}</span>
@@ -180,7 +180,7 @@ export default function TutorDashboard() {
                 </div>
               ) : (
                 <div key={cls.id} className="class-card-hover" style={{ background:'white', borderRadius:16, boxShadow:'0 4px 16px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', padding:'18px 20px', display:'flex', alignItems:'center', gap:16 }}>
-                  <img src={cls.image} alt={cls.title} style={{ width:64, height:64, borderRadius:12, objectFit:'cover', flexShrink:0 }} />
+                  <img src={cls.image || 'https://via.placeholder.com/300x200?text=No+Image'} alt={cls.title} style={{ width:64, height:64, borderRadius:12, objectFit:'cover', flexShrink:0 }} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
                       <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{cls.title}</p>
