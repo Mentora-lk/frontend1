@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { transactions } from '../../../../data/adminData';
 import { appendAudit, downloadFile } from '../utils/operations';
+
+type Transaction = (typeof transactions)[number];
 
 function StatusBadge({ status }: { status: string }) {
   const palette =
@@ -16,11 +18,11 @@ function StatusBadge({ status }: { status: string }) {
   return <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, background: palette.bg, color: palette.color, border: `1px solid ${palette.border}` }}>{status}</span>;
 }
 
-function StatCard({ title, value, trend, detail }: { title: string; value: string; trend?: string; detail?: string }) {
+function StatCard({ title, value, trend, detail, accent }: { title: string; value: string; trend?: string; detail?: string; accent?: boolean }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+    <div style={{ background: accent ? '#ecfeff' : '#fff', border: `1px solid ${accent ? '#99f6e4' : '#e5e7eb'}`, borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ width: 44, height: 32, borderRadius: 10, background: '#1d4ed8', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
+        <div style={{ width: 44, height: 32, borderRadius: 10, background: accent ? '#0f766e' : '#1d4ed8', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
         {trend && <span style={{ color: '#0f766e', fontSize: 12, fontWeight: 700 }}>{trend}</span>}
       </div>
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
@@ -30,24 +32,195 @@ function StatCard({ title, value, trend, detail }: { title: string; value: strin
   );
 }
 
-export default function PaymentsPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'sessions' | 'advertisements'>('sessions');
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const success = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return success;
+  } catch {
+    return false;
+  }
+}
+
+function fmtCurrency(n: number) {
+  return n.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ── Transaction detail drawer ───────────────────────────────────────────────
+
+function TransactionDrawer({
+  txn, studentId, tutorId, onClose, onCopy, copiedId, copyError,
+}: {
+  txn: Transaction | null;
+  studentId: string;
+  tutorId: string;
+  onClose: () => void;
+  onCopy: (id: string) => void;
+  copiedId: string | null;
+  copyError: string | null;
+}) {
+  const open = txn !== null;
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(17,24,39,0.32)',
+          opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
+          transition: 'opacity 0.2s ease', zIndex: 40,
+        }}
+      />
+      <div
+        role="dialog"
+        aria-hidden={!open}
+        style={{
+          position: 'fixed', top: 0, right: 0, height: '100vh', width: 380, maxWidth: '92vw',
+          background: '#fff', boxShadow: '-16px 0 40px rgba(0,0,0,0.12)',
+          transform: open ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.24s ease', zIndex: 50,
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {txn && (
+          <>
+            <div style={{ padding: '20px 22px', borderBottom: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ color: '#6b7280', fontSize: 12, fontFamily: 'monospace', marginBottom: 4 }}>{txn.id}</div>
+                <h3 style={{ margin: 0, color: '#111827', fontSize: 19, fontWeight: 800, fontFamily: "'Fraunces', serif" }}>Transaction Details</h3>
+              </div>
+              <button onClick={onClose} aria-label="Close details" style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>✕</button>
+            </div>
+
+            <div style={{ padding: 22, overflowY: 'auto', flex: 1, display: 'grid', gap: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <StatusBadge status={txn.status} />
+                <button
+                  onClick={() => onCopy(txn.id)}
+                  style={{
+                    border: `1px solid ${copyError === txn.id ? '#fca5a5' : copiedId === txn.id ? '#99f6e4' : '#e5e7eb'}`,
+                    background: copyError === txn.id ? '#FEF2F2' : copiedId === txn.id ? '#ecfeff' : '#fff',
+                    color: copyError === txn.id ? '#991B1B' : copiedId === txn.id ? '#0f766e' : '#374151',
+                    borderRadius: 8, padding: '5px 11px', cursor: 'pointer', fontSize: 12.5, transition: 'all 0.15s ease',
+                  }}
+                >
+                  {copyError === txn.id ? 'Failed' : copiedId === txn.id ? '✓ Copied' : 'Copy Transaction ID'}
+                </button>
+              </div>
+
+              <div>
+                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Timing</div>
+                <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px', color: '#111827', fontSize: 13, fontWeight: 600 }}>
+                  {fmtDate(txn.date)}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Parties</div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ color: '#9ca3af', fontSize: 11 }}>Student</div>
+                    <div style={{ color: '#111827', fontWeight: 700, marginTop: 2 }}>{txn.student}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>ID: {studentId}</div>
+                  </div>
+                  <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ color: '#9ca3af', fontSize: 11 }}>Tutor</div>
+                    <div style={{ color: '#111827', fontWeight: 700, marginTop: 2 }}>{txn.tutor}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>ID: {tutorId}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Amounts</div>
+                <div style={{ display: 'grid', gap: 8, background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>Gross Amount</span>
+                    <span style={{ color: '#111827', fontWeight: 700, fontSize: 13 }}>LKR {fmtCurrency(txn.amount)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>Commission Rate</span>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>{txn.comm}</span>
+                  </div>
+                  <div style={{ height: 1, background: '#ecf4ef', margin: '4px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#0f766e', fontSize: 13, fontWeight: 700 }}>Platform Revenue</span>
+                    <span style={{ color: '#0f766e', fontSize: 14, fontWeight: 800 }}>LKR {fmtCurrency(txn.revenue)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function ReportPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [commFilter, setCommFilter] = useState('All');
+
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const pageSize = 3;
+  const [appliedFrom, setAppliedFrom] = useState('');
+  const [appliedTo, setAppliedTo] = useState('');
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
+  const pageSize = 5;
+
+  // Built from the real data so it stays correct if new commission tiers appear.
+  const commissionOptions = useMemo(() => {
+    const distinct = Array.from(new Set(transactions.map((t) => t.comm)));
+    return distinct.sort((a, b) => parseFloat(a) - parseFloat(b));
+  }, []);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(txn => {
-      const q = search.toLowerCase();
-      const matchSearch = !q || txn.student.toLowerCase().includes(q) || txn.tutor.toLowerCase().includes(q) || txn.id.toLowerCase().includes(q);
+    return transactions.filter((txn) => {
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        txn.student.toLowerCase().includes(q) ||
+        txn.tutor.toLowerCase().includes(q) ||
+        txn.id.toLowerCase().includes(q);
       const matchStatus = statusFilter === 'All' || txn.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchComm = commFilter === 'All' || txn.comm === commFilter;
+      const matchFrom = !appliedFrom || txn.date >= appliedFrom;
+      const matchTo = !appliedTo || txn.date <= appliedTo;
+
+      return matchSearch && matchStatus && matchComm && matchFrom && matchTo;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, commFilter, appliedFrom, appliedTo]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
   const visibleTransactions = useMemo(() => {
@@ -55,21 +228,60 @@ export default function PaymentsPage() {
     return filteredTransactions.slice(start, start + pageSize);
   }, [page, filteredTransactions]);
 
-  const exportCsv = () => {
-    const header = ['Transaction ID', 'Student', 'Tutor', 'Amount', 'Commission', 'Revenue', 'Status'];
-    const rows = transactions.map((txn) => [txn.id, txn.student, txn.tutor, txn.amount.toFixed(2), txn.comm, txn.revenue.toFixed(2), txn.status]);
-    const csv = [header, ...rows].map((row) => row.join(',')).join('\n');
-    downloadFile('payments-report.csv', csv, 'text/csv;charset=utf-8;');
-    appendAudit('REPORT_EXPORT', 'Payments report downloaded');
+  const periodActive = appliedFrom !== '' || appliedTo !== '';
+  const periodRevenue = useMemo(() => {
+    if (!periodActive) return null;
+    return filteredTransactions.reduce((sum, t) => sum + t.revenue, 0);
+  }, [filteredTransactions, periodActive]);
+
+  const hasActiveFilters = search !== '' || statusFilter !== 'All' || commFilter !== 'All' || periodActive || dateFrom !== '' || dateTo !== '';
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('All');
+    setCommFilter('All');
+    setDateFrom('');
+    setDateTo('');
+    setAppliedFrom('');
+    setAppliedTo('');
+    setPage(1);
+    appendAudit('FILTER_CLEAR', 'Cleared report filters');
   };
 
-  const handleTabChange = (tab: 'sessions' | 'advertisements') => {
-    setActiveTab(tab);
-    if (tab === 'advertisements') {
-      appendAudit('TAB_SWITCH', 'Navigated from payments to advertisements');
-      router.push('/dashboard/admin/advertisements');
+  const runDateSearch = () => {
+    setAppliedFrom(dateFrom);
+    setAppliedTo(dateTo);
+    setPage(1);
+    appendAudit('DATE_RANGE_SEARCH', `Filtered report ${dateFrom || '…'} to ${dateTo || '…'}`);
+  };
+
+  const exportCsv = () => {
+    if (filteredTransactions.length === 0) return;
+    const header = ['Transaction ID', 'Date', 'Student', 'Tutor', 'Amount', 'Commission', 'Revenue', 'Status'];
+    const rows = filteredTransactions.map((txn) => [txn.id, txn.date, txn.student, txn.tutor, txn.amount.toFixed(2), txn.comm, txn.revenue.toFixed(2), txn.status]);
+    const csv = [header, ...rows].map((row) => row.join(',')).join('\n');
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadFile(`payments-report-${stamp}.csv`, csv, 'text/csv;charset=utf-8;');
+    appendAudit('REPORT_EXPORT', `Payments report downloaded (${filteredTransactions.length} rows)`);
+  };
+
+  const handleCopy = async (id: string) => {
+    const ok = await copyToClipboard(id);
+    if (ok) {
+      setCopiedId(id);
+      setCopyError(null);
+      appendAudit('COPY_TRANSACTION_ID', `Copied ${id}`);
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
+    } else {
+      setCopyError(id);
+      setTimeout(() => setCopyError((prev) => (prev === id ? null : prev)), 1500);
     }
   };
+
+  const idsFor = (txn: Transaction, idx: number) => ({
+    studentId: `ST-00${(page - 1) * pageSize + idx + 41}`,
+    tutorId: `TR-10${(page - 1) * pageSize + idx + 92}`,
+  });
 
   return (
     <div style={{ display: 'grid', gap: 22 }}>
@@ -78,46 +290,66 @@ export default function PaymentsPage() {
         <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Revenue and payout summary in LKR.</p>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <div style={{ display: 'inline-flex', gap: 8, background: '#fff', borderRadius: 12, padding: 6, border: '1px solid #e5e7eb' }}>
-          <button
-            onClick={() => handleTabChange('sessions')}
-            style={{
-              border: 'none',
-              background: activeTab === 'sessions' ? '#ecfeff' : 'transparent',
-              color: activeTab === 'sessions' ? '#0f766e' : '#6b7280',
-              padding: '8px 12px',
-              borderRadius: 8,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Sessions
-          </button>
-          <button
-            onClick={() => handleTabChange('advertisements')}
-            style={{ border: 'none', background: 'transparent', color: '#6b7280', padding: '8px 12px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}
-          >
-            Advertisements
-          </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ background: '#ecfeff', color: '#0f766e', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, border: '1px solid #99f6e4' }}>Session Payments</span>
+          <Link href="/dashboard/admin/advertisements" style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#374151', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            View Advertisement Payments →
+          </Link>
         </div>
-        <button onClick={exportCsv} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', borderRadius: 12, padding: '10px 14px', cursor: 'pointer' }}>Export Report</button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {hasActiveFilters && (
+            <button onClick={clearFilters} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 12, padding: '10px 14px', cursor: 'pointer' }}>Clear Filters</button>
+          )}
+          <button onClick={exportCsv} disabled={filteredTransactions.length === 0} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', borderRadius: 12, padding: '10px 14px', cursor: filteredTransactions.length === 0 ? 'not-allowed' : 'pointer', opacity: filteredTransactions.length === 0 ? 0.5 : 1 }}>Export Report</button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
         <StatCard title="Total Commission" value="LKR 450,200.00" trend="+12.5%" />
         <StatCard title="Pending Payouts to Tutors" value="LKR 125,800.00" detail="Target: 200k" />
         <StatCard title="Total Transactions" value="1,284" trend="+5.7%" />
+        {periodActive && periodRevenue !== null && (
+          <StatCard accent title={`Revenue: ${appliedFrom || 'Start'} → ${appliedTo || 'Now'}`} value={`LKR ${fmtCurrency(periodRevenue)}`} detail={`${filteredTransactions.length} transaction${filteredTransactions.length === 1 ? '' : 's'} in range`} />
+        )}
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
         <div style={{ padding: 18, borderBottom: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif" }}>Transaction History</h3>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151' }} />
-          <span style={{ color: '#6b7280' }}>to</span>
-         <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151' }} />
-      </div>
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(e) => setDateFrom(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && runDateSearch()}
+              style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151' }}
+            />
+            <span style={{ color: '#6b7280' }}>to</span>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(e) => setDateTo(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && runDateSearch()}
+              style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151' }}
+            />
+            <button
+              onClick={runDateSearch}
+              disabled={!dateFrom && !dateTo}
+              title="Search this date range"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                border: '1px solid #0f766e', background: '#0f766e', color: '#fff',
+                borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
+                cursor: !dateFrom && !dateTo ? 'not-allowed' : 'pointer',
+                opacity: !dateFrom && !dateTo ? 0.5 : 1,
+              }}
+            >
+              <SearchIcon /> Search
+            </button>
+          </div>
         </div>
 
         <div style={{ padding: '12px 18px', borderBottom: '1px solid #ecf4ef', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -128,41 +360,63 @@ export default function PaymentsPage() {
             <option value="Pending">Pending</option>
             <option value="Failed">Failed</option>
           </select>
+          <select value={commFilter} onChange={e => { setCommFilter(e.target.value); setPage(1); }} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}>
+            <option value="All">All Commission Rates</option>
+            {commissionOptions.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
             <thead>
               <tr style={{ color: '#6b7280', fontSize: 12, textAlign: 'left', background: '#f0fdf4' }}>
-                {['Transaction ID', 'Student', 'Tutor', 'Amount (LKR)', 'Comm %', 'Revenue', 'Status', 'Actions'].map((h) => (
+                {['Transaction ID', 'Date', 'Student', 'Tutor', 'Amount (LKR)', 'Comm %', 'Revenue', 'Status', 'Actions'].map((h) => (
                   <th key={h} style={{ padding: '12px 16px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
+              {visibleTransactions.length === 0 && (
+                <tr>
+                  <td colSpan={9} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
+                    No transactions match your filters.
+                  </td>
+                </tr>
+              )}
               {visibleTransactions.map((txn, idx) => (
-                <tr key={txn.id} style={{ borderTop: '1px solid #ecf4ef' }}>
+                <tr
+                  key={txn.id}
+                  onClick={() => setSelectedTxn(txn)}
+                  style={{ borderTop: '1px solid #ecf4ef', cursor: 'pointer' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
                   <td style={{ padding: '14px 16px', color: '#6b7280', fontSize: 12, fontFamily: 'monospace' }}>{txn.id}</td>
+                  <td style={{ padding: '14px 16px', color: '#374151', fontSize: 13 }}>{fmtDate(txn.date)}</td>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ color: '#111827', fontWeight: 700 }}>{txn.student}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: ST-00{(page - 1) * pageSize + idx + 41}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: {idsFor(txn, idx).studentId}</div>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ color: '#111827', fontWeight: 700 }}>{txn.tutor}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: TR-10{(page - 1) * pageSize + idx + 92}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: {idsFor(txn, idx).tutorId}</div>
                   </td>
                   <td style={{ padding: '14px 16px', textAlign: 'right', color: '#111827', fontWeight: 700 }}>{txn.amount.toFixed(2)}</td>
                   <td style={{ padding: '14px 16px', textAlign: 'right', color: '#6b7280' }}>{txn.comm}</td>
                   <td style={{ padding: '14px 16px', textAlign: 'right', color: '#0f766e', fontWeight: 700 }}>{txn.revenue.toFixed(2)}</td>
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}><StatusBadge status={txn.status} /></td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                  <td style={{ padding: '14px 16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(txn.id);
-                        appendAudit('COPY_TRANSACTION_ID', `Copied ${txn.id}`);
+                      onClick={() => handleCopy(txn.id)}
+                      style={{
+                        border: `1px solid ${copyError === txn.id ? '#fca5a5' : copiedId === txn.id ? '#99f6e4' : '#e5e7eb'}`,
+                        background: copyError === txn.id ? '#FEF2F2' : copiedId === txn.id ? '#ecfeff' : '#fff',
+                        color: copyError === txn.id ? '#991B1B' : copiedId === txn.id ? '#0f766e' : '#374151',
+                        borderRadius: 8, padding: '4px 10px', cursor: 'pointer', minWidth: 78, fontSize: 13, transition: 'all 0.15s ease',
                       }}
-                      style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#374151', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                     >
-                      Copy ID
+                      {copyError === txn.id ? 'Failed' : copiedId === txn.id ? '✓ Copied' : 'Copy ID'}
                     </button>
                   </td>
                 </tr>
@@ -171,37 +425,29 @@ export default function PaymentsPage() {
           </table>
         </div>
 
-        <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13 }}>
+        <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
           <span>
             Showing {filteredTransactions.length === 0 ? 0 : (page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredTransactions.length)} of {filteredTransactions.length} transactions
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-              style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
-            >
-              ‹
-            </button>
+            <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} disabled={page === 1} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}>‹</button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                onClick={() => setPage(n)}
-                style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}
-              >
-                {n}
-              </button>
+              <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
             ))}
-            <button
-              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={page === totalPages}
-              style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
-            >
-              ›
-            </button>
+            <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} disabled={page === totalPages} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}>›</button>
           </div>
         </div>
       </div>
+
+      <TransactionDrawer
+        txn={selectedTxn}
+        studentId={selectedTxn ? idsFor(selectedTxn, visibleTransactions.indexOf(selectedTxn)).studentId : ''}
+        tutorId={selectedTxn ? idsFor(selectedTxn, visibleTransactions.indexOf(selectedTxn)).tutorId : ''}
+        onClose={() => setSelectedTxn(null)}
+        onCopy={handleCopy}
+        copiedId={copiedId}
+        copyError={copyError}
+      />
     </div>
   );
 }
