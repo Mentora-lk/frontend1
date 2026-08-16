@@ -3,6 +3,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { getSessions, updateSessionStatus } from '@/services/adminApi';
 import Spinner from '@/components/ui/Spinner';
 
+const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 function StatCard({ title, value, detail, accent, loading }: { title: string; value: string; detail: string; accent: string; loading: boolean }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
@@ -33,6 +35,42 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Builds a compact pagination range: first, last, current ±1 sibling, and 'dots' for gaps.
+function getPaginationRange(current: number, total: number, siblingCount = 1): (number | 'dots')[] {
+  const totalPageNumbers = siblingCount * 2 + 5;
+
+  if (totalPageNumbers >= total) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const leftSiblingIndex = Math.max(current - siblingCount, 1);
+  const rightSiblingIndex = Math.min(current + siblingCount, total);
+
+  const showLeftDots = leftSiblingIndex > 2;
+  const showRightDots = rightSiblingIndex < total - 1;
+
+  const firstPageIndex = 1;
+  const lastPageIndex = total;
+
+  if (!showLeftDots && showRightDots) {
+    const leftItemCount = 3 + 2 * siblingCount;
+    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+    return [...leftRange, 'dots', lastPageIndex];
+  }
+
+  if (showLeftDots && !showRightDots) {
+    const rightItemCount = 3 + 2 * siblingCount;
+    const rightRange = Array.from({ length: rightItemCount }, (_, i) => total - rightItemCount + i + 1);
+    return [firstPageIndex, 'dots', ...rightRange];
+  }
+
+  const middleRange = Array.from(
+    { length: rightSiblingIndex - leftSiblingIndex + 1 },
+    (_, i) => leftSiblingIndex + i
+  );
+  return [firstPageIndex, 'dots', ...middleRange, 'dots', lastPageIndex];
+}
+
 export default function AdminSessionsPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -40,6 +78,7 @@ export default function AdminSessionsPage() {
   const [search, setSearch]     = useState('');
   const [modeFilter, setMode]   = useState('All Modes');
   const [statusFilter, setStatus] = useState('All Status');
+  const [dayFilter, setDayFilter] = useState('All Days');
   const [toast, setToast]       = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 5;
@@ -69,11 +108,21 @@ export default function AdminSessionsPage() {
       s.grade?.toLowerCase().includes(q);
     const matchMode = modeFilter === 'All Modes' || s.mode === modeFilter;
     const matchStatus = statusFilter === 'All Status' || s.status === statusFilter;
-    return matchSearch && matchMode && matchStatus;
-  }), [sessions, search, modeFilter, statusFilter]);
+    const matchDay = dayFilter === 'All Days' || s.selected_day === dayFilter;
+    return matchSearch && matchMode && matchStatus && matchDay;
+  }), [sessions, search, modeFilter, statusFilter, dayFilter]);
 
   const uniqueModes = Array.from(new Set(sessions.map((s) => s.mode).filter(Boolean)));
   const uniqueStatuses = Array.from(new Set(sessions.map((s) => s.status).filter(Boolean)));
+
+  // Only show days that actually appear in the data, ordered Monday → Sunday rather than
+  // whatever order they happen to show up in the backend response.
+  const uniqueDays = useMemo(() => {
+    const present = new Set(sessions.map((s) => s.selected_day).filter(Boolean));
+    const ordered = DAY_ORDER.filter((d) => present.has(d));
+    const extras = Array.from(present).filter((d) => !DAY_ORDER.includes(d));
+    return [...ordered, ...extras];
+  }, [sessions]);
 
   const handleUpdateStatus = async (id: number, newStatus: string) => {
     try {
@@ -103,9 +152,23 @@ export default function AdminSessionsPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visibleSessions = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const paginationRange = useMemo(() => getPaginationRange(page, totalPages), [page, totalPages]);
+
+  const resetFilters = () => {
+    setSearch(''); setMode('All Modes'); setStatus('All Status'); setDayFilter('All Days'); setPage(1);
+  };
 
   return (
-    <div style={{ display: 'grid', gap: 22 }}>
+    <div
+      style={{
+        display: 'grid',
+        gap: 22,
+        background: 'linear-gradient(160deg, #f6f4ff 0%, #eef6ff 45%, #f0fdfa 100%)',
+        borderRadius: 24,
+        padding: 20,
+        margin: -20,
+      }}
+    >
       <div>
         <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Sessions</h2>
         <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Session schedule overview, from real enrollment data.</p>
@@ -135,22 +198,28 @@ export default function AdminSessionsPage() {
           <button onClick={handleExport} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#111827', borderRadius: 12, padding: '10px 14px', fontWeight: 700, cursor: 'pointer' }}>📥 Export</button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.7fr 0.7fr', gap: 10, marginBottom: 16 }}>
-          <input type="text" placeholder="Search by student, school or grade..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }} />
-          <select value={modeFilter} onChange={e => { setMode(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
-            <option>All Modes</option>
-            {uniqueModes.map((m) => <option key={m}>{m}</option>)}
-          </select>
-          <select value={statusFilter} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
-            <option>All Status</option>
-            {uniqueStatuses.map((s) => <option key={s}>{s}</option>)}
-          </select>
+        <div style={{ background: 'linear-gradient(135deg, #f6f4ff 0%, #eef6ff 100%)', border: '1px solid #e5e0ff', borderRadius: 12, padding: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.65fr 0.65fr 0.65fr', gap: 10 }}>
+            <input type="text" placeholder="Search by student, school or grade..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }} />
+            <select value={dayFilter} onChange={e => { setDayFilter(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+              <option value="All Days">Day: All</option>
+              {uniqueDays.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select value={modeFilter} onChange={e => { setMode(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+              <option>All Modes</option>
+              {uniqueModes.map((m) => <option key={m}>{m}</option>)}
+            </select>
+            <select value={statusFilter} onChange={e => { setStatus(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+              <option>All Status</option>
+              {uniqueStatuses.map((s) => <option key={s}>{s}</option>)}
+            </select>
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
-              <tr style={{ background: '#f0fdfa', textAlign: 'left' }}>
+              <tr style={{ background: 'linear-gradient(90deg, #f6f4ff 0%, #f0fdfa 100%)', textAlign: 'left' }}>
                 {['Student', 'Grade', 'School', 'Day', 'Time', 'Mode', 'Status', 'Attended', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '12px 14px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
                 ))}
@@ -160,13 +229,30 @@ export default function AdminSessionsPage() {
               {loading ? (
                 <tr><td colSpan={9} style={{ padding: 32, textAlign: 'center' }}><Spinner size={26} /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#9CA3AF' }}>No sessions match your filters.</td></tr>
+                <tr>
+                  <td colSpan={9} style={{ padding: '40px 20px', textAlign: 'center' }}>
+                    <div style={{ color: '#111827', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>No sessions match your filters</div>
+                    <div style={{ color: '#9ca3af', fontSize: 13, marginBottom: 12 }}>Try a different day, mode, or status — or clear your filters.</div>
+                    <button onClick={resetFilters} style={{ border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: 10, padding: '8px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Reset Filters</button>
+                  </td>
+                </tr>
               ) : visibleSessions.map(session => (
-                <tr key={session.id} style={{ borderTop: '1px solid #ecf4ef' }}>
+                <tr
+                  key={session.id}
+                  style={{ borderTop: '1px solid #ecf4ef', transition: 'background 0.15s ease' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#faf9ff')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
                   <td style={{ padding: '14px', color: '#111827', fontWeight: 700 }}>{session.student}</td>
                   <td style={{ padding: '14px', color: '#374151' }}>{session.grade || '—'}</td>
                   <td style={{ padding: '14px', color: '#374151' }}>{session.school || '—'}</td>
-                  <td style={{ padding: '14px', color: '#374151' }}>{session.selected_day || '—'}</td>
+                  <td style={{ padding: '14px' }}>
+                    {session.selected_day ? (
+                      <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#f6f4ff', color: '#7c3aed', border: '1px solid #e5d9ff', fontWeight: 600 }}>
+                        {session.selected_day}
+                      </span>
+                    ) : '—'}
+                  </td>
                   <td style={{ padding: '14px', color: '#374151' }}>{session.selected_time || '—'}</td>
                   <td style={{ padding: '14px', color: '#374151' }}>{session.mode || '—'}</td>
                   <td style={{ padding: '14px' }}><StatusBadge status={session.status} /></td>
@@ -198,12 +284,46 @@ export default function AdminSessionsPage() {
         {!loading && filtered.length > 0 && (
           <div style={{ padding: '16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
             <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filtered.length)} of {filtered.length} sessions</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Previous</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
-              ))}
-              <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: 'pointer' }}>Next</button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page === 1}
+                style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+              >
+                Previous
+              </button>
+
+              {paginationRange.map((item, idx) =>
+                item === 'dots' ? (
+                  <span key={`dots-${idx}`} style={{ padding: '4px 6px', color: '#6b7280', fontSize: 13, userSelect: 'none' }}>
+                    &hellip;
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setPage(item)}
+                    style={{
+                      border: item === page ? '1px solid #0f766e' : '1px solid #99f6e4',
+                      background: item === page ? '#0f766e' : '#fff',
+                      borderRadius: 8,
+                      padding: '4px 10px',
+                      color: item === page ? '#fff' : '#0f766e',
+                      cursor: 'pointer',
+                      minWidth: 32,
+                    }}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={page === totalPages}
+                style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+              >
+                Next
+              </button>
             </div>
           </div>
         )}
