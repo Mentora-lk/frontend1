@@ -35,7 +35,6 @@ export function useStudentRequestSocket(onRequestUpdated?: (update: any) => void
     setStatus('connecting');
     const socket: Socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket'],
     });
 
     socket.on('connect', () => setStatus('connected'));

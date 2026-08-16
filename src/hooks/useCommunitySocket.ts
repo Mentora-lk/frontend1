@@ -49,7 +49,6 @@ export function useCommunitySocket(
     setStatus('connecting');
     const socket: Socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket'],
     });
 
     socket.on('connect', () => {

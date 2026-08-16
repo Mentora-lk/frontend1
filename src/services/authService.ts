@@ -14,9 +14,6 @@ export interface RegisterStudentRequest {
   language: string;
   gradeLevel: string;
   address: string;
-  // Present when the email was verified via "Sign up with Google" instead
-  // of a manually-typed password — see GoogleSignupButton.
-  googleSignupToken?: string;
 }
 
 export interface RegisterTutorRequest {
@@ -35,13 +32,6 @@ export interface AuthResponse {
     fullName?: string | null;
   };
   profile?: any;
-}
-
-export interface GoogleSignupVerifyResponse {
-  email: string;
-  name: string | null;
-  picture: string | null;
-  googleSignupToken: string;
 }
 
 export interface StudentDashboardResponse {
