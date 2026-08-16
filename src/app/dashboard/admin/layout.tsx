@@ -128,6 +128,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [authorized, setAuthorized] = useState(false);
+  const [adminName, setAdminName] = useState('Admin User');
 
   useEffect(() => {
     const isAuthPage =
@@ -153,6 +154,46 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       setAuthorized(true);
     }
   }, [pathname]);
+
+  // Keep the sidebar name/avatar in sync with whatever is currently cached
+  // in localStorage under 'adminUser'. This re-reads on every route change,
+  // so saving a new name on the profile page updates the sidebar the next
+  // time the user navigates (and immediately if the profile page itself
+  // updates localStorage right after a successful save).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const readAdminName = () => {
+      const cached = localStorage.getItem('adminUser');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setAdminName(parsed.fullName || 'Admin User');
+        } catch {
+          // ignore malformed cache
+        }
+      }
+    };
+
+    readAdminName();
+
+    // Also listen for changes so same-tab updates (profile page saving,
+    // then dispatching a storage-like update) and cross-tab updates both
+    // reflect immediately without needing a route change.
+    window.addEventListener('storage', readAdminName);
+    window.addEventListener('adminUserUpdated', readAdminName);
+
+    return () => {
+      window.removeEventListener('storage', readAdminName);
+      window.removeEventListener('adminUserUpdated', readAdminName);
+    };
+  }, [pathname]);
+
+  const adminInitials = useMemo(() => {
+    const parts = adminName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'A';
+    return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() || '').join('');
+  }, [adminName]);
 
   const notifications = useMemo(() => {
     const recent = getAuditTrail().slice(0, 3);
@@ -321,10 +362,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="admin-profile">
                 <div className="admin-profile-main">
                   <Link href="/dashboard/admin/profile" onClick={() => setSidebarOpen(false)} className="admin-profile-photo-link" aria-label="Open profile settings">
-                    <div className="admin-avatar">AP</div>
+                    <div className="admin-avatar">{adminInitials}</div>
                   </Link>
                   <div style={{ minWidth: 0 }}>
-                    <div className="admin-profile-name">Nuwan Perera</div>
+                    <div className="admin-profile-name">{adminName}</div>
                     <div className="admin-profile-role">Tap photo to edit profile</div>
                   </div>
                 </div>
