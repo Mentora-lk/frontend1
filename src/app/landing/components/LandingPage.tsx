@@ -41,7 +41,6 @@ function CourseCard({ course }: { course: any }) {
   const location  = (course.location || 'Sri Lanka').toString();
   const fee       = Number(course.fee)    || 0;
   const image     = (course.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80').toString();
-  const badge     = course.badge || null;
   const subject   = (course.subject || 'Course').toString();
   const mode      = (course.mode || 'online').toString().toLowerCase();
 
@@ -97,20 +96,6 @@ function CourseCard({ course }: { course: any }) {
             >
               {subject}
             </span>
-            {course.badge && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: "3px 10px",
-                  borderRadius: 100,
-                  color: "white",
-                  background: "linear-gradient(135deg,#F59E0B,#EF4444)",
-                }}
-              >
-                {(course.badge || '').toString()}
-              </span>
-            )}
           </div>
           <div style={{ position: "absolute", bottom: 10, right: 12 }}>
             <span

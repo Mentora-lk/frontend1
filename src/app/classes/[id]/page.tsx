@@ -9,7 +9,6 @@ import { getMyEnrollments } from '@/services/enrollmentService';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePalette } from '@/hooks/usePalette';
 
-const BADGE_COLORS: Record<string,string> = { 'Best Seller':'#10B981', 'Top Rated':'#8B5CF6', 'New':'#3B82F6' };
 const MODE_COLOR: Record<string,string> = { online:'#10B981', offline:'#3B82F6', both:'#F59E0B' };
 
 // All course data now comes from the backend API
@@ -206,7 +205,6 @@ export default function ClassDetailPage() {
 
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', flexWrap:'wrap', gap:16 }}>
               <div>
-                {course.badge && <span style={{ display:'inline-block', background:BADGE_COLORS[course.badge]||'#10B981', borderRadius:99, padding:'4px 14px', fontSize:11, fontWeight:700, color:'white', marginBottom:10 }}>{course.badge}</span>}
                 <h1 className="fade-up" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(24px,3.5vw,46px)', fontWeight:900, color:'white', lineHeight:1.1, marginBottom:10, maxWidth:680 }}>{course.title}</h1>
                 <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
                   <span style={{ fontSize:13, color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:5 }}>

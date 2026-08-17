@@ -60,7 +60,6 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
                 <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:16, fontWeight:700, color:palette.textPrimary, lineHeight:1.35, maxWidth:'70%' }}>{course.title}</h3>
-                {course.badge && <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:99, background:'linear-gradient(135deg,#F59E0B,#EF4444)', color:'white', flexShrink:0 }}>{course.badge}</span>}
               </div>
               <p style={{ fontSize:13, color:'#10B981', fontWeight:600, marginBottom:4 }}>By {course.tutor_name || "Tutor"}</p>
               <p style={{ fontSize:12, color:palette.textMuted, marginBottom:8 }}>{course.desc}</p>
@@ -90,7 +89,6 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
           <img src={thumbnail} alt={course.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform 0.5s', transform:hov?'scale(1.08)':'scale(1)' }}/>
           <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(0,0,0,0.5) 0%,transparent 55%)' }}/>
           <div style={{ position:'absolute', top:12, left:12, background:sc, borderRadius:7, padding:'4px 10px', fontSize:11, fontWeight:700, color:'white' }}>{course.subject}</div>
-          {course.badge && <div style={{ position:'absolute', top:12, right:12, background:'linear-gradient(135deg,#F59E0B,#EF4444)', borderRadius:7, padding:'4px 10px', fontSize:11, fontWeight:700, color:'white' }}>{course.badge}</div>}
           <div style={{ position:'absolute', bottom:10, left:12, right:12, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.8)' }}>📍 {course.location}</span>
             <span style={{ fontSize:11, fontWeight:700, color:MODE_COLOR[course.mode], background:'rgba(0,0,0,0.55)', padding:'2px 7px', borderRadius:5, textTransform:'uppercase', letterSpacing:'0.06em' }}>{course.mode}</span>
