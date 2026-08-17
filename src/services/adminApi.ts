@@ -82,6 +82,11 @@ export const getPayments = async () => {
   return res.data;
 };
 
+export const getTutorPayments = async () => {
+  const res = await axios.get(`${API_URL}/admin/tutor-payments`, authHeaders());
+  return res.data;
+};
+
 // ── Advertisements ────────────────────────────────────────────────────────────
 
 export const getAds = async () => {
