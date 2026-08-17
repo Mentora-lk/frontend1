@@ -56,7 +56,7 @@ export function GoogleSignInButton({ onError }: GoogleSignInButtonProps) {
       localStorage.setItem('user', JSON.stringify(user));
       document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
 
-      if (user.role === 'tutor') router.push('/dashboard/tutor');
+      if (user.role === 'tutor') router.push('/dashboard/tutor/my-classes');
       else if (user.role === 'admin') router.push('/dashboard/admin');
       else router.push('/dashboard/student');
     } catch (err) {

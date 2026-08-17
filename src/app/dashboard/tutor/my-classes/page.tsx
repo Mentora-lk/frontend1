@@ -56,10 +56,6 @@ export default function MyClassesPage() {
     }
   };
 
-  const active    = classes.filter(c => c.status === 'active');
-  const pending   = classes.filter(c => c.status === 'pending');
-  const completed = classes.filter(c => c.status === 'completed');
-
   const filtered = classes.filter(c => {
     const matchStatus = statusFilter === 'all' || c.status === statusFilter;
     const matchSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -76,49 +72,12 @@ export default function MyClassesPage() {
         .cls-list{display:flex;flex-direction:column;gap:14px;}
       `}</style>
 
-      {/* Stats */}
-      <div style={{ display:'flex', gap:16, marginBottom:24, flexWrap:'wrap' }}>
-        {[
-          { label:'Total Classes',    v:classes.length, color:'#8B5CF6', bg:'#F5F3FF', border:'#DDD6FE' },
-          { label:'Active Classes',   v:active.length,     color:'#10B981', bg:'#ECFDF5', border:'#A7F3D0' },
-          { label:'Pending Approval', v:pending.length,    color:'#F59E0B', bg:'#FFFBEB', border:'#FDE68A' },
-          { label:'Completed',        v:completed.length,  color:palette.textSecondary, bg:'#F3F4F6', border:'#E5E7EB' },
-        ].map((s,i) => (
-          <div key={i} style={{ background:palette.surface, borderRadius:16, padding:'16px 20px', border:`1px solid ${s.border}`, flex:1, minWidth:120 }}>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900, color:s.color }}>{s.v}</div>
-            <div style={{ fontSize:12, color:palette.textSecondary, marginTop:2 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
       {/* Toolbar */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:22 }}>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          {[
-            { key:'all',       label:`All (${classes.length})` },
-            { key:'active',    label:`Active (${active.length})` },
-            { key:'pending',   label:`Pending (${pending.length})` },
-            { key:'completed', label:'Completed' },
-          ].map(tab => (
-            <button key={tab.key} className="filter-tab" onClick={() => setStatus(tab.key)}
-              style={{ background:statusFilter===tab.key?'#10B981':palette.surface, color:statusFilter===tab.key?'white':palette.textSecondary, borderColor:statusFilter===tab.key?'#10B981':palette.border, boxShadow:statusFilter===tab.key?'0 4px 12px rgba(16,185,129,0.3)':'none' }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', flexWrap:'wrap', gap:12, marginBottom:22 }}>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, padding:'8px 14px' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" placeholder="Search classes..." value={searchQuery} onChange={e => setSearch(e.target.value)} style={{ border:'none', outline:'none', fontSize:13, color:palette.textSecondary, background:'transparent', width:130, fontFamily:"'DM Sans',sans-serif" }} />
-          </div>
-          <div style={{ display:'flex', background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, overflow:'hidden' }}>
-            {(['grid','list'] as const).map(v => (
-              <button key={v} onClick={() => setView(v)} style={{ padding:'8px 13px', border:'none', cursor:'pointer', background:view===v?'#10B981':'transparent', color:view===v?'white':palette.textMuted, transition:'all 0.2s', display:'flex', alignItems:'center' }}>
-                {v === 'grid'
-                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>}
-              </button>
-            ))}
           </div>
           <Link href="/dashboard/tutor/post-ad">
             <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:11, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", whiteSpace:'nowrap' }}>+ Post New</button>
@@ -130,7 +89,6 @@ export default function MyClassesPage() {
       <div className={view === 'grid' ? 'cls-grid' : 'cls-list'}>
         {filtered.length > 0 ? filtered.map(cls => {
           const st = STATUS_COLOR[cls.status];
-          const progress = Math.round((cls.studentsEnrolled / cls.totalSlots) * 100);
           const thumbnail = cls.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
           return view === 'grid' ? (
             <div key={cls.id} className="cls-card" style={{ background:palette.surface, borderRadius:18, boxShadow:'0 4px 20px rgba(0,0,0,0.07)', border:`1px solid ${palette.border}`, overflow:'hidden' }}>
@@ -143,15 +101,6 @@ export default function MyClassesPage() {
               <div style={{ padding:'16px 18px' }}>
                 <p style={{ fontSize:14, fontWeight:700, color:palette.textPrimary, marginBottom:4, lineHeight:1.3 }}>{cls.title}</p>
                 <p style={{ fontSize:12, color:palette.textMuted, marginBottom:12 }}>{cls.subject} · {cls.mode} · {cls.location}</p>
-                <div style={{ marginBottom:12 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:palette.textSecondary, marginBottom:5 }}>
-                    <span>{cls.studentsEnrolled}/{cls.totalSlots} students</span>
-                    <span style={{ color:'#10B981', fontWeight:600 }}>{progress}%</span>
-                  </div>
-                  <div style={{ height:5, background:palette.surfaceAlt, borderRadius:99, overflow:'hidden' }}>
-                    <div style={{ width:`${progress}%`, height:'100%', background:'linear-gradient(90deg,#10B981,#059669)', borderRadius:99 }} />
-                  </div>
-                </div>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <span style={{ fontSize:13, fontWeight:700, color:'#10B981' }}>Rs. {cls.fee.toLocaleString()}/mo</span>
                   <div style={{ display:'flex', gap:6 }}>

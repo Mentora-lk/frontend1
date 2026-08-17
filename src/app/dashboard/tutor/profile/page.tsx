@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import RevenueAnalyticsPanel from '@/components/dashboard/RevenueAnalyticsPanel';
+import TodoListPanel from '@/components/dashboard/TodoListPanel';
 import { usePalette } from '@/hooks/usePalette';
 import { tutorService } from '@/services/tutorService';
 
@@ -52,7 +53,7 @@ export default function TutorProfilePage() {
   // "Revenue Analytics" used to be its own sidebar item/page — it now lives
   // as a tab inside this page instead, reusing the same RevenueAnalyticsPanel
   // the standalone /dashboard/tutor/revenue-analytics route still renders.
-  const [activeTab, setActiveTab] = useState<'info' | 'revenue'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'revenue' | 'todo'>('info');
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [verified, setVerified] = useState(false);
@@ -295,8 +296,6 @@ export default function TutorProfilePage() {
 
             {[
               { l: 'Classes Posted', v: String(stats.classesCount) },
-              { l: 'Total Students', v: String(stats.totalStudents) },
-              { l: 'Avg Rating', v: stats.avgRating > 0 ? `${stats.avgRating.toFixed(1)}★` : '—' },
             ].map((s, i) => (
               <div key={i} style={{ padding: '10px 0', borderTop: `1px solid ${palette.border}`, textAlign: 'center' }}>
                 <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 900, color: '#10B981' }}>{s.v}</div>
@@ -328,11 +327,12 @@ export default function TutorProfilePage() {
 
         {/* Right — Form */}
         <div style={{ flex: 1 }}>
-          {/* Tab switcher — Personal Info / Revenue Analytics */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {/* Tab switcher — Personal Info / Revenue Analytics / To Do List */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
             {([
               { key: 'info' as const, label: 'Personal Info' },
               { key: 'revenue' as const, label: 'Revenue Analytics' },
+              { key: 'todo' as const, label: 'To Do List' },
             ]).map(t => (
               <button key={t.key} onClick={() => setActiveTab(t.key)}
                 style={{
@@ -350,6 +350,8 @@ export default function TutorProfilePage() {
 
           {activeTab === 'revenue' ? (
             <RevenueAnalyticsPanel />
+          ) : activeTab === 'todo' ? (
+            <TodoListPanel />
           ) : (
           <>
           <div style={{ background: palette.surface, borderRadius: 20, padding: '28px 32px', boxShadow: palette.shadow, border: `1px solid ${palette.border}`, marginBottom: 20 }}>
@@ -417,24 +419,6 @@ export default function TutorProfilePage() {
                   onBlur={e => { e.target.style.borderColor = editing ? palette.border : 'transparent'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Stats summary */}
-          <div style={{ background: palette.surface, borderRadius: 20, padding: '24px 32px', boxShadow: palette.shadow, border: `1px solid ${palette.border}` }}>
-            <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: palette.textPrimary, marginBottom: 18 }}>Teaching Summary</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
-              {[
-                { l: 'Active Classes', v: String(stats.activeClassesCount), icon: '🟢', color: '#10B981', bg: '#ECFDF5' },
-                { l: 'Total Students', v: String(stats.totalStudents), icon: '🎓', color: '#8B5CF6', bg: '#F5F3FF' },
-                { l: 'Pending Requests', v: String(stats.pendingRequests), icon: '⏳', color: '#F59E0B', bg: '#FFFBEB' },
-              ].map((s, i) => (
-                <div key={i} style={{ background: s.bg, borderRadius: 14, padding: '16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 900, color: s.color }}>{s.v}</div>
-                  <div style={{ fontSize: 12, color: palette.textSecondary, marginTop: 3 }}>{s.l}</div>
-                </div>
-              ))}
             </div>
           </div>
           </>

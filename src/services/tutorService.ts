@@ -79,6 +79,50 @@ export const tutorService = {
       body: formData,
     });
   },
+
+  async getTodos() {
+    const token = localStorage.getItem("token");
+    return apiCall<TodoItem[]>("/api/tutors/todos", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+
+  async addTodo(entry: NewTodo) {
+    const token = localStorage.getItem("token");
+    return apiCall<TodoItem>("/api/tutors/todos", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(entry),
+    });
+  },
+
+  async updateTodoStatus(id: number, status: "pending" | "completed") {
+    const token = localStorage.getItem("token");
+    return apiCall<TodoItem>(`/api/tutors/todos/${id}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  async deleteTodo(id: number) {
+    const token = localStorage.getItem("token");
+    return apiCall(`/api/tutors/todos/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
 };
 
 export interface RevenueMonthPoint {
@@ -111,4 +155,18 @@ export interface RevenueAnalytics {
   revenueGrowthPercent: number;
   monthlyChart: RevenueMonthPoint[];
   transactions: RevenueTransaction[];
+}
+
+export interface TodoItem {
+  id: number;
+  task: string;
+  finishTime: string | null;
+  durationMinutes: number | null;
+  status: "pending" | "completed";
+}
+
+export interface NewTodo {
+  task: string;
+  finishTime?: string;
+  durationMinutes?: number;
 }
