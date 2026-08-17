@@ -4,22 +4,24 @@ import React, { useState, ChangeEvent, DragEvent, useEffect } from "react";
 import { classService } from "@/services/classService";
 import { useRouter, useParams } from "next/navigation";
 
-interface FormData {
+interface AdFormData {
   name: string;
   subject: string;
   grade: string;
   medium: string;
+  mode: string;
   fees: string;
   description: string;
   schedule: string;
   banner: File | null;
 }
 
-const EMPTY_FORM: FormData = {
+const EMPTY_FORM: AdFormData = {
   name: "",
   subject: "",
   grade: "",
   medium: "",
+  mode: "",
   fees: "",
   description: "",
   schedule: "",
@@ -28,13 +30,18 @@ const EMPTY_FORM: FormData = {
 
 const GRADES: string[] = ["A/L", "O/L", "Grade 6-9", "University", "Professional"];
 const MEDIUMS: string[] = ["English", "Sinhala", "Tamil"];
+const MODES: { value: string; label: string }[] = [
+  { value: "online", label: "Online" },
+  { value: "offline", label: "Physical" },
+  { value: "both", label: "Both" },
+];
 
 export default function EditAdPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
-  const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const [form, setForm] = useState<AdFormData>(EMPTY_FORM);
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
@@ -50,6 +57,7 @@ export default function EditAdPage() {
           subject: data.subject || "",
           grade: data.grade || "",
           medium: data.medium || "",
+          mode: data.mode || "",
           fees: data.fee?.toString() || "",
           description: data.description || "",
           schedule: data.schedule || "",
@@ -106,16 +114,21 @@ export default function EditAdPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await classService.updateClass(id, {
-        title: form.name,
-        subject: form.subject,
-        grade: form.grade,
-        medium: form.medium,
-        fees: form.fees,
-        description: form.description,
-        schedule: form.schedule,
-        image: bannerUrl || undefined
-      });
+      const formData = new FormData();
+      formData.append("title", form.name);
+      formData.append("subject", form.subject);
+      formData.append("grade", form.grade);
+      formData.append("medium", form.medium);
+      formData.append("fee", form.fees);
+      formData.append("description", form.description);
+      formData.append("schedule", form.schedule);
+      formData.append("mode", form.mode || "both");
+
+      if (form.banner) {
+        formData.append("banner", form.banner);
+      }
+
+      await classService.updateClass(id, formData);
       setSubmitted(true);
       setTimeout(() => {
         router.push('/dashboard/tutor/my-classes');
@@ -550,6 +563,27 @@ export default function EditAdPage() {
                       onClick={() => setForm((prev) => ({ ...prev, medium: m }))}
                     >
                       {form.medium === m ? "✓ " : ""}{m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="divider" />
+
+              {/* Mode */}
+              <div className="section-title">
+                <span className="icon">📍</span> Class Mode
+              </div>
+              <div className="field-row" style={{ marginBottom: 0 }}>
+                <div className="chips">
+                  {MODES.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      className={`chip${form.mode === m.value ? " active" : ""}`}
+                      onClick={() => setForm((prev) => ({ ...prev, mode: m.value }))}
+                    >
+                      {form.mode === m.value ? "✓ " : ""}{m.label}
                     </button>
                   ))}
                 </div>

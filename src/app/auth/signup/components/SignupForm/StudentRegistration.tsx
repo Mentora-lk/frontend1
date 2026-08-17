@@ -14,9 +14,12 @@ import {
   handleLinkHoverLeave,
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
+import { EmailVerificationField } from "./EmailVerificationField";
+import { usePalette } from "@/hooks/usePalette";
 
 export default function StudentRegistration() {
   const router = useRouter();
+  const palette = usePalette();
   const [formData, setFormData] = useState({
     fullName: "",
     school: "",
@@ -33,13 +36,46 @@ export default function StudentRegistration() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Set once "Sign up with Google" verifies an email — the account is
+  // created with this ticket instead of a password (see handleSubmit).
+  const [googleSignupToken, setGoogleSignupToken] = useState<string | null>(null);
+  const [alreadyHasAccount, setAlreadyHasAccount] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+
   const grades = ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "O/L", "A/L"];
   const languages = ["Sinhala", "English", "Tamil", "Bilingual"];
+
+  // Layers theme-aware colors (background/border/text) on top of
+  // formStyles.ts's base styling (font, radius, hover ring), so the same
+  // fields used across light/dark mode instead of always rendering white.
+  const themedInput = (fieldName: string, extra?: Record<string, any>): React.CSSProperties => ({
+    ...getInputStyle(hoveredField, fieldName, extra),
+    background: palette.inputBg,
+    color: palette.textPrimary,
+    border: hoveredField === fieldName ? "2px solid #10b981" : `1px solid ${palette.border}`,
+  });
+
+  const themedSelect = (fieldName: string, isSelected: boolean): React.CSSProperties => ({
+    ...themedInput(fieldName),
+    cursor: "pointer",
+    color: isSelected ? palette.textPrimary : palette.textMuted,
+  });
+
+  const themedPrimaryButton = (disabled: boolean): React.CSSProperties => ({
+    ...getPrimaryButtonStyle(disabled),
+    background: disabled ? palette.surfaceAlt : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    color: disabled ? palette.textMuted : "white",
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError("");
+  };
+
+  const useDifferentEmail = () => {
+    setGoogleSignupToken(null);
+    setFormData((prev) => ({ ...prev, email: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,8 +84,14 @@ export default function StudentRegistration() {
     setIsLoading(true);
 
     try {
-      // Validate passwords match
-      if (formData.password !== formData.confirmPassword) {
+      if (!googleSignupToken && !emailVerified) {
+        setError("Please verify your email before creating an account.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Password fields don't apply once verified via Google.
+      if (!googleSignupToken && formData.password !== formData.confirmPassword) {
         setError("Passwords do not match");
         setIsLoading(false);
         return;
@@ -64,10 +106,18 @@ export default function StudentRegistration() {
         language: formData.language,
         gradeLevel: formData.grade,   // form field is "grade", backend expects "gradeLevel"
         address: formData.address,
+        googleSignupToken: googleSignupToken || undefined,
       });
 
-      // Extract user info from nested response.user
-      const user = { id: response.user.id, email: response.user.email, role: response.user.role };
+      // Extract user info from nested response.user (fullName comes from
+      // the profile row the backend just created, since registration
+      // doesn't return it on user itself)
+      const user = {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        fullName: response.profile?.full_name ?? formData.fullName,
+      };
 
       // Store token and user info
       localStorage.setItem("token", response.token);
@@ -106,6 +156,27 @@ export default function StudentRegistration() {
         </div>
       )}
 
+      {alreadyHasAccount && (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: 10,
+            color: "#92400e",
+            fontSize: 14,
+            textAlign: "center",
+            marginBottom: 12,
+          }}
+        >
+          An account already exists for that email.{" "}
+          <a href="/auth/login" style={{ color: "#92400e", fontWeight: 700 }}>
+            Log in instead
+          </a>
+          .
+        </div>
+      )}
+
       {/* Full Name */}
       <input
         type="text"
@@ -115,7 +186,7 @@ export default function StudentRegistration() {
         onChange={handleInputChange}
         onFocus={() => setHoveredField("fullName")}
         onBlur={() => setHoveredField(null)}
-        style={getInputStyle(hoveredField, "fullName")}
+        style={themedInput("fullName")}
         required
       />
 
@@ -129,7 +200,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("school")}
           onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "school")}
+          style={themedInput("school")}
           required
         />
         <input
@@ -140,7 +211,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("age")}
           onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "age")}
+          style={themedInput("age")}
           required
         />
       </div>
@@ -153,7 +224,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("language")}
           onBlur={() => setHoveredField(null)}
-          style={getSelectStyle(hoveredField, "language", !!formData.language)}
+          style={themedSelect("language", !!formData.language)}
           required
         >
           <option value="">Select Language</option>
@@ -170,7 +241,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("grade")}
           onBlur={() => setHoveredField(null)}
-          style={getSelectStyle(hoveredField, "grade", !!formData.grade)}
+          style={themedSelect("grade", !!formData.grade)}
           required
         >
           <option value="">Select Grade/Level</option>
@@ -182,33 +253,47 @@ export default function StudentRegistration() {
         </select>
       </div>
 
-      {/* Email & Address */}
-      <div style={formGridStyle(2)}>
-        <input
-          type="email"
-          placeholder="Email Address"
-          name="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          onFocus={() => setHoveredField("email")}
-          onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "email")}
-          required
+      {/* Email */}
+      {googleSignupToken ? (
+        <div>
+          <div style={themedInput("email")}>
+            ✓ {formData.email}
+          </div>
+          <button
+            type="button"
+            onClick={useDifferentEmail}
+            style={{ background: "none", border: "none", color: "#10b981", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0" }}
+          >
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <EmailVerificationField
+          email={formData.email}
+          onEmailChange={(value) => setFormData((prev) => ({ ...prev, email: value }))}
+          verified={emailVerified}
+          onVerifiedChange={setEmailVerified}
+          hoveredField={hoveredField}
+          setHoveredField={setHoveredField}
+          disabled={isLoading}
         />
-        <input
-          type="text"
-          placeholder="Address"
-          name="address"
-          value={formData.address}
-          onChange={handleInputChange}
-          onFocus={() => setHoveredField("address")}
-          onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "address")}
-          required
-        />
-      </div>
+      )}
 
-      {/* Password Fields */}
+      {/* Address */}
+      <input
+        type="text"
+        placeholder="Address"
+        name="address"
+        value={formData.address}
+        onChange={handleInputChange}
+        onFocus={() => setHoveredField("address")}
+        onBlur={() => setHoveredField(null)}
+        style={themedInput("address")}
+        required
+      />
+
+      {/* Password Fields — not needed once verified via Google */}
+      {!googleSignupToken && (
       <div style={formGridStyle(2)}>
         <input
           type="password"
@@ -218,7 +303,7 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("password")}
           onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "password")}
+          style={themedInput("password")}
           required
         />
         <input
@@ -229,16 +314,17 @@ export default function StudentRegistration() {
           onChange={handleInputChange}
           onFocus={() => setHoveredField("confirmPassword")}
           onBlur={() => setHoveredField(null)}
-          style={getInputStyle(hoveredField, "confirmPassword")}
+          style={themedInput("confirmPassword")}
           required
         />
       </div>
+      )}
 
       {/* Submit Button */}
       <button
         type="submit"
         disabled={isLoading}
-        style={getPrimaryButtonStyle()}
+        style={themedPrimaryButton(isLoading)}
         onMouseEnter={(e) => !isLoading && handleButtonHoverEnter(e, true)}
         onMouseLeave={(e) => !isLoading && handleButtonHoverLeave(e, true)}
       >
@@ -250,7 +336,7 @@ export default function StudentRegistration() {
         style={{
           textAlign: "center",
           fontSize: 14,
-          color: "#6b7280",
+          color: palette.textSecondary,
           margin: "12px 0 0",
         }}
       >

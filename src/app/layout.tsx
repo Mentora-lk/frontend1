@@ -1,4 +1,7 @@
 import { ReactNode } from "react";
+import { GoogleAuthProvider } from "@/components/providers/GoogleAuthProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { GlobalThemeStyles } from "@/components/providers/GlobalThemeStyles";
 
 export const metadata = {
   title: "frontend1",
@@ -12,7 +15,12 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning={true}>{children}</body>
+      <body suppressHydrationWarning={true}>
+        <ThemeProvider>
+          <GlobalThemeStyles />
+          <GoogleAuthProvider>{children}</GoogleAuthProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
