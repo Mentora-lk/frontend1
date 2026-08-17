@@ -39,18 +39,36 @@ const Section = ({ title, icon, children, onSave, saved }: { title:string; icon:
   );
 };
 
+// Validation for the Phone Number field only — empty is allowed, but a
+// non-empty value must be a Sri Lankan phone number (10 digits starting
+// with 0, matching the "077 000 0000" placeholder used here).
+const isValidPhone = (value: string) => /^0\d{9}$/.test(value.replace(/[\s-]/g, ''));
+
 export default function TutorSettingsPage() {
   const palette = usePalette();
   const [notifications, setNotifications] = useState({ email:true,  sms:false, newRequest:true,  messages:true,  sessionReminder:true  });
   const [privacy,       setPrivacy]       = useState({ publicProfile:true, showPhone:false, showEarnings:false });
   const [saved, setSaved] = useState('');
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const toggle = (group: 'notifications' | 'privacy', key: string) => {
     if (group === 'notifications') setNotifications(p => ({ ...p, [key]: !(p as any)[key] }));
     else                           setPrivacy(p => ({ ...p, [key]: !(p as any)[key] }));
   };
 
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    setPhoneError(value.trim() === '' || isValidPhone(value) ? '' : 'Enter a valid 10-digit phone number (e.g. 077 000 0000).');
+  };
+
   const save = (section: string) => {
+    if (section === 'Account Security') {
+      if (phone.trim() !== '' && !isValidPhone(phone)) {
+        setPhoneError('Enter a valid 10-digit phone number (e.g. 077 000 0000).');
+        return;
+      }
+    }
     setSaved(section);
     setTimeout(() => setSaved(''), 2500);
   };
@@ -71,10 +89,21 @@ export default function TutorSettingsPage() {
           ].map(f => (
             <div key={f.label} style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:palette.textMuted }}>{f.label}</label>
-              <input type={f.type} placeholder={f.ph} style={{ padding:'11px 14px', borderRadius:11, border:`1.5px solid ${palette.border}`, fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:'none', color:palette.textSecondary, background:palette.inputBg }}
-                onFocus={e => { e.target.style.borderColor='#10B981'; e.target.style.boxShadow='0 0 0 3px rgba(16,185,129,0.12)'; }}
-                onBlur={e  => { e.target.style.borderColor=palette.border; e.target.style.boxShadow='none'; }}
-              />
+              {f.label === 'Phone Number' ? (
+                <input type={f.type} placeholder={f.ph} value={phone} onChange={e => handlePhoneChange(e.target.value)}
+                  style={{ padding:'11px 14px', borderRadius:11, border:`1.5px solid ${phoneError ? '#EF4444' : palette.border}`, fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:'none', color:palette.textSecondary, background:palette.inputBg }}
+                  onFocus={e => { if (!phoneError) { e.target.style.borderColor='#10B981'; e.target.style.boxShadow='0 0 0 3px rgba(16,185,129,0.12)'; } }}
+                  onBlur={e  => { e.target.style.borderColor=phoneError ? '#EF4444' : palette.border; e.target.style.boxShadow='none'; }}
+                />
+              ) : (
+                <input type={f.type} placeholder={f.ph} style={{ padding:'11px 14px', borderRadius:11, border:`1.5px solid ${palette.border}`, fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:'none', color:palette.textSecondary, background:palette.inputBg }}
+                  onFocus={e => { e.target.style.borderColor='#10B981'; e.target.style.boxShadow='0 0 0 3px rgba(16,185,129,0.12)'; }}
+                  onBlur={e  => { e.target.style.borderColor=palette.border; e.target.style.boxShadow='none'; }}
+                />
+              )}
+              {f.label === 'Phone Number' && phoneError && (
+                <span style={{ fontSize:11, color:'#EF4444', fontWeight:600 }}>{phoneError}</span>
+              )}
             </div>
           ))}
         </div>

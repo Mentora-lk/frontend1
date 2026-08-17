@@ -69,6 +69,7 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
 
   const displayName = profile?.name || 'Tutor';
   const displayInitial = displayName.charAt(0).toUpperCase();
+  const displayPictureUrl: string | null = profile?.profilePictureUrl || null;
   return (
     // See src/components/ClientOnly.tsx — a browser extension mutates every
     // element in this layout before hydration, tripping a hydration-mismatch
@@ -119,7 +120,11 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
                 onClick={() => setMenuOpen(v => !v)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
               >
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{displayInitial}</div>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16, overflow: 'hidden' }}>
+                  {displayPictureUrl
+                    ? <img src={displayPictureUrl} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : displayInitial}
+                </div>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.2 }}>{displayName}</p>
                   <p style={{ fontSize: 11, color: isDark ? '#8B968F' : '#9CA3AF' }}>Tutor</p>

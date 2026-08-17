@@ -14,10 +14,6 @@ const NAV_ITEMS = [
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   },
   {
-    label: 'Revenue Analytics', href: '/dashboard/tutor/revenue-analytics',
-    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
-  },
-  {
     label: 'Messages', href: '/dashboard/tutor/messages',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   },
@@ -43,6 +39,7 @@ export default function TutorSidebar({ profile, pendingCount = 0 }: { profile?: 
   const name = profile?.name || 'Tutor';
   const initial = name.charAt(0).toUpperCase();
   const subject = profile?.subject || 'Mathematics';
+  const profilePictureUrl: string | null = profile?.profilePictureUrl || null;
 
   return (
     <div style={{
@@ -58,8 +55,12 @@ export default function TutorSidebar({ profile, pendingCount = 0 }: { profile?: 
             width: 44, height: 44, borderRadius: '50%',
             background: 'linear-gradient(135deg,#10B981,#059669)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontWeight: 700, fontSize: 18, flexShrink: 0,
-          }}>{initial}</div>
+            color: 'white', fontWeight: 700, fontSize: 18, flexShrink: 0, overflow: 'hidden',
+          }}>
+            {profilePictureUrl
+              ? <img src={profilePictureUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initial}
+          </div>
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.2 }}>{name}</p>
             <p style={{ fontSize: 11, color: isDark ? '#8B968F' : '#9CA3AF' }}>Tutor · {subject}</p>

@@ -63,6 +63,22 @@ export const tutorService = {
       },
     });
   },
+
+  async uploadProfilePicture(file: File) {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("avatar", file);
+    // apiCall (fetch-based) skips setting Content-Type for FormData bodies,
+    // so the browser fills in the correct multipart boundary itself — unlike
+    // the `api` axios instance elsewhere, which has to be told to do that.
+    return apiCall<{ profilePictureUrl: string }>("/api/tutors/profile-picture", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+  },
 };
 
 export interface RevenueMonthPoint {

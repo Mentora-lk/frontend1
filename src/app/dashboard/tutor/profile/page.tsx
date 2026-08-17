@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
+import RevenueAnalyticsPanel from '@/components/dashboard/RevenueAnalyticsPanel';
 import { usePalette } from '@/hooks/usePalette';
+import { tutorService } from '@/services/tutorService';
 
 interface TutorProfile {
   name: string;
@@ -26,6 +28,13 @@ interface TeachingStats {
 
 const EMPTY_STATS: TeachingStats = { classesCount: 0, activeClassesCount: 0, avgRating: 0, totalStudents: 0, pendingRequests: 0 };
 
+// Validation for the Email Address / Phone Number fields only — empty is
+// allowed (neither field is required), but a non-empty value must be a
+// well-formed email or a Sri Lankan phone number (10 digits starting with 0,
+// matching the "077 000 0000" placeholder/format used elsewhere in the app).
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+const isValidPhone = (value: string) => /^0\d{9}$/.test(value.replace(/[\s-]/g, ''));
+
 export default function TutorProfilePage() {
   const palette = usePalette();
   const [form, setForm] = useState<TutorProfile>({
@@ -40,10 +49,24 @@ export default function TutorProfilePage() {
     fee: ''
   });
   const [editing, setEditing] = useState(false);
+  // "Revenue Analytics" used to be its own sidebar item/page — it now lives
+  // as a tab inside this page instead, reusing the same RevenueAnalyticsPanel
+  // the standalone /dashboard/tutor/revenue-analytics route still renders.
+  const [activeTab, setActiveTab] = useState<'info' | 'revenue'>('info');
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [verified, setVerified] = useState(false);
   const [stats, setStats] = useState<TeachingStats>(EMPTY_STATS);
+
+  // Profile picture — uploaded to Cloudinary via tutorService.uploadProfilePicture,
+  // same mechanism the class-ad banner upload already uses.
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [pictureError, setPictureError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Live validation errors for Email Address / Phone Number only.
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; phone?: string }>({});
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -73,6 +96,7 @@ export default function TutorProfilePage() {
         }));
         setVerified(!!data.verified);
         setStats(data.stats || EMPTY_STATS);
+        setProfilePictureUrl(data.profilePictureUrl || null);
       } catch (err) {
         console.error('Error fetching profile:', err);
       } finally {
@@ -85,9 +109,50 @@ export default function TutorProfilePage() {
 
   const update = (key: keyof TutorProfile, val: string) => {
     setForm(prev => ({ ...prev, [key]: val }));
+
+    if (key === 'email') {
+      setFieldErrors(prev => ({ ...prev, email: val.trim() === '' || isValidEmail(val) ? undefined : 'Enter a valid email address (e.g. name@example.com).' }));
+    } else if (key === 'phone') {
+      setFieldErrors(prev => ({ ...prev, phone: val.trim() === '' || isValidPhone(val) ? undefined : 'Enter a valid 10-digit phone number (e.g. 077 000 0000).' }));
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (uploadingPicture) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPictureError('Please choose an image file.');
+      return;
+    }
+
+    setUploadingPicture(true);
+    setPictureError('');
+    try {
+      const result = await tutorService.uploadProfilePicture(file);
+      setProfilePictureUrl(result.profilePictureUrl);
+    } catch (err) {
+      console.error('Error uploading profile picture:', err);
+      setPictureError('Upload failed. Please try again.');
+    } finally {
+      setUploadingPicture(false);
+    }
   };
 
   const save = async () => {
+    const emailError = form.email.trim() !== '' && !isValidEmail(form.email) ? 'Enter a valid email address (e.g. name@example.com).' : undefined;
+    const phoneError = form.phone.trim() !== '' && !isValidPhone(form.phone) ? 'Enter a valid 10-digit phone number (e.g. 077 000 0000).' : undefined;
+    if (emailError || phoneError) {
+      setFieldErrors({ email: emailError, phone: phoneError });
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/tutors/profile', {
@@ -191,18 +256,39 @@ export default function TutorProfilePage() {
         <div style={{ width: 240, flexShrink: 0 }}>
           <div style={{ background: palette.surface, borderRadius: 20, padding: '28px 20px', boxShadow: palette.shadow, border: `1px solid ${palette.border}`, textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
-              <div style={{ width: 90, height: 90, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: 34, fontFamily: "'Playfair Display',serif", margin: '0 auto', boxShadow: '0 8px 24px rgba(16,185,129,0.4)' }}>
-                {form.name ? form.name.charAt(0).toUpperCase() : 'K'}
+              <div style={{ position: 'relative', width: 90, height: 90, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: 34, fontFamily: "'Playfair Display',serif", margin: '0 auto', boxShadow: '0 8px 24px rgba(16,185,129,0.4)', overflow: 'hidden' }}>
+                {profilePictureUrl ? (
+                  <img src={profilePictureUrl} alt={form.name || 'Profile picture'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  form.name ? form.name.charAt(0).toUpperCase() : 'K'
+                )}
+                {uploadingPicture && (
+                  <div style={{ position: 'absolute', inset: 0, width: 90, height: 90, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>...</span>
+                  </div>
+                )}
               </div>
               {editing && (
-                <div style={{ position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%', background: '#111827', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <div
+                  onClick={handleAvatarClick}
+                  title="Upload profile picture"
+                  style={{ position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%', background: '#111827', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: uploadingPicture ? 'default' : 'pointer' }}
+                >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
                 </div>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarFileChange}
+                style={{ display: 'none' }}
+              />
             </div>
+            {pictureError && <p style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, marginBottom: 12 }}>{pictureError}</p>}
             <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: palette.textPrimary, marginBottom: 4 }}>{form.name}</h3>
             {verified && <p style={{ fontSize: 12, color: '#10B981', fontWeight: 600, marginBottom: 4 }}>Verified Tutor ✓</p>}
             <p style={{ fontSize: 11, color: palette.textMuted, marginBottom: 20 }}>{form.subject}</p>
@@ -242,6 +328,30 @@ export default function TutorProfilePage() {
 
         {/* Right — Form */}
         <div style={{ flex: 1 }}>
+          {/* Tab switcher — Personal Info / Revenue Analytics */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            {([
+              { key: 'info' as const, label: 'Personal Info' },
+              { key: 'revenue' as const, label: 'Revenue Analytics' },
+            ]).map(t => (
+              <button key={t.key} onClick={() => setActiveTab(t.key)}
+                style={{
+                  padding: '9px 20px', borderRadius: 11, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  border: `1.5px solid ${activeTab === t.key ? '#10B981' : palette.border}`,
+                  background: activeTab === t.key ? '#10B981' : palette.surface,
+                  color: activeTab === t.key ? 'white' : palette.textSecondary,
+                  fontFamily: "'DM Sans',sans-serif", boxShadow: activeTab === t.key ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
+                  transition: 'all 0.2s',
+                }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'revenue' ? (
+            <RevenueAnalyticsPanel />
+          ) : (
+          <>
           <div style={{ background: palette.surface, borderRadius: 20, padding: '28px 32px', boxShadow: palette.shadow, border: `1px solid ${palette.border}`, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: palette.textPrimary }}>Personal Information</h3>
@@ -290,6 +400,9 @@ export default function TutorProfilePage() {
                 <div key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: palette.textMuted }}>{f.label}</label>
                   {inp(f.key as keyof TutorProfile, f.ph)}
+                  {(f.key === 'email' || f.key === 'phone') && fieldErrors[f.key as 'email' | 'phone'] && (
+                    <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>{fieldErrors[f.key as 'email' | 'phone']}</span>
+                  )}
                 </div>
               ))}
               <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -324,6 +437,8 @@ export default function TutorProfilePage() {
               ))}
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </TutorDashboardLayout>
