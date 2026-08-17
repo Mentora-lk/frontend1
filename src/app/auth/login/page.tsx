@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { usePalette } from "@/hooks/usePalette";
 
 export default function LoginPage() {
@@ -228,35 +229,34 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("password")}
-              onBlur={() => setHoveredField(null)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                fontSize: 14,
-                border:
-                  hoveredField === "password"
-                    ? "2px solid #10b981"
-                    : `1px solid ${palette.border}`,
-                borderRadius: 10,
-                background: palette.inputBg,
-                color: palette.textPrimary,
-                outline: "none",
-                transition: "all 0.3s ease",
-                boxSizing: "border-box",
-                boxShadow:
-                  hoveredField === "password"
-                    ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
-                    : "none",
-              }}
-              required
-            />
+            <PasswordInput
+                placeholder="••••••••"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                onFocus={() => setHoveredField("password")}
+                onBlur={() => setHoveredField(null)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  fontSize: 14,
+                  border:
+                    hoveredField === "password"
+                      ? "2px solid #10b981"
+                      : `1px solid ${palette.border}`,
+                  borderRadius: 10,
+                  background: palette.inputBg,
+                  color: palette.textPrimary,
+                  outline: "none",
+                  transition: "all 0.3s ease",
+                  boxSizing: "border-box",
+                  boxShadow:
+                    hoveredField === "password"
+                      ? "0 0 0 3px rgba(16, 185, 129, 0.1)"
+                      : "none",
+                }}
+                required
+              />
           </div>
 
           {/* Submit Button */}

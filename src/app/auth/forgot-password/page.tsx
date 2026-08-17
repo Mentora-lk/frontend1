@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePalette } from "@/hooks/usePalette";
 import { authService } from "@/services/authService";
+import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { getPasswordError, isPasswordValid } from "@/lib/validators";
 
 type Step = "email" | "reset";
 
@@ -53,6 +56,13 @@ export default function ForgotPasswordPage() {
     boxShadow: hoveredField === name ? "0 0 0 3px rgba(16, 185, 129, 0.1)" : "none",
   });
 
+  // Same as fieldStyle, but tints the border red while the field's current
+  // value fails validation (focus ring still wins, so typing stays calm).
+  const invalidableFieldStyle = (name: string, invalid: boolean) => ({
+    ...fieldStyle(name),
+    ...(invalid && hoveredField !== name ? { border: "1px solid #dc2626" } : {}),
+  });
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -80,14 +90,9 @@ export default function ForgotPasswordPage() {
     setError("");
     setSuccess("");
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
+    const passwordError = getPasswordError(password, confirmPassword);
+    if (passwordError) {
+      setError(passwordError);
       setIsLoading(false);
       return;
     }
@@ -202,8 +207,7 @@ export default function ForgotPasswordPage() {
 
                 <div>
                   <FieldLabel palette={palette}>New Password</FieldLabel>
-                  <input
-                    type="password"
+                  <PasswordInput
                     placeholder="••••••••"
                     name="password"
                     value={password}
@@ -213,18 +217,17 @@ export default function ForgotPasswordPage() {
                     }}
                     onFocus={() => setHoveredField("password")}
                     onBlur={() => setHoveredField(null)}
-                    style={fieldStyle("password")}
+                    style={invalidableFieldStyle("password", !!password && !isPasswordValid(password))}
                     required
                   />
-                  <p style={{ fontSize: 12, color: palette.textMuted, margin: "6px 0 0" }}>
-                    At least 8 characters
-                  </p>
+                  <div style={{ marginTop: 8 }}>
+                    <PasswordRequirements password={password} alwaysShow />
+                  </div>
                 </div>
 
                 <div>
                   <FieldLabel palette={palette}>Confirm Password</FieldLabel>
-                  <input
-                    type="password"
+                  <PasswordInput
                     placeholder="••••••••"
                     name="confirmPassword"
                     value={confirmPassword}
@@ -234,12 +237,29 @@ export default function ForgotPasswordPage() {
                     }}
                     onFocus={() => setHoveredField("confirmPassword")}
                     onBlur={() => setHoveredField(null)}
-                    style={fieldStyle("confirmPassword")}
+                    style={invalidableFieldStyle(
+                      "confirmPassword",
+                      !!confirmPassword && confirmPassword !== password
+                    )}
                     required
                   />
+                  {confirmPassword.length > 0 && (
+                    <p
+                      style={{
+                        fontSize: 12,
+                        margin: "8px 0 0",
+                        color: confirmPassword === password ? "#059669" : "#dc2626",
+                      }}
+                    >
+                      {confirmPassword === password ? "✓ Passwords match" : "✕ Passwords do not match"}
+                    </p>
+                  )}
                 </div>
 
-                <SubmitButton isLoading={isLoading}>
+                <SubmitButton
+                  isLoading={isLoading}
+                  disabled={otp.length !== 6 || !isPasswordValid(password) || password !== confirmPassword}
+                >
                   {isLoading ? "Resetting..." : "Reset Password"}
                 </SubmitButton>
 
@@ -315,29 +335,38 @@ function Banner({ kind, children }: { kind: "error" | "success"; children: React
   );
 }
 
-function SubmitButton({ isLoading, children }: { isLoading: boolean; children: React.ReactNode }) {
+function SubmitButton({
+  isLoading,
+  disabled = false,
+  children,
+}: {
+  isLoading: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  const inactive = isLoading || disabled;
   return (
     <button
       type="submit"
-      disabled={isLoading}
+      disabled={inactive}
       style={{
         padding: "14px 20px",
         fontSize: 16,
         fontWeight: 600,
         border: "none",
         borderRadius: 10,
-        background: isLoading ? "#d1d5db" : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        background: inactive ? "#d1d5db" : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
         color: "white",
-        cursor: isLoading ? "not-allowed" : "pointer",
+        cursor: inactive ? "not-allowed" : "pointer",
         transition: "all 0.3s ease",
         marginTop: 8,
-        boxShadow: isLoading ? "none" : "0 4px 12px rgba(16, 185, 129, 0.25)",
+        boxShadow: inactive ? "none" : "0 4px 12px rgba(16, 185, 129, 0.25)",
       }}
       onMouseEnter={(e) => {
-        if (!isLoading) e.currentTarget.style.boxShadow = "0 6px 20px rgba(16, 185, 129, 0.35)";
+        if (!inactive) e.currentTarget.style.boxShadow = "0 6px 20px rgba(16, 185, 129, 0.35)";
       }}
       onMouseLeave={(e) => {
-        if (!isLoading) e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.25)";
+        if (!inactive) e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.25)";
       }}
     >
       {children}

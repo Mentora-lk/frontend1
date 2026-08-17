@@ -16,6 +16,9 @@ import {
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
 import { EmailVerificationField } from "./EmailVerificationField";
+import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { getPasswordError, isPasswordValid } from "@/lib/validators";
 import { usePalette } from "@/hooks/usePalette";
 
 type Qualification = {
@@ -102,6 +105,13 @@ export default function TutorRegistration() {
     background: palette.inputBg,
     color: palette.textPrimary,
     border: hoveredField === fieldName ? "2px solid #10b981" : `1px solid ${palette.border}`,
+  });
+
+  // Same as themedInput, but tints the border red while the field's current
+  // value fails validation (focus ring still wins, so typing stays calm).
+  const invalidableInput = (fieldName: string, invalid: boolean): React.CSSProperties => ({
+    ...themedInput(fieldName),
+    ...(invalid && hoveredField !== fieldName ? { border: "1px solid #dc2626" } : {}),
   });
 
   const themedSelect = (fieldName: string, isSelected: boolean): React.CSSProperties => ({
@@ -218,10 +228,13 @@ export default function TutorRegistration() {
       }
 
       // Password fields don't apply once verified via Google.
-      if (!googleSignupToken && formData.password !== formData.confirmPassword) {
-        setError("Passwords do not match");
-        setIsLoading(false);
-        return;
+      if (!googleSignupToken) {
+        const passwordError = getPasswordError(formData.password, formData.confirmPassword);
+        if (passwordError) {
+          setError(passwordError);
+          setIsLoading(false);
+          return;
+        }
       }
 
       const submissionData = new FormData();
@@ -266,23 +279,8 @@ export default function TutorRegistration() {
         throw new Error("Invalid response from server. Please try again.");
       }
 
-      // Extract user info from response (backend returns { token, user: { id, email, role }, profile })
-      const user = {
-        id: response.user.id,
-        email: response.user.email,
-        role: response.user.role,
-        fullName: response.profile?.full_name ?? formData.fullName,
-      };
-
-      // Store token and user info
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      // Set user_role cookie so middleware allows dashboard access
-      document.cookie = `user_role=${user.role}; path=/; max-age=${60 * 60 * 24 * 30}`;
-
-      // Redirect to tutor dashboard
-      router.push("/dashboard/tutor");
+      // Redirect to login so the tutor can sign in with their new account
+      router.push("/auth/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
       console.error("Registration error:", err);
@@ -296,7 +294,7 @@ export default function TutorRegistration() {
       case 1: {
         const identityOk = googleSignupToken
           ? true
-          : Boolean(formData.password && formData.confirmPassword && formData.password === formData.confirmPassword) && emailVerified;
+          : isPasswordValid(formData.password) && formData.password === formData.confirmPassword && emailVerified;
         return Boolean(formData.fullName && formData.dateOfBirth && formData.gender && formData.city && formData.email && formData.address) && identityOk;
       }
       case 2:
@@ -423,20 +421,18 @@ export default function TutorRegistration() {
 
           <div style={formGridStyle(2)}>
             <input
-              type="text"
+              type="date"
               name="dateOfBirth"
               value={formData.dateOfBirth}
               onChange={handleInputChange}
-              onFocus={(e) => {
-                setHoveredField("dateOfBirth");
-                e.target.type = "date";
+              onFocus={() => setHoveredField("dateOfBirth")}
+              onBlur={() => setHoveredField(null)}
+              max={new Date().toISOString().split("T")[0]}
+              style={{
+                ...themedInput("dateOfBirth"),
+                cursor: "pointer",
+                color: formData.dateOfBirth ? palette.textPrimary : palette.textMuted,
               }}
-              onBlur={(e) => {
-                setHoveredField(null);
-                if (!e.target.value) e.target.type = "text";
-              }}
-              placeholder="Date of Birth"
-              style={themedInput("dateOfBirth")}
               required
             />
             <select
@@ -507,30 +503,37 @@ export default function TutorRegistration() {
           />
 
           {!googleSignupToken && (
-          <div style={formGridStyle(2)}>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("password")}
-              onBlur={() => setHoveredField(null)}
-              placeholder="Password"
-              style={themedInput("password")}
-              required
+          <>
+            <div style={formGridStyle(2)}>
+              <PasswordInput
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                onFocus={() => setHoveredField("password")}
+                onBlur={() => setHoveredField(null)}
+                placeholder="Password"
+                style={invalidableInput("password", !!formData.password && !isPasswordValid(formData.password))}
+                required
+              />
+              <PasswordInput
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                onFocus={() => setHoveredField("confirmPassword")}
+                onBlur={() => setHoveredField(null)}
+                placeholder="Confirm Password"
+                style={invalidableInput(
+                  "confirmPassword",
+                  !!formData.confirmPassword && formData.confirmPassword !== formData.password
+                )}
+                required
+              />
+            </div>
+            <PasswordRequirements
+              password={formData.password}
+              confirmPassword={formData.confirmPassword}
             />
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              onFocus={() => setHoveredField("confirmPassword")}
-              onBlur={() => setHoveredField(null)}
-              placeholder="Confirm Password"
-              style={themedInput("confirmPassword")}
-              required
-            />
-          </div>
+          </>
           )}
         </form>
       )}

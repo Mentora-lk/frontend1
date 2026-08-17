@@ -15,11 +15,15 @@ import {
 } from "@/utils/formStyles";
 import { authService } from "@/services/authService";
 import { EmailVerificationField } from "./EmailVerificationField";
+import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { getPasswordError, isPasswordValid } from "@/lib/validators";
 import { usePalette } from "@/hooks/usePalette";
 
 export default function StudentRegistration() {
   const router = useRouter();
   const palette = usePalette();
+
   const [formData, setFormData] = useState({
     fullName: "",
     school: "",
@@ -53,6 +57,13 @@ export default function StudentRegistration() {
     background: palette.inputBg,
     color: palette.textPrimary,
     border: hoveredField === fieldName ? "2px solid #10b981" : `1px solid ${palette.border}`,
+  });
+
+  // Same as themedInput, but tints the border red while the field's current
+  // value fails validation (focus ring still wins, so typing stays calm).
+  const invalidableInput = (fieldName: string, invalid: boolean): React.CSSProperties => ({
+    ...themedInput(fieldName),
+    ...(invalid && hoveredField !== fieldName ? { border: "1px solid #dc2626" } : {}),
   });
 
   const themedSelect = (fieldName: string, isSelected: boolean): React.CSSProperties => ({
@@ -91,10 +102,13 @@ export default function StudentRegistration() {
       }
 
       // Password fields don't apply once verified via Google.
-      if (!googleSignupToken && formData.password !== formData.confirmPassword) {
-        setError("Passwords do not match");
-        setIsLoading(false);
-        return;
+      if (!googleSignupToken) {
+        const passwordError = getPasswordError(formData.password, formData.confirmPassword);
+        if (passwordError) {
+          setError(passwordError);
+          setIsLoading(false);
+          return;
+        }
       }
 
       const response = await authService.registerStudent({
@@ -294,30 +308,37 @@ export default function StudentRegistration() {
 
       {/* Password Fields — not needed once verified via Google */}
       {!googleSignupToken && (
-      <div style={formGridStyle(2)}>
-        <input
-          type="password"
-          placeholder="Password"
-          name="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          onFocus={() => setHoveredField("password")}
-          onBlur={() => setHoveredField(null)}
-          style={themedInput("password")}
-          required
+      <>
+        <div style={formGridStyle(2)}>
+          <PasswordInput
+            placeholder="Password"
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("password")}
+            onBlur={() => setHoveredField(null)}
+            style={invalidableInput("password", !!formData.password && !isPasswordValid(formData.password))}
+            required
+          />
+          <PasswordInput
+            placeholder="Confirm Password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            onFocus={() => setHoveredField("confirmPassword")}
+            onBlur={() => setHoveredField(null)}
+            style={invalidableInput(
+              "confirmPassword",
+              !!formData.confirmPassword && formData.confirmPassword !== formData.password
+            )}
+            required
+          />
+        </div>
+        <PasswordRequirements
+          password={formData.password}
+          confirmPassword={formData.confirmPassword}
         />
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleInputChange}
-          onFocus={() => setHoveredField("confirmPassword")}
-          onBlur={() => setHoveredField(null)}
-          style={themedInput("confirmPassword")}
-          required
-        />
-      </div>
+      </>
       )}
 
       {/* Submit Button */}
