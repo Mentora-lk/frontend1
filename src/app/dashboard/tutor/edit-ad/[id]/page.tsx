@@ -9,6 +9,7 @@ interface AdFormData {
   subject: string;
   grade: string;
   medium: string;
+  mode: string;
   fees: string;
   description: string;
   schedule: string;
@@ -20,6 +21,7 @@ const EMPTY_FORM: AdFormData = {
   subject: "",
   grade: "",
   medium: "",
+  mode: "",
   fees: "",
   description: "",
   schedule: "",
@@ -28,6 +30,11 @@ const EMPTY_FORM: AdFormData = {
 
 const GRADES: string[] = ["A/L", "O/L", "Grade 6-9", "University", "Professional"];
 const MEDIUMS: string[] = ["English", "Sinhala", "Tamil"];
+const MODES: { value: string; label: string }[] = [
+  { value: "online", label: "Online" },
+  { value: "offline", label: "Physical" },
+  { value: "both", label: "Both" },
+];
 
 export default function EditAdPage() {
   const router = useRouter();
@@ -50,6 +57,7 @@ export default function EditAdPage() {
           subject: data.subject || "",
           grade: data.grade || "",
           medium: data.medium || "",
+          mode: data.mode || "",
           fees: data.fee?.toString() || "",
           description: data.description || "",
           schedule: data.schedule || "",
@@ -114,9 +122,8 @@ export default function EditAdPage() {
       formData.append("fee", form.fees);
       formData.append("description", form.description);
       formData.append("schedule", form.schedule);
-      // Backend also uses mode and location, we can pass them if available
-      formData.append("mode", form.medium); // Assuming medium/mode overlap or backend needs it
-      
+      formData.append("mode", form.mode || "both");
+
       if (form.banner) {
         formData.append("banner", form.banner);
       }
@@ -556,6 +563,27 @@ export default function EditAdPage() {
                       onClick={() => setForm((prev) => ({ ...prev, medium: m }))}
                     >
                       {form.medium === m ? "✓ " : ""}{m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="divider" />
+
+              {/* Mode */}
+              <div className="section-title">
+                <span className="icon">📍</span> Class Mode
+              </div>
+              <div className="field-row" style={{ marginBottom: 0 }}>
+                <div className="chips">
+                  {MODES.map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      className={`chip${form.mode === m.value ? " active" : ""}`}
+                      onClick={() => setForm((prev) => ({ ...prev, mode: m.value }))}
+                    >
+                      {form.mode === m.value ? "✓ " : ""}{m.label}
                     </button>
                   ))}
                 </div>

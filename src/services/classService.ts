@@ -29,14 +29,22 @@ export const getCourseById = async (id: number | string) => {
   return data;
 };
 
+export interface Review {
+  id: number;
+  comment: string;
+  createdAt: string;
+  student?: { id?: number | string; name: string };
+  student_id?: number | string; // fallback shape in case author id is flat, not nested
+}
+
 // GET /api/courses/:id/reviews — used by reviews tab
-export const getCourseReviews = async (id: number | string) => {
+export const getCourseReviews = async (id: number | string): Promise<Review[]> => {
   const { data } = await api.get(`/courses/${id}/reviews`);
   return data;
 };
 
 // POST /api/courses/:id/reviews — submit a review
-export const submitReview = async (id: number | string, rating: number, comment: string) => {
+export const submitReview = async (id: number | string, rating: number, comment: string): Promise<Review> => {
   const { data } = await api.post(`/courses/${id}/reviews`, { rating, comment });
   return data;
 };

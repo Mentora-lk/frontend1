@@ -20,6 +20,12 @@ export const submitEnrollment = async (data: EnrollmentData) => {
   return response.data;
 };
 
+// PUT /api/enrollments/:id — update an enrollment's personal details + schedule
+export const updateEnrollment = async (enrollmentId: number, data: EnrollmentData) => {
+  const response = await api.put(`/enrollments/${enrollmentId}`, data);
+  return response.data;
+};
+
 // GET /api/enrollments/me — get my enrolled classes
 export const getMyEnrollments = async (status?: string) => {
   const params = status && status !== 'all' ? { status } : {};

@@ -1,12 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import { usePalette } from '@/hooks/usePalette';
+import { useCurrentUser, getInitial } from '@/hooks/useCurrentUser';
+import { DASHBOARD_PREFIX_BY_ROLE, isUserRole } from '@/lib/routeRoles';
 
 interface NavbarProps {
   scrollY: number;
 }
 
 export default function Navbar({ scrollY }: NavbarProps) {
+  const palette = usePalette();
+  const scrolled = scrollY > 50;
+  const currentUser = useCurrentUser();
+  const dashboardHref = currentUser && isUserRole(currentUser.role)
+    ? DASHBOARD_PREFIX_BY_ROLE[currentUser.role]
+    : null;
+
   return (
     <nav
       style={{
@@ -15,9 +25,9 @@ export default function Navbar({ scrollY }: NavbarProps) {
         left: 0,
         right: 0,
         zIndex: 999,
-        background: scrollY > 50 ? 'rgba(255,255,255,0.96)' : 'transparent',
-        backdropFilter: scrollY > 50 ? 'blur(24px)' : 'none',
-        boxShadow: scrollY > 50 ? '0 2px 24px rgba(0,0,0,0.07)' : 'none',
+        background: scrolled ? palette.navBg : 'transparent',
+        backdropFilter: scrolled ? 'blur(24px)' : 'none',
+        boxShadow: scrolled ? palette.shadow : 'none',
         transition: 'all 0.4s ease',
         padding: '0 6%',
       }}
@@ -38,7 +48,7 @@ export default function Navbar({ scrollY }: NavbarProps) {
               fontFamily: "'Playfair Display',serif",
               fontSize: 22,
               fontWeight: 900,
-              color: scrollY > 50 ? '#111' : 'white',
+              color: scrolled ? palette.textPrimary : 'white',
               transition: 'color 0.4s',
             }}
           >
@@ -47,21 +57,17 @@ export default function Navbar({ scrollY }: NavbarProps) {
         </Link>
 
         <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          {['HOME', 'COURSES', 'ABOUT US', 'CONTACT US'].map((item) => (
-            <Link
-              key={item}
-              href={
-                item === 'COURSES'
-                  ? '/classes/search'
-                  : item === 'BECOME A TUTOR'
-                  ? '/auth/register'
-                  : '#'
-              }
-            >
+          {[
+            { label: 'HOME', href: '/' },
+            { label: 'COURSES', href: '/classes/search' },
+            { label: 'ABOUT US', href: '/about' },
+            { label: 'CONTACT US', href: '/contact' },
+          ].map(({ label: item, href }) => (
+            <Link key={item} href={href}>
               <span
                 className="nav-link"
                 style={{
-                  color: scrollY > 50 ? '#374151' : 'rgba(255,255,255,0.88)',
+                  color: scrolled ? palette.textSecondary : 'rgba(255,255,255,0.88)',
                   transition: 'color 0.2s',
                   fontSize: 12,
                   fontWeight: 600,
@@ -73,6 +79,33 @@ export default function Navbar({ scrollY }: NavbarProps) {
               </span>
             </Link>
           ))}
+
+          {dashboardHref && (
+            <Link href={dashboardHref} title="Go to Dashboard">
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg,#10B981,#059669)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  border: scrolled ? 'none' : '2px solid rgba(255,255,255,0.5)',
+                  boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px) scale(1.06)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0) scale(1)'; }}
+              >
+                {getInitial(currentUser)}
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

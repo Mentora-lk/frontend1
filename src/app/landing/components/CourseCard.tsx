@@ -3,7 +3,6 @@ type Course = {
   title: string;
   tutor_name: string;
   location: string;
-  average_rating: number;
   fee: number;
   mode: "online" | "offline" | "both";
 };
@@ -30,7 +29,7 @@ export default function CourseCard({ course }: CourseCardProps) {
         Location: {course.location}
       </p>
       <p style={{ margin: "4px 0 0", color: "#4b5563", fontSize: 14 }}>
-        Rating: {course.average_rating} | Mode: {course.mode}
+        Mode: {course.mode}
       </p>
       <p style={{ margin: "8px 0 0", fontWeight: 700, color: "#059669" }}>
         LKR {course.fee.toLocaleString()}

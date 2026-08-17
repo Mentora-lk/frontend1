@@ -3,12 +3,20 @@
 import Link from 'next/link';
 import Sidebar from './Sidebar';
 import ClientOnly from '@/components/ClientOnly';
+import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function DashboardLayout({ children, title, subtitle }: {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
 }) {
+  const user = useCurrentUser();
+  const displayName = getDisplayName(user);
+  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     // See src/components/ClientOnly.tsx — same browser-extension hydration
     // issue as TutorDashboardLayout, same fix.
@@ -16,7 +24,7 @@ export default function DashboardLayout({ children, title, subtitle }: {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: #F8FAF9; }
+        body { font-family: 'DM Sans', sans-serif; background: ${isDark ? '#0F1512' : '#F8FAF9'}; transition: background 0.25s ease; }
         a { text-decoration: none; color: inherit; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 99px; }
@@ -28,31 +36,37 @@ export default function DashboardLayout({ children, title, subtitle }: {
       {/* Top nav */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.07)', padding: '0 5%',
+        background: isDark ? 'rgba(15,21,18,0.96)' : 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)',
+        boxShadow: isDark ? '0 2px 20px rgba(0,0,0,0.35)' : '0 2px 20px rgba(0,0,0,0.07)', padding: '0 5%',
+        transition: 'background 0.25s ease',
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
           <Link href="/">
-            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, color: '#111' }}>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, color: isDark ? '#F3F4F6' : '#111' }}>
               Mentora<span style={{ color: '#10B981' }}>.lk</span>
             </span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Notification bell */}
+            {/* Notification bell — no unread badge: no real notification
+                backend exists yet (src/services/notification.ts is a stub),
+                so this used to show a fake "3" regardless of reality. */}
             <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: isDark ? '#1F2A25' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#9CA9A2' : '#6B7280'} strokeWidth="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </div>
-              <span style={{ position: 'absolute', top: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
             </div>
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>D</div>
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={displayName} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover' }}/>
+              ) : (
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{getInitial(user)}</div>
+              )}
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>D.M.S.N. Dissanayake</p>
-                <p style={{ fontSize: 11, color: '#9CA3AF' }}>Student</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.2 }}>{displayName}</p>
+                <p style={{ fontSize: 11, color: isDark ? '#8B968F' : '#9CA3AF' }}>{roleLabel}</p>
               </div>
             </div>
           </div>
@@ -67,8 +81,8 @@ export default function DashboardLayout({ children, title, subtitle }: {
             {/* Page header */}
             <div className="fade-up" style={{ marginBottom: 28 }}>
               <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Student Portal</p>
-              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,3vw,34px)', fontWeight: 900, color: '#111827', lineHeight: 1.15 }}>{title}</h1>
-              {subtitle && <p style={{ fontSize: 14, color: '#6B7280', marginTop: 6 }}>{subtitle}</p>}
+              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,3vw,34px)', fontWeight: 900, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.15 }}>{title}</h1>
+              {subtitle && <p style={{ fontSize: 14, color: isDark ? '#9CA9A2' : '#6B7280', marginTop: 6 }}>{subtitle}</p>}
             </div>
             {children}
           </div>

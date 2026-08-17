@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
 import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
+import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
+import { usePalette } from '@/hooks/usePalette';
+import { useEnrollmentStatusSocket } from '@/hooks/useEnrollmentStatusSocket';
 
 type MyClassStatus = 'active' | 'requested' | 'approved';
 type MyClassMode = 'online' | 'offline' | 'both';
@@ -17,7 +20,6 @@ type MyClass = {
   location: string;
   mode: MyClassMode;
   fee: number;
-  rating: number;
   status: MyClassStatus;
   sessionsAttended: number;
   totalSessions: number;
@@ -25,25 +27,31 @@ type MyClass = {
   image: string;
 };
 
-function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void }) {
-  const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
+function MyClassCard({ cls, view, onCancel, onView }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void; onView?: () => void }) {
+  const palette = usePalette();
   const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
+  const thumbnail = cls.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
 
   return (
     <div
+      onClick={onView}
       style={{
         display: 'flex',
         flexDirection: view === 'grid' ? 'column' : 'row',
         gap: 12,
-        background: 'white',
-        border: '1px solid #E5E7EB',
+        background: palette.surface,
+        border: `1px solid ${palette.border}`,
         borderRadius: 16,
         padding: 14,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+        boxShadow: palette.shadow,
+        cursor: onView ? 'pointer' : 'default',
+        transition: 'transform 0.2s, box-shadow 0.2s',
       }}
+      onMouseEnter={e => { if (onView) e.currentTarget.style.transform = 'translateY(-3px)'; }}
+      onMouseLeave={e => { if (onView) e.currentTarget.style.transform = 'none'; }}
     >
       <img
-        src={cls.image}
+        src={thumbnail}
         alt={cls.title}
         style={{
           width: view === 'grid' ? '100%' : 130,
@@ -55,114 +63,103 @@ function MyClassCard({ cls, view, onCancel }: { cls: MyClass; view: 'grid' | 'li
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-          <h4 style={{ fontSize: 15, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.title}</h4>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: palette.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.title}</h4>
           <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, textTransform: 'capitalize' }}>{cls.status}</span>
         </div>
-        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
-        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
-        <p style={{ fontSize: 12, color: '#374151', marginBottom: 8 }}>Next: {cls.nextSession}</p>
-        <div style={{ width: '100%', height: 7, borderRadius: 999, background: '#F3F4F6', overflow: 'hidden', marginBottom: 6 }}>
-          <div style={{ width: `${progress}%`, height: '100%', background: '#10B981' }} />
-        </div>
-        <p style={{ fontSize: 11, color: '#6B7280' }}>{cls.sessionsAttended}/{cls.totalSessions} sessions • ⭐ {cls.rating.toFixed(1)}</p>
+        <p style={{ fontSize: 12, color: palette.textSecondary, marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
+        <p style={{ fontSize: 12, color: palette.textMuted, marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
+        <p style={{ fontSize: 12, color: palette.textSecondary }}>Next: {cls.nextSession}</p>
       </div>
     </div>
   );
 }
 
-// ── All dummy data lives here ──────────────────────────────────────────────────
-const MY_CLASSES: MyClass[] = [
-  {
-    id: 1, tutorId: 1,
-    title: 'A/L Combined Mathematics',
-    tutor: 'Kasun Fernando',
-    subject: 'Mathematics',
-    location: 'Moratuwa',
-    mode: 'online',
-    fee: 2500,
-    rating: 4.8,
-    status: 'active',
-    sessionsAttended: 12,
-    totalSessions: 20,
-    nextSession: 'Monday, 6:00 PM',
-    image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80',
-  },
-  {
-    id: 2, tutorId: 2,
-    title: 'Advanced Level : ICT',
-    tutor: 'Nimesh Dissanayake',
-    subject: 'ICT',
-    location: 'Piliyandala',
-    mode: 'online',
-    fee: 3000,
-    rating: 4.6,
-    status: 'active',
-    sessionsAttended: 8,
-    totalSessions: 24,
-    nextSession: 'Wednesday, 5:00 PM',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&q=80',
-  },
-  {
-    id: 3, tutorId: 3,
-    title: 'A/L Physics Full Syllabus',
-    tutor: 'Thilak Perera',
-    subject: 'Physics',
-    location: 'Moratuwa',
-    mode: 'offline',
-    fee: 2000,
-    rating: 4.9,
-    status: 'requested',
-    sessionsAttended: 0,
-    totalSessions: 18,
-    nextSession: 'Awaiting tutor approval',
-    image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=400&q=80',
-  },
-  {
-    id: 4, tutorId: 4,
-    title: 'Music : Guitar For Beginners',
-    tutor: 'Manoj Kumara',
-    subject: 'Music',
-    location: 'Matale',
-    mode: 'offline',
-    fee: 1500,
-    rating: 4.7,
-    status: 'approved',
-    sessionsAttended: 0,
-    totalSessions: 12,
-    nextSession: 'Starts Saturday, 9:00 AM',
-    image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80',
-  },
-  {
-    id: 5, tutorId: 5,
-    title: 'A/L Chemistry',
-    tutor: 'Dilshan Rajapaksa',
-    subject: 'Chemistry',
-    location: 'Colombo',
-    mode: 'both',
-    fee: 3500,
-    rating: 4.5,
-    status: 'active',
-    sessionsAttended: 5,
-    totalSessions: 22,
-    nextSession: 'Friday, 4:00 PM',
-    image: 'https://images.unsplash.com/photo-1532094349884-543559c1a21c?w=400&q=80',
-  },
-];
+// PUT /enrollments/:id (updateEnrollmentDetails) now exists on the backend for
+// editing a still-pending enrollment's details/schedule — separate from PATCH
+// /enrollments/:id, which is the status-transition endpoint.
+const ENROLLMENT_EDIT_ENABLED = true;
 
-const UPCOMING_SESSIONS = [
-  { id: 1, subject: 'Mathematics', tutor: 'Kasun Fernando',   time: 'Mon, 6:00 PM · Tomorrow',   color: '#8B5CF6' },
-  { id: 2, subject: 'ICT',         tutor: 'Nimesh Dissanayake', time: 'Wed, 5:00 PM · In 3 days',  color: '#F59E0B' },
-  { id: 3, subject: 'Chemistry',   tutor: 'Dilshan Rajapaksa',  time: 'Fri, 4:00 PM · In 5 days',  color: '#10B981' },
-];
+function EnrollmentDetailsModal({ enrollment, onClose }: { enrollment: any; onClose: () => void }) {
+  const palette = usePalette();
+  const mode = enrollment.preferred_mode || enrollment.mode;
 
-const SUBJECT_COLORS: Record<string, string> = {
-  Mathematics: '#8B5CF6', Physics: '#3B82F6', Chemistry: '#10B981',
-  ICT: '#F59E0B', Music: '#EC4899', Business: '#F97316',
-  English: '#06B6D4', Biology: '#84CC16', Default: '#6B7280',
-};
+  const personalRows = [
+    { l: 'Full Name', v: enrollment.full_name },
+    { l: 'Email', v: enrollment.email },
+    { l: 'Phone', v: enrollment.phone },
+    { l: 'School', v: enrollment.school },
+    { l: 'Grade', v: enrollment.grade },
+    { l: 'Message', v: enrollment.message },
+  ].filter(row => row.v);
+
+  const scheduleRows = [
+    { l: 'Day', v: enrollment.selected_day },
+    { l: 'Time', v: enrollment.selected_time ? `🕐 ${enrollment.selected_time}` : undefined },
+    { l: 'Mode', v: mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : undefined },
+    { l: 'Location', v: mode === 'online' ? 'Online (video call)' : enrollment.location },
+    { l: 'Fee', v: enrollment.fee ? `LKR ${Number(enrollment.fee).toLocaleString()}/month` : undefined },
+  ].filter(row => row.v);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: palette.surface, borderRadius: 20, padding: '28px 30px', maxWidth: 460, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12 }}>
+          <div>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: palette.textPrimary, lineHeight: 1.3 }}>{enrollment.title}</h2>
+            <p style={{ fontSize: 12, color: palette.textMuted, marginTop: 4 }}>Your enrollment submission</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, fontSize: 20, lineHeight: 1, padding: 4, flexShrink: 0 }}>✕</button>
+        </div>
+
+        {personalRows.length > 0 && (
+          <div style={{ background: palette.surfaceAlt, borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: palette.textMuted, marginBottom: 10 }}>Personal Details</p>
+            {personalRows.map(row => (
+              <div key={row.l} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${palette.border}` }}>
+                <span style={{ fontSize: 13, color: palette.textSecondary, width: 110, flexShrink: 0 }}>{row.l}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: palette.textPrimary, flex: 1 }}>{row.v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {scheduleRows.length > 0 && (
+          <div style={{ background: '#F0FDF4', borderRadius: 14, padding: '16px 18px', border: '1px solid #A7F3D0' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#059669', marginBottom: 10 }}>Selected Schedule</p>
+            {scheduleRows.map(row => (
+              <div key={row.l} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(16,185,129,0.1)' }}>
+                <span style={{ fontSize: 13, color: '#065F46', width: 110, flexShrink: 0 }}>{row.l}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#065F46', flex: 1 }}>{row.v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {ENROLLMENT_EDIT_ENABLED && enrollment.status === 'requested' && (
+          <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
+            <Link href={`/classes/${enrollment.class_id}/enroll?enrollmentId=${enrollment.id}`}>
+              <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                Edit Enrollment
+              </button>
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function StudentDashboard() {
+  const user = useCurrentUser();
+  const palette = usePalette();
+
   // Real data from backend
   const [classes,  setClasses]  = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -172,6 +169,7 @@ export default function StudentDashboard() {
   const [view,        setView]        = useState<'grid'|'list'>('grid');
   const [statusFilter, setStatus]     = useState<string>('all');
   const [searchQuery,  setSearch]     = useState('');
+  const [selectedEnrollment, setSelectedEnrollment] = useState<any | null>(null);
 
   // Fetch enrollments
   useEffect(() => {
@@ -196,6 +194,12 @@ export default function StudentDashboard() {
     fetchEnrollments();
   }, []);
 
+  // Live-update a class's status the moment a tutor approves/rejects it —
+  // no reload needed. Backend pushes this from updateEnrollmentStatus.
+  useEnrollmentStatusSocket((update) => {
+    setClasses(prev => prev.map(c => c.id === update.id ? { ...c, status: update.status } : c));
+  });
+
   const handleCancel = async (enrollmentId: number) => {
     if (!confirm('Are you sure you want to cancel this enrollment?')) return;
     try {
@@ -212,12 +216,17 @@ export default function StudentDashboard() {
   const activeClasses  = classes.filter(c => c.status === 'active');
   const pendingClasses  = classes.filter(c => c.status === 'requested');
 
-  // Filter by search query on the frontend (status filter is done by backend)
+  const approvedClasses = classes.filter(c => c.status === 'approved');
+
+  // Filter by both the selected status tab and the search query, all client-side
+  // against the full enrollment list already fetched above.
   const filtered = classes.filter(c => {
     const title = c.title?.toLowerCase() || '';
     const tutor = c.tutor_name?.toLowerCase() || '';
     const q     = searchQuery.toLowerCase();
-    return !q || title.includes(q) || tutor.includes(q);
+    const matchesSearch = !q || title.includes(q) || tutor.includes(q);
+    const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -225,7 +234,7 @@ export default function StudentDashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', sans-serif; background: #F8FAF9; }
+        body { font-family: 'DM Sans', sans-serif; background: ${palette.bg}; transition: background 0.25s ease; }
         a { text-decoration: none; color: inherit; }
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #10B981; border-radius: 99px; }
@@ -239,9 +248,9 @@ export default function StudentDashboard() {
         .delay-4 { animation-delay: 0.32s; }
 
         .stat-card {
-          background: white; border-radius: 18px; padding: 20px 22px; flex: 1;
+          background: ${palette.surface}; border-radius: 18px; padding: 20px 22px; flex: 1;
           transition: all 0.28s cubic-bezier(.22,1,.36,1);
-          border: 1px solid rgba(0,0,0,0.04);
+          border: 1px solid ${palette.border};
         }
         .stat-card:hover { transform: translateY(-5px); }
 
@@ -263,34 +272,36 @@ export default function StudentDashboard() {
       {/* ── Top nav bar ─────────────────────────────────────────────────────── */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.07)', padding: '0 5%',
+        background: palette.navBg, backdropFilter: 'blur(20px)',
+        boxShadow: palette.shadow, padding: '0 5%',
+        transition: 'background 0.25s ease',
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
           <Link href="/">
-            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, color: '#111' }}>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 900, color: palette.textPrimary }}>
               Mentora<span style={{ color: '#10B981' }}>.lk</span>
             </span>
           </Link>
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Notification bell */}
+            {/* Notification bell — no unread badge shown: there's no real
+                notification backend yet (src/services/notification.ts is a
+                stub), so this used to show a fake "3" regardless of reality. */}
             <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: palette.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
               </div>
-              <span style={{ position: 'absolute', top: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
             </div>
 
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>D</div>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{getInitial(user)}</div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>D.M.S.N. Dissanayake</span>
-                <span style={{ fontSize: 11, color: '#9CA3AF' }}>Student</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary, lineHeight: 1.2 }}>{getDisplayName(user)}</span>
+                <span style={{ fontSize: 11, color: palette.textMuted }}>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : ''}</span>
               </div>
             </div>
           </div>
@@ -312,10 +323,10 @@ export default function StudentDashboard() {
             {/* Welcome header */}
             <div className="fade-up" style={{ marginBottom: 28 }}>
               <p style={{ fontSize: 13, color: '#10B981', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Welcome back 👋</p>
-              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,3vw,36px)', fontWeight: 900, color: '#111827', lineHeight: 1.15 }}>
+              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,3vw,36px)', fontWeight: 900, color: palette.textPrimary, lineHeight: 1.15 }}>
                 My Learning Dashboard
               </h1>
-              <p style={{ fontSize: 14, color: '#6B7280', marginTop: 6 }}>Track your classes, progress, and upcoming sessions.</p>
+              <p style={{ fontSize: 14, color: palette.textSecondary, marginTop: 6 }}>Track your classes, progress, and upcoming sessions.</p>
             </div>
 
             {/* ── STAT CARDS ──────────────────────────────────────────────── */}
@@ -330,11 +341,47 @@ export default function StudentDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div style={{ width: 42, height: 42, borderRadius: 12, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{s.icon}</div>
                   </div>
-                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: '#111827', lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
-                  <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>{s.label}</div>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 26, fontWeight: 900, color: palette.textPrimary, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+                  <div style={{ fontSize: 13, color: palette.textSecondary, fontWeight: 500 }}>{s.label}</div>
                 </div>
               ))}
             </div>
+
+            <Link href="/dashboard/student/recommendations">
+              <div
+                style={{
+                  background:'linear-gradient(135deg,#064E3B,#065F46)',
+                  borderRadius:16, padding:'20px 24px', marginBottom:24,
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  cursor:'pointer', transition:'all 0.2s', flexWrap:'wrap', gap:12,
+                }}
+                onMouseEnter={e=>{
+                  (e.currentTarget as HTMLDivElement).style.transform='translateY(-2px)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow='0 12px 32px rgba(0,0,0,0.2)';
+                }}
+                onMouseLeave={e=>{
+                  (e.currentTarget as HTMLDivElement).style.transform='translateY(0)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow='none';
+                }}
+              >
+                <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                  <div style={{ width:48, height:48, borderRadius:14, background:'rgba(255,255,255,0.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
+                    ✨
+                  </div>
+                  <div>
+                    <p style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:'white', margin:'0 0 4px' }}>
+                      Find Your Perfect Tutor
+                    </p>
+                    <p style={{ fontSize:13, color:'rgba(255,255,255,0.65)', margin:0 }}>
+                      Let our AI match you based on your subjects, budget and schedule
+                    </p>
+                  </div>
+                </div>
+                <div style={{ background:'rgba(255,255,255,0.15)', borderRadius:10, padding:'10px 18px', color:'white', fontSize:13, fontWeight:700, flexShrink:0, border:'1px solid rgba(255,255,255,0.2)' }}>
+                  Get Recommended Tutors →
+                </div>
+              </div>
+            </Link>
 
             {/* ── TWO COLUMN: Classes + Right panel ───────────────────────── */}
             <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
@@ -350,13 +397,13 @@ export default function StudentDashboard() {
                       { key: 'all',       label: `All (${classes.length})` },
                       { key: 'active',    label: `Active (${activeClasses.length})` },
                       { key: 'requested', label: `Pending (${pendingClasses.length})` },
-                      { key: 'approved',  label: 'Approved' },
+                      { key: 'approved',  label: `Approved (${approvedClasses.length})` },
                     ].map(tab => (
                       <button key={tab.key} className="filter-tab" onClick={() => setStatus(tab.key)}
                         style={{
-                          background:   statusFilter === tab.key ? '#10B981' : 'white',
-                          color:        statusFilter === tab.key ? 'white'   : '#6B7280',
-                          borderColor:  statusFilter === tab.key ? '#10B981' : '#E5E7EB',
+                          background:   statusFilter === tab.key ? '#10B981' : palette.surface,
+                          color:        statusFilter === tab.key ? 'white'   : palette.textSecondary,
+                          borderColor:  statusFilter === tab.key ? '#10B981' : palette.border,
                           boxShadow:    statusFilter === tab.key ? '0 4px 12px rgba(16,185,129,0.3)' : 'none',
                         }}>
                         {tab.label}
@@ -366,23 +413,23 @@ export default function StudentDashboard() {
 
                   {/* Search + view toggle */}
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 11, padding: '8px 14px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: palette.surface, border: `1.5px solid ${palette.border}`, borderRadius: 11, padding: '8px 14px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
                         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                       </svg>
                       <input
                         type="text" placeholder="Search classes..."
                         value={searchQuery} onChange={e => setSearch(e.target.value)}
-                        style={{ border: 'none', outline: 'none', fontSize: 13, color: '#374151', background: 'transparent', width: 130, fontFamily: "'DM Sans',sans-serif" }}
+                        style={{ border: 'none', outline: 'none', fontSize: 13, color: palette.textSecondary, background: 'transparent', width: 130, fontFamily: "'DM Sans',sans-serif" }}
                       />
                     </div>
                     {/* Grid / List toggle */}
-                    <div style={{ display: 'flex', background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 11, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', background: palette.surface, border: `1.5px solid ${palette.border}`, borderRadius: 11, overflow: 'hidden' }}>
                       {(['grid', 'list'] as const).map(v => (
                         <button key={v} onClick={() => setView(v)} style={{
                           padding: '8px 13px', border: 'none', cursor: 'pointer',
                           background: view === v ? '#10B981' : 'transparent',
-                          color: view === v ? 'white' : '#9CA3AF',
+                          color: view === v ? 'white' : palette.textMuted,
                           transition: 'all 0.2s', display: 'flex', alignItems: 'center',
                         }}>
                           {v === 'grid'
@@ -399,8 +446,8 @@ export default function StudentDashboard() {
                 <div className={`fade-up delay-3 ${view === 'grid' ? 'class-grid' : 'class-list'}`}>
                   {loading ? (
                     <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1' }}>
-                      <div style={{ width:40, height:40, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
-                      <p style={{ color:'#9CA3AF', fontSize:14 }}>Loading your classes...</p>
+                      <div style={{ width:40, height:40, border:`3px solid ${palette.border}`, borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
+                      <p style={{ color:palette.textMuted, fontSize:14 }}>Loading your classes...</p>
                     </div>
                   ) : error ? (
                     <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1' }}>
@@ -423,7 +470,6 @@ export default function StudentDashboard() {
                           location:         enrollment.location,
                           mode:             enrollment.preferred_mode || enrollment.mode,
                           fee:              Number(enrollment.fee),
-                          rating:           Number(enrollment.average_rating) || 0,
                           status:           enrollment.status,
                           sessionsAttended: enrollment.sessions_attended || 0,
                           totalSessions:    enrollment.max_students || 20,
@@ -438,10 +484,11 @@ export default function StudentDashboard() {
                         }}
                         view={view}
                         onCancel={() => handleCancel(enrollment.id)}
+                        onView={() => setSelectedEnrollment(enrollment)}
                       />
                     ))
                   ) : (
-                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1', color:'#9CA3AF' }}>
+                    <div style={{ textAlign:'center', padding:'60px 0', gridColumn:'1/-1', color:palette.textMuted }}>
                       <div style={{ fontSize:48, marginBottom:12 }}>🎓</div>
                       <p style={{ fontSize:16, fontWeight:600 }}>No classes found</p>
                       <p style={{ fontSize:13, marginTop:6 }}>
@@ -465,6 +512,10 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {selectedEnrollment && (
+        <EnrollmentDetailsModal enrollment={selectedEnrollment} onClose={() => setSelectedEnrollment(null)} />
+      )}
     </>
   );
 }

@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import TutorRegistration from "../components/SignupForm/TutorRegistration";
+import { usePalette } from "@/hooks/usePalette";
 
 export default function TutorDetailsPage() {
+  const palette = usePalette();
+
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", background: palette.bg, transition: "background 0.25s ease" }}>
       <div
         style={{
           maxWidth: 600,
           margin: "60px auto",
           padding: "40px 20px",
-          background: "#f9fafb",
+          background: palette.surfaceAlt,
           borderRadius: 16,
         }}
       >
@@ -25,6 +28,7 @@ export default function TutorDetailsPage() {
                 cursor: "pointer",
                 fontSize: 24,
                 padding: "8px",
+                color: palette.textPrimary,
               }}
             >
               ←
@@ -36,7 +40,7 @@ export default function TutorDetailsPage() {
                 fontFamily: "'Playfair Display', serif",
                 fontSize: 36,
                 fontWeight: 700,
-                color: "#111827",
+                color: palette.textPrimary,
                 margin: 0,
                 lineHeight: 1.2,
               }}
@@ -46,9 +50,10 @@ export default function TutorDetailsPage() {
             <p
               style={{
                 fontSize: 14,
-                color: "#6b7280",
+                color: palette.textSecondary,
                 margin: "8px 0 0",
                 lineHeight: 1.6,
+                fontFamily: "'DM Sans', sans-serif"
               }}
             >
               Share your teaching experience with us
@@ -56,7 +61,7 @@ export default function TutorDetailsPage() {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Form (includes its own "Sign up with Google" button) */}
         <TutorRegistration />
       </div>
     </div>
