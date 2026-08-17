@@ -699,7 +699,7 @@ export default function EditAdPage() {
                   </span>
                 </div>
 
-                <button className="preview-cta">View & Enroll →</button>
+                <button className="preview-cta">View & Enroll </button>
               </div>
             </div>
           </div>

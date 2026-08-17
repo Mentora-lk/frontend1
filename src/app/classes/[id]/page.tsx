@@ -128,14 +128,37 @@ export default function ClassDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Loading state
+  // Loading state — a skeleton shaped like the real page (hero, image, tutor
+  // card, sidebar) instead of a bare spinner, so loading feels like content
+  // filling in rather than a jarring blank-page swap.
   if (loading) return (
     <>
+      <style>{`
+        @keyframes shimmer{0%{background-position:-600px 0;}100%{background-position:600px 0;}}
+        .shimmer{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:600px 100%;animation:shimmer 1.4s infinite;}
+      `}</style>
       <Navbar scrollY={scrollY} />
-      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:palette.bg }}>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ width:48, height:48, border:'3px solid #E5E7EB', borderTop:'3px solid #10B981', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}/>
-          <p style={{ color:palette.textMuted, fontSize:15 }}>Loading class details...</p>
+      <div style={{ minHeight:'100vh', background:palette.bg }}>
+        {/* Hero skeleton */}
+        <div style={{ background:'linear-gradient(135deg,#064E3B 0%,#065F46 50%,#047857 100%)', padding:'90px 6% 40px' }}>
+          <div style={{ maxWidth:1280, margin:'0 auto' }}>
+            <div style={{ width:220, height:12, borderRadius:6, background:'rgba(255,255,255,0.15)', marginBottom:20 }}/>
+            <div style={{ width:'min(520px,60%)', height:34, borderRadius:8, background:'rgba(255,255,255,0.18)', marginBottom:14 }}/>
+            <div style={{ width:180, height:14, borderRadius:6, background:'rgba(255,255,255,0.12)' }}/>
+          </div>
+        </div>
+
+        {/* Body skeleton */}
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'32px 6% 80px', display:'flex', gap:28, alignItems:'flex-start' }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div className="shimmer" style={{ borderRadius:22, height:300, maxWidth:520, marginBottom:28 }}/>
+            <div className="shimmer" style={{ borderRadius:20, height:120, marginBottom:24 }}/>
+            <div className="shimmer" style={{ width:260, height:40, borderRadius:14, marginBottom:22 }}/>
+            <div className="shimmer" style={{ borderRadius:20, height:180 }}/>
+          </div>
+          <div style={{ width:300, flexShrink:0 }}>
+            <div className="shimmer" style={{ borderRadius:20, height:420 }}/>
+          </div>
         </div>
       </div>
     </>
@@ -402,7 +425,7 @@ export default function ClassDetailPage() {
                 <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:13, padding:'13px 32px', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 22px rgba(16,185,129,0.38)', transition:'all 0.25s' }}
                   onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';}}
                   onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';}}>
-                  Enroll Now →
+                  Enroll Now 
                 </button>
               </Link>
             </div>
@@ -437,7 +460,7 @@ export default function ClassDetailPage() {
                     <button style={{ width:'100%', marginTop:16, background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'14px', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 20px rgba(16,185,129,0.38)', transition:'all 0.25s' }}
                       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';}}
                       onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';}}>
-                      Enroll Now →
+                      Enroll Now 
                     </button>
                   </Link>
                   <button onClick={()=>setShowModal(true)} style={{ width:'100%', marginTop:10, background:'none', border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'12px', fontSize:14, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
@@ -459,7 +482,7 @@ export default function ClassDetailPage() {
             <span style={{ fontSize:12, color:palette.textMuted, marginLeft:4 }}>/mo</span>
           </div>
           <Link href={`/classes/${course.id}/enroll`}>
-            <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'13px 32px', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Enroll Now →</button>
+            <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'13px 32px', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Enroll Now </button>
           </Link>
         </div>
 

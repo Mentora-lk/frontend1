@@ -132,7 +132,7 @@ export default function SchedulePage() {
         </div>
         <Link href="/classes/search">
           <button style={{ background:'white', color:'#065F46', border:'none', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
-            Browse Classes →
+            Browse Classes 
           </button>
         </Link>
       </div>

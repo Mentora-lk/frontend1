@@ -213,7 +213,7 @@ export default function ClassCard({ cls, index }: ClassCardProps) {
             </div>
           </div>
 
-          <button className="cc-btn">Book a Session →</button>
+          <button className="cc-btn">Book a Session </button>
         </div>
       </div>
     </>

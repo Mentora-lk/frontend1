@@ -10,7 +10,7 @@ import { usePalette } from '@/hooks/usePalette';
 const SUBJECTS  = ['All','Mathematics','Physics','Chemistry','ICT','Music','Business','English'];
 const LOCATIONS = ['All Locations','Moratuwa','Colombo','Kandy','Piliyandala','Matale','Online'];
 const SORT_OPTIONS = [
-  { value:'fee_asc',  label:'Price: Low to High' },   //!An array of objects:value → used internally:label → shown to user
+  { value:'fee_asc',  label:'Price: Low to High' },   //!An array of objects:value  used internally:label  shown to user
   { value:'fee_desc', label:'Price: High to Low' },
 ];
 type Course = {         //!TypeScript type declaration:creating a blueprint of course object
@@ -71,7 +71,7 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <span style={{ fontSize:15, fontWeight:800, color:'#059669' }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:11, fontWeight:400, color:palette.textMuted }}>/mo</span></span>
-                <span style={{ fontSize:13, fontWeight:600, color:'#10B981', border:'1px solid #10B981', borderRadius:8, padding:'5px 14px' }}>View →</span>
+                <span style={{ fontSize:13, fontWeight:600, color:'#10B981', border:'1px solid #10B981', borderRadius:8, padding:'5px 14px' }}>View </span>
               </div>
             </div>
           </div>
@@ -99,7 +99,7 @@ function CourseCard({ course, view }: { course: Course; view: 'grid'|'list' }) {
           <p style={{ fontSize:12, color:palette.textMuted, marginBottom:7 }}>By <span style={{ fontWeight:600, color:'#10B981' }}>{course.tutor_name || "Tutor"}</span></p>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:10, paddingTop:10, borderTop:`1px solid ${palette.border}` }}>
             <span style={{ fontSize:14, fontWeight:800, color:'#059669' }}>LKR {course.fee.toLocaleString()}<span style={{ fontSize:10, fontWeight:400, color:palette.textMuted }}>/mo</span></span>
-            <span style={{ fontSize:12, fontWeight:600, color:'#10B981' }}>View →</span>
+            <span style={{ fontSize:12, fontWeight:600, color:'#10B981' }}>View </span>
           </div>
         </div>
       </div>

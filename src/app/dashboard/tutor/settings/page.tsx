@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { usePalette } from '@/hooks/usePalette';
 
@@ -41,9 +42,17 @@ const Section = ({ title, icon, children, onSave, saved }: { title:string; icon:
 
 export default function TutorSettingsPage() {
   const palette = usePalette();
+  const router = useRouter();
   const [notifications, setNotifications] = useState({ email:true,  sms:false, newRequest:true,  messages:true,  sessionReminder:true  });
   const [privacy,       setPrivacy]       = useState({ publicProfile:true, showPhone:false, showEarnings:false });
   const [saved, setSaved] = useState('');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    document.cookie = 'user_role=; path=/; max-age=0';
+    router.push('/auth/login');
+  };
 
   const toggle = (group: 'notifications' | 'privacy', key: string) => {
     if (group === 'notifications') setNotifications(p => ({ ...p, [key]: !(p as any)[key] }));
@@ -95,6 +104,22 @@ export default function TutorSettingsPage() {
         <Row label="Show Phone Number"  desc="Display phone number on your public page"   on={privacy.showPhone}     onToggle={() => toggle('privacy','showPhone')} />
         <Row label="Show Earnings"      desc="Show monthly earnings on community page"    on={privacy.showEarnings}  onToggle={() => toggle('privacy','showEarnings')} />
       </Section>
+
+      {/* Log Out */}
+      <div style={{ background:palette.surface, borderRadius:20, padding:'24px 28px', boxShadow:palette.shadow, border:`1px solid ${palette.border}`, marginBottom:20 }}>
+        <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:palette.textPrimary, marginBottom:20, display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:20 }}>🚪</span>Log Out
+        </h3>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+          <div>
+            <p style={{ fontSize:14, fontWeight:600, color:palette.textPrimary, marginBottom:2 }}>Sign out of Mentora</p>
+            <p style={{ fontSize:12, color:palette.textMuted }}>You'll need to log in again to access your dashboard</p>
+          </div>
+          <button onClick={handleLogout} style={{ background:palette.surfaceAlt, color:palette.textSecondary, border:'none', borderRadius:10, padding:'9px 20px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+            Log Out
+          </button>
+        </div>
+      </div>
 
       {/* Danger zone */}
       <div style={{ background:palette.surface, borderRadius:20, padding:'24px 28px', boxShadow:palette.shadow, border:'1.5px solid #FECACA' }}>

@@ -1063,7 +1063,7 @@ export default function TutorRegistration() {
             onMouseEnter={(e) => canProceedToNextStep() && handleButtonHoverEnter(e, true)}
             onMouseLeave={(e) => canProceedToNextStep() && handleButtonHoverLeave(e, true)}
           >
-            Next →
+            Next 
           </button>
         ) : (
           <button

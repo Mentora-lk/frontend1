@@ -22,8 +22,8 @@ This is the Next.js 15 (App Router) frontend for **Mentora.lk**, a tutoring mark
 ### Role-based routing
 
 - `src/middleware.ts` gates every `/dashboard/*` route based on a plain `user_role` cookie (`admin` | `student` | `tutor`), set client-side via `document.cookie` right after login (see `src/app/auth/login/page.tsx`).
-  - No cookie → redirect to `/auth/login?next=<path>`.
-  - Wrong role for the path prefix → redirect to `/unauthorized`.
+  - No cookie  redirect to `/auth/login?next=<path>`.
+  - Wrong role for the path prefix  redirect to `/unauthorized`.
 - `src/lib/routeRoles.ts` holds the `UserRole` type and the `canAccessPath`/`isUserRole` logic the middleware uses. Each role's dashboard lives under its own top-level folder: `src/app/dashboard/admin/`, `src/app/dashboard/student/`, `src/app/dashboard/tutor/`.
 - This cookie check is coarse (route-prefix only) — it is **not** the auth mechanism itself, just route gating. Actual auth state is the JWT described below.
 
@@ -46,7 +46,7 @@ Two distinct real-time mechanisms coexist, in different states of repair:
 
 ### Theming
 
-- `src/lib/theme.ts` defines a `Palette` of named color tokens (bg/surface/border/text/etc.) for light and dark mode; `src/hooks/useTheme.ts` (reads `ThemeContext`) + `src/hooks/usePalette.ts` (theme → `Palette`) are how components consume it. `src/components/providers/ThemeProvider.tsx` persists the choice to `localStorage["theme"]` and sets `data-theme` on `<html>`; it's mounted in `src/app/layout.tsx` alongside `GlobalThemeStyles` (applies the palette to `<body>` site-wide) and `GoogleAuthProvider` (wraps `@react-oauth/google`'s `GoogleOAuthProvider`, needs `NEXT_PUBLIC_GOOGLE_CLIENT_ID`).
+- `src/lib/theme.ts` defines a `Palette` of named color tokens (bg/surface/border/text/etc.) for light and dark mode; `src/hooks/useTheme.ts` (reads `ThemeContext`) + `src/hooks/usePalette.ts` (theme  `Palette`) are how components consume it. `src/components/providers/ThemeProvider.tsx` persists the choice to `localStorage["theme"]` and sets `data-theme` on `<html>`; it's mounted in `src/app/layout.tsx` alongside `GlobalThemeStyles` (applies the palette to `<body>` site-wide) and `GoogleAuthProvider` (wraps `@react-oauth/google`'s `GoogleOAuthProvider`, needs `NEXT_PUBLIC_GOOGLE_CLIENT_ID`).
 - This only drives pages that were explicitly ported to call `usePalette()` (dashboard chrome, Settings) — most of the app still has hardcoded hex literals in its inline styles and won't visually change on toggle.
 
 ### UI structure

@@ -98,7 +98,7 @@ export default function MyClassCard({ cls, view, onCancel }: Props) {
                 style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#10B981', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all 0.2s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = '#10B981'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#10B981'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
-              >View →</button>
+              >View </button>
             </Link>
             {(cls.status === 'requested' || cls.status === 'active') && onCancel && (
               <button
@@ -208,7 +208,7 @@ export default function MyClassCard({ cls, view, onCancel }: Props) {
                 style={{ background: 'none', border: '1px solid #E5E7EB', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#10B981', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", transition: 'all 0.2s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#10B981'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = '#10B981'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#10B981'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
-              >View →</button>
+              >View </button>
             </Link>
             {(cls.status === 'requested' || cls.status === 'active') && onCancel && (
               <button

@@ -662,7 +662,7 @@ function EnrollPageContent() {
                   <Link href={dashboardLink}>
                     <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:13, padding:'13px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:'0 6px 22px rgba(16,185,129,0.38)', transition:'all 0.25s' }}
                       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-3px)';}}
-                      onMouseLeave={e=>{e.currentTarget.style.transform='none';}}>View My Classes →</button>
+                      onMouseLeave={e=>{e.currentTarget.style.transform='none';}}>View My Classes </button>
                   </Link>
                   <Link href="/classes/search">
                     <button style={{ background:palette.surface, color:palette.textSecondary, border:`1.5px solid ${palette.border}`, borderRadius:13, padding:'13px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.25s' }}

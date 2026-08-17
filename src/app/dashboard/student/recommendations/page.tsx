@@ -531,7 +531,7 @@ export default function RecommendationsPage() {
                               <button style={{ background:`linear-gradient(135deg,${color},${color}cc)`, color:'white', border:'none', borderRadius:10, padding:'10px 20px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", boxShadow:`0 4px 12px ${color}40`, transition:'all 0.2s' }}
                                 onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';}}
                                 onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';}}>
-                                Enroll Now →
+                                Enroll Now 
                               </button>
                             </Link>
                           </div>
@@ -550,7 +550,7 @@ export default function RecommendationsPage() {
                   <button style={{ background:'none', border:'1.5px solid #10B981', color:'#10B981', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s' }}
                     onMouseEnter={e=>{e.currentTarget.style.background='#ECFDF5';}}
                     onMouseLeave={e=>{e.currentTarget.style.background='none';}}>
-                    Browse All Classes →
+                    Browse All Classes 
                   </button>
                 </Link>
               </div>

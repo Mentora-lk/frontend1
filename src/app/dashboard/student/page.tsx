@@ -378,7 +378,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <div style={{ background:'rgba(255,255,255,0.15)', borderRadius:10, padding:'10px 18px', color:'white', fontSize:13, fontWeight:700, flexShrink:0, border:'1px solid rgba(255,255,255,0.2)' }}>
-                  Get Recommended Tutors →
+                  Get Recommended Tutors 
                 </div>
               </div>
             </Link>

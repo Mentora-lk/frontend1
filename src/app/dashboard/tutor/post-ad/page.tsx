@@ -667,7 +667,7 @@ export default function PostAdPage() {
                   </span>
                 </div>
 
-                <button className="preview-cta">View & Enroll →</button>
+                <button className="preview-cta">View & Enroll </button>
               </div>
             </div>
           </div>
