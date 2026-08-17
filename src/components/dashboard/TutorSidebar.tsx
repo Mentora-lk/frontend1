@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/hooks/useTheme';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const NAV_ITEMS = [
   {
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
 
 export default function TutorSidebar({ profile, pendingCount = 0 }: { profile?: any; pendingCount?: number }) {
   const pathname = usePathname();
+  const { unreadMessageCount } = useNotifications();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -72,10 +74,7 @@ export default function TutorSidebar({ profile, pendingCount = 0 }: { profile?: 
               : pathname.startsWith(item.href);
           const activeBg = isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5';
           const hoverBg = isDark ? '#1B2420' : '#F9FAFB';
-          // Only "Requests" has a live count to badge (pending enrollment requests).
-          // Messages has no real unread-count source yet — messaging isn't wired to a
-          // working backend on this branch (see CLAUDE.md), so no badge is shown for it.
-          const badge = item.label === 'Requests' ? pendingCount : 0;
+          const badge = item.label === 'Requests' ? pendingCount : item.label === 'Messages' ? unreadMessageCount : 0;
           return (
             <Link key={item.label} href={item.href} style={{ textDecoration: 'none' }}>
               <div

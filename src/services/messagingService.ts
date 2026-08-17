@@ -1,59 +1,49 @@
-const WS_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace("http", "ws") || "ws://localhost:5000";
+import { io, Socket } from "socket.io-client";
 
-export interface Message {
-  id: string;
-  senderId: string;
-  content: string;
-  timestamp: string;
-}
+// The REST base URL includes the trailing /api (see src/lib/api.ts); the
+// Socket.io server is mounted on the same origin/port but not under /api.
+const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
 
-export type MessageHandler = (message: Message) => void;
-export type StatusHandler = (status: "connected" | "disconnected" | "error") => void;
+let socket: Socket | null = null;
 
-export const messagingService = {
-  socket: null as WebSocket | null,
+/**
+ * Thin wrapper around a single shared Socket.io connection, authenticated
+ * with the same JWT used for REST calls (see src/lib/api.ts). The backend
+ * (`src/socket.js` in the backend repo) auto-joins every connected socket to
+ * a `user:<id>` room, so this connection alone is enough to receive
+ * `new_message` / `typing` / `stop_typing` / `messages_read` /
+ * `new_notification` events for the current user without any extra "join" call.
+ */
+export const messagingSocket = {
+  connect(): Socket | null {
+    if (typeof window === "undefined") return null;
+    if (socket?.connected) return socket;
 
-  connect(conversationId: string, onMessage: MessageHandler, onStatus: StatusHandler) {
     const token = localStorage.getItem("token");
-    const url = `${WS_BASE_URL}/ws/conversations/${conversationId}?token=${token}`;
+    if (!token) return null;
 
-    this.socket = new WebSocket(url);
+    socket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ["websocket"],
+    });
 
-    this.socket.onopen = () => {
-      console.log("[WS] Connected");
-      onStatus("connected");
-    };
-
-    this.socket.onmessage = (event) => {
-      try {
-        const message: Message = JSON.parse(event.data);
-        onMessage(message);
-      } catch {
-        console.warn("[WS] Could not parse message:", event.data);
-      }
-    };
-
-    this.socket.onclose = () => {
-      console.log("[WS] Disconnected");
-      onStatus("disconnected");
-    };
-
-    this.socket.onerror = () => {
-      console.error("[WS] Error");
-      onStatus("error");
-    };
+    return socket;
   },
 
-  sendMessage(content: string, senderId: string) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ content, senderId }));
-    } else {
-      console.warn("[WS] Socket not open");
-    }
+  getSocket(): Socket | null {
+    return socket;
   },
 
   disconnect() {
-    this.socket?.close();
-    this.socket = null;
+    socket?.disconnect();
+    socket = null;
+  },
+
+  emitTyping(toUserId: number | string) {
+    socket?.emit("typing", { to: toUserId });
+  },
+
+  emitStopTyping(toUserId: number | string) {
+    socket?.emit("stop_typing", { to: toUserId });
   },
 };

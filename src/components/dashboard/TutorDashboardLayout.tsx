@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TutorSidebar from './TutorSidebar';
+import NotificationBell from './NotificationBell';
 import ClientOnly from '@/components/ClientOnly';
 import { tutorService } from '@/services/tutorService';
 import { useTheme } from '@/hooks/useTheme';
+// SocketProvider/NotificationsProvider live at the route layout level
+// (src/app/dashboard/tutor/layout.tsx) — a true ancestor of this
+// component's own callers (page.tsx files), unlike this component itself,
+// which pages render as a child.
 
 export default function TutorDashboardLayout({ children, title, subtitle }: {
   children: React.ReactNode;
@@ -77,17 +82,7 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
             </span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Notification bell */}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: isDark ? '#1F2A25' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#9CA9A2' : '#6B7280'} strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-              </div>
-              {pendingCount > 0 && (
-                <span style={{ position: 'absolute', top: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>
-              )}
-            </div>
+            <NotificationBell role="tutor" />
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{displayInitial}</div>

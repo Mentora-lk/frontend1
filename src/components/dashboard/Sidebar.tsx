@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
 import { useTheme } from '@/hooks/useTheme';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const NAV_ITEMS = [
   {
@@ -26,9 +27,6 @@ const NAV_ITEMS = [
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   },
   {
-    // No badge: no real unread-count source exists yet — messaging isn't wired
-    // to a working backend on this branch (see CLAUDE.md), so this used to show
-    // a fake "2" regardless of reality.
     label: 'Messages', href: '/dashboard/student/messages',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   },
@@ -45,6 +43,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
   const user = useCurrentUser();
+  const { unreadMessageCount } = useNotifications();
   const displayName = getDisplayName(user);
   const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
   const { theme } = useTheme();
@@ -79,6 +78,7 @@ export default function Sidebar() {
           const isActive = pathname === item.href;
           const activeBg = isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5';
           const hoverBg = isDark ? '#1B2420' : '#F9FAFB';
+          const numericBadge = item.label === 'Messages' ? unreadMessageCount : 0;
           return (
             <Link key={item.label} href={item.href} style={{ textDecoration: 'none' }}>
               <div
@@ -98,6 +98,13 @@ export default function Sidebar() {
                     {item.label}
                   </span>
                 </div>
+                {numericBadge > 0 && (
+                  <span style={{
+                    width: 20, height: 20, borderRadius: '50%', background: '#EF4444',
+                    color: 'white', fontSize: 11, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{numericBadge}</span>
+                )}
                 {isActive && <div style={{ width: 3, height: 20, background: '#10B981', borderRadius: 99, position: 'absolute', right: 0 }} />}
               </div>
             </Link>

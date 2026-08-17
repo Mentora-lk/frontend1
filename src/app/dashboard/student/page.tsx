@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/dashboard/Sidebar';
+import NotificationBell from '@/components/dashboard/NotificationBell';
 import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
 import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
 import { usePalette } from '@/hooks/usePalette';
@@ -192,16 +193,7 @@ export default function StudentDashboard() {
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Notification bell — no unread badge shown: there's no real
-                notification backend yet (src/services/notification.ts is a
-                stub), so this used to show a fake "3" regardless of reality. */}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: palette.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-              </div>
-            </div>
+            <NotificationBell role="student" />
 
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
