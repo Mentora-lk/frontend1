@@ -49,6 +49,7 @@ export default function SignupPage() {
               color: palette.textSecondary,
               margin: 0,
               lineHeight: 1.6,
+              fontFamily: "'DM Sans', sans-serif"
             }}
           >
             What brings you here today?
@@ -124,6 +125,7 @@ export default function SignupPage() {
                     color: palette.textSecondary,
                     margin: 0,
                     lineHeight: 1.6,
+                    fontFamily: "'DM Sans', sans-serif"
                   }}
                 >
                   Find the perfect tutor and start learning today
@@ -141,6 +143,7 @@ export default function SignupPage() {
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                   marginTop: 8,
+                  fontFamily: "'DM Sans', sans-serif"
                 }}
                 onMouseEnter={(e) => {
                   (e.target as HTMLButtonElement).style.transform =
@@ -216,6 +219,7 @@ export default function SignupPage() {
                     color: palette.textSecondary,
                     margin: 0,
                     lineHeight: 1.6,
+                    fontFamily: "'DM Sans', sans-serif"
                   }}
                 >
                   Start teaching and earn by sharing your expertise
@@ -250,7 +254,7 @@ export default function SignupPage() {
         </div>
 
         {/* Login Link */}
-        <div style={{ textAlign: "center", marginTop: 48 }}>
+        <div style={{ textAlign: "center", marginTop: 48, fontFamily: "'DM Sans', sans-serif" }}>
           <p style={{ fontSize: 14, color: palette.textSecondary, margin: 0 }}>
             Already have an account?{" "}
             <Link

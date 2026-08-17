@@ -35,6 +35,27 @@ export default function StudentCommunityPage() {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [requestError, setRequestError] = useState('');
 
+  // Hidden posts state to survive refresh
+  const [hiddenPostIds, setHiddenPostIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('hiddenPostIds');
+      if (stored) {
+        setHiddenPostIds(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to parse hiddenPostIds from localStorage', e);
+    }
+  }, []);
+
+  const handleDeletePost = (id: number) => {
+    const updatedHiddenIds = [...hiddenPostIds, id];
+    setHiddenPostIds(updatedHiddenIds);
+    localStorage.setItem('hiddenPostIds', JSON.stringify(updatedHiddenIds));
+    setPosts(prev => prev.filter(p => p.id !== id));
+  };
+
   const loadInitialData = async () => {
     // allSettled, not all — these are 4 independent endpoints; one failing
     // shouldn't blank the whole page (each widget updates on its own result).
@@ -134,6 +155,10 @@ export default function StudentCommunityPage() {
     setPendingCommunities(prev => prev.filter(cid => cid !== update.community_id));
 
     if (update.status === 'approved') {
+      // Now that the student has an approved membership, this community is
+      // no longer a valid Discover target — drop it so its card doesn't
+      // fall back to showing "Request Access" again.
+      setCommunities(prev => prev.filter(c => c.id !== update.community_id));
       // Refetch so the newly-approved community shows up under Active
       // Communities with correct member_count/tutor info from the server.
       getMyClasses().then(res => { if (res) setActiveCommunities(res); }).catch(err => console.error('Failed to refresh my classes', err));
@@ -205,10 +230,12 @@ export default function StudentCommunityPage() {
     return matchesSearch && matchesTag;
   });
 
-  const renderPosts = () => (
-    <>
-      {posts.map(post => (
-        <div key={post.id} className="post-card" style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}`, marginBottom: 16 }}>
+  const renderPosts = () => {
+    const visiblePosts = posts.filter(post => !hiddenPostIds.includes(post.id));
+    return (
+      <>
+        {visiblePosts.map(post => (
+          <div key={post.id} className="post-card" style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}`, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: `#3B82F620`, color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17, flexShrink: 0, overflow: 'hidden' }}>
@@ -231,9 +258,7 @@ export default function StudentCommunityPage() {
             </div>
             {post.role === 'Tutor' && (
               <div style={{ display: 'flex', gap: 12, color: palette.textMuted }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, padding: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg></button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, padding: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg></button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, padding: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg></button>
+                <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, padding: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg></button>
               </div>
             )}
           </div>
@@ -319,19 +344,16 @@ export default function StudentCommunityPage() {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 4, paddingTop: 12, borderTop: `1px solid ${palette.border}` }}>
-            <button className="like-btn" onClick={() => toggleLike(post.id)} style={{ color: post.has_reacted ? '#EF4444' : '#6B7280' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={post.has_reacted ? '#EF4444' : 'none'} stroke={post.has_reacted ? '#EF4444' : '#6B7280'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-              {post.reaction_count || 0}
-            </button>
-            <button className="like-btn" style={{ color: palette.textSecondary }}>
+            <button className="like-btn" onClick={() => alert("Reply functionality coming soon!")} style={{ color: palette.textSecondary }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
               Reply
             </button>
           </div>
         </div>
-      ))}
-    </>
-  );
+        ))}
+      </>
+    );
+  };
 
   return (
     <DashboardLayout title="Community" subtitle="Connect, discover, and learn with fellow students on Mentora.lk.">
@@ -339,10 +361,10 @@ export default function StudentCommunityPage() {
         .post-card { transition: all 0.22s; } 
         .post-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1)!important; }
         .like-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 9px; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-        .like-btn:hover { background: #F3F4F6; }
-        .tab-btn { background: none; border: none; padding: 12px 24px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; color: #6B7280; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+        .like-btn:hover { background: ${palette.surfaceAlt}; }
+        .tab-btn { background: none; border: none; padding: 12px 24px; font-size: 15px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; color: ${palette.textSecondary}; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
         .tab-btn.active { color: #10B981; border-bottom-color: #10B981; }
-        .tag-btn { background: white; border: 1px solid #E5E7EB; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: #374151; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+        .tag-btn { background: ${palette.surface}; border: 1px solid ${palette.border}; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: ${palette.textSecondary}; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
         .tag-btn:hover, .tag-btn.active { background: #10B981; color: white; border-color: #10B981; }
       `}</style>
 
@@ -390,7 +412,6 @@ export default function StudentCommunityPage() {
                       </div>
                     )}
                   </div>
-                  <button style={{ background: '#38B2AC', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg> Invite</button>
                 </div>
               </div>
 
@@ -413,9 +434,9 @@ export default function StudentCommunityPage() {
                     placeholder="Search by community name or tutor..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    style={{ width: '100%', padding: '12px 16px 12px 44px', border: '1px solid #E5E7EB', borderRadius: 12, fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: 'none', transition: 'border-color 0.2s' }}
+                    style={{ width: '100%', padding: '12px 16px 12px 44px', border: `1px solid ${palette.border}`, borderRadius: 12, fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: 'none', transition: 'border-color 0.2s', background: palette.inputBg || 'transparent', color: palette.textPrimary }}
                     onFocus={e => e.target.style.borderColor = '#10B981'}
-                    onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+                    onBlur={e => e.target.style.borderColor = palette.border}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -450,7 +471,7 @@ export default function StudentCommunityPage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           <button
                             disabled
-                            style={{ width: '100%', background: '#F3F4F6', border: '1.5px solid #E5E7EB', color: palette.textMuted, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                            style={{ width: '100%', background: palette.surfaceAlt, border: `1.5px solid ${palette.border}`, color: palette.textMuted, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             Pending
@@ -459,7 +480,7 @@ export default function StudentCommunityPage() {
                             onClick={() => handleCancelRequest(c.id)}
                             disabled={cancellingId === c.id}
                             style={{ width: '100%', background: palette.surface, border: '1.5px solid #EF4444', color: '#EF4444', padding: '8px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: cancellingId === c.id ? 'not-allowed' : 'pointer', opacity: cancellingId === c.id ? 0.6 : 1, fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s' }}
-                            onMouseOver={e => { e.currentTarget.style.background = '#FEF2F2'; }}
+                            onMouseOver={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
                             onMouseOut={e => { e.currentTarget.style.background = palette.surface; }}
                           >
                             {cancellingId === c.id ? 'Cancelling…' : 'Cancel Request'}
@@ -537,7 +558,7 @@ export default function StudentCommunityPage() {
               {activeCommunities.map(ac => {
                 const isActive = selectedActiveCommunity?.id === ac.id;
                 return (
-                  <button key={ac.id} onClick={() => setSelectedActiveCommunity(ac)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? '#E0F2FE' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#0F766E' : '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB' }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
+                  <button key={ac.id} onClick={() => setSelectedActiveCommunity(ac)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#10B981' : palette.textSecondary, transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = palette.surfaceAlt }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
                     <div style={{ width: 18, height: 18, borderRadius: 4, background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 10, fontWeight: 'bold' }}>{ac.name.charAt(0)}</div>
                     {ac.name}
                   </button>
@@ -546,36 +567,7 @@ export default function StudentCommunityPage() {
             </div>
           </div>
 
-          {/* Upcoming Deadlines Widget */}
-          <div style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}` }}>
-            <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-              Upcoming Deadlines
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {deadlines.map(d => (
-                <div key={d.id} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: `1px solid ${palette.border}` }}>
-                  <div style={{ width: 4, background: '#EF4444', borderRadius: 2 }} />
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary, marginBottom: 4, lineHeight: 1.3 }}>{d.title}</p>
-                    <p style={{ fontSize: 12, color: palette.textSecondary }}>{new Date(d.due_date).toLocaleString()}</p>
-                    <p style={{ fontSize: 11, color: '#10B981', marginTop: 4 }}>{d.community_name}</p>
-                  </div>
-                </div>
-              ))}
-              <button style={{ background: 'none', border: 'none', color: '#10B981', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left', padding: 0, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>View all calendar &rarr;</button>
-            </div>
-          </div>
 
-          {/* Need Help CTA */}
-          <div style={{ background: 'linear-gradient(135deg,#064E3B,#065F46)', borderRadius: 20, padding: 22, color: 'white', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }} />
-            <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: 'white', marginBottom: 8, position: 'relative' }}>Need Help?</h3>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 20, lineHeight: 1.5, position: 'relative' }}>Struggling with a specific topic or assignment? Book a 1-on-1 session with your tutor for personalized guidance.</p>
-            <button style={{ width: '100%', background: 'white', color: '#064E3B', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", position: 'relative', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              Schedule Session
-            </button>
-          </div>
 
           <div style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}` }}>
             <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary, marginBottom: 12 }}>Community Stats</p>
