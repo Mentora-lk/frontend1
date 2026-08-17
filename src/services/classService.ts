@@ -49,7 +49,15 @@ export const createClass = async (data: any) => {
 
 // PUT /api/courses/:id — update a course
 export const updateClass = async (id: number | string, data: any) => {
-  const response = await api.put(`/courses/${id}`, data);
+  // The `api` instance defaults Content-Type to application/json for every
+  // request; axios then JSON-stringifies FormData bodies (used here whenever
+  // the edit form attaches a new banner) instead of sending multipart, so
+  // multer's req.file on the backend ends up undefined and the uploaded
+  // banner is silently dropped. Clearing the header for FormData payloads
+  // lets axios/the browser set the correct multipart/form-data boundary
+  // instead; plain (non-FormData) payloads still get JSON-encoded normally.
+  const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+  const response = await api.put(`/courses/${id}`, data, isFormData ? { headers: { 'Content-Type': null } } : undefined);
   return response.data;
 };
 

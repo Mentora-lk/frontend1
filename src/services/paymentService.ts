@@ -26,7 +26,15 @@ export interface AdPaymentOrder {
 // `formData` is the same multipart payload post-ad/page.tsx already builds
 // (title/subject/grade/medium/fee/description/schedule/banner).
 export const initiateAdPayment = async (formData: FormData): Promise<AdPaymentOrder> => {
-  const { data } = await api.post('/payments/ad/initiate', formData);
+  // `api`'s instance default sets Content-Type: application/json on every
+  // request; axios then treats that as instruction to JSON-stringify this
+  // FormData body instead of sending it as multipart, silently dropping the
+  // banner file (multer's req.file ends up undefined server-side). Clearing
+  // the header per-request lets axios/the browser set the correct
+  // multipart/form-data boundary instead.
+  const { data } = await api.post('/payments/ad/initiate', formData, {
+    headers: { 'Content-Type': null },
+  });
   return data;
 };
 
