@@ -67,6 +67,20 @@ export const deleteClass = async (id: number | string) => {
   return response.data;
 };
 
+export interface CourseFinancials {
+  fee?: number;
+  daysPerMonth?: number;
+  monthlySpend?: number;
+}
+
+// PATCH /api/courses/:id/financials — used by the Revenue Analytics page to
+// let a tutor set fee / days-per-month / monthly spend for one class without
+// touching (or requiring) any of the other course fields.
+export const updateCourseFinancials = async (id: number | string, data: CourseFinancials) => {
+  const response = await api.patch(`/courses/${id}/financials`, data);
+  return response.data;
+};
+
 // GET /api/courses/stats — platform statistics for landing page hero
 export const getPlatformStats = async () => {
   const { data } = await api.get('/courses/stats');
@@ -81,6 +95,7 @@ export const classService = {
   getPlatformStats,
   createClass,
   updateClass,
+  updateCourseFinancials,
   deleteClass,
 };
 

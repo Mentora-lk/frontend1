@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import TutorSidebar from './TutorSidebar';
 import ClientOnly from '@/components/ClientOnly';
 import { tutorService } from '@/services/tutorService';
@@ -14,8 +15,32 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
 }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Clicking the dropdown arrow next to the avatar reveals a "Log Out"
+  // option; clicking it clears the session (same pattern as the student
+  // settings page) and sends the tutor to the landing page.
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    document.cookie = 'user_role=; path=/; max-age=0';
+    router.push('/landing');
+  };
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -88,13 +113,47 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
                 <span style={{ position: 'absolute', top: -3, right: -3, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>
               )}
             </div>
-            {/* Avatar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{displayInitial}</div>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.2 }}>{displayName}</p>
-                <p style={{ fontSize: 11, color: isDark ? '#8B968F' : '#9CA3AF' }}>Tutor</p>
+            {/* Avatar + dropdown arrow — click to reveal Log Out */}
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <div
+                onClick={() => setMenuOpen(v => !v)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{displayInitial}</div>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.2 }}>{displayName}</p>
+                  <p style={{ fontSize: 11, color: isDark ? '#8B968F' : '#9CA3AF' }}>Tutor</p>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isDark ? '#9CA9A2' : '#6B7280'} strokeWidth="2.5"
+                  style={{ transition: 'transform 0.2s ease', transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </div>
+
+              {menuOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: 160,
+                  background: isDark ? '#161D1A' : 'white', borderRadius: 14, padding: 8,
+                  boxShadow: isDark ? '0 8px 28px rgba(0,0,0,0.45)' : '0 8px 28px rgba(0,0,0,0.12)',
+                  border: isDark ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(16,185,129,0.12)', zIndex: 200,
+                }}>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', borderRadius: 9,
+                      background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                      color: '#EF4444', fontFamily: "'DM Sans',sans-serif", transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = isDark ? '#241616' : '#FEF2F2'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Log Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
