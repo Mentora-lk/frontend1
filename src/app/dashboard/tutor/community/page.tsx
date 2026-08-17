@@ -130,11 +130,11 @@ export default function TutorCommunityPage() {
         .post-card { transition: all 0.22s; } 
         .post-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1)!important; transform: translateY(-2px); }
         .tag-btn { background: ${palette.surface}; border: 1px solid ${palette.border}; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: ${palette.textSecondary}; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-        .tag-btn:hover, .tag-btn.active { background: #3B82F6; color: white; border-color: #3B82F6; }
+        .tag-btn:hover, .tag-btn.active { background: #10B981; color: white; border-color: #10B981; }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: ${palette.surface}; padding: 32px; border-radius: 24px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.35); }
         .input-field { width: 100%; padding: 12px 16px; border: 1.5px solid ${palette.border}; border-radius: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; margin-top: 8px; outline: none; transition: border-color 0.2s; background: ${palette.inputBg}; color: ${palette.textPrimary}; }
-        .input-field:focus { border-color: #3B82F6; }
+        .input-field:focus { border-color: #10B981; }
       `}</style>
 
       {/* Create Community Modal */}
@@ -158,7 +158,7 @@ export default function TutorCommunityPage() {
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowCreateModal(false)} style={{ background: palette.surfaceAlt, color: '#4B5563', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
-                <button type="submit" style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Create Community</button>
+                <button type="submit" style={{ background: '#10B981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Create Community</button>
               </div>
             </form>
           </div>
@@ -176,7 +176,7 @@ export default function TutorCommunityPage() {
             <div style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}`, marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: 0 }}>My Communities</h2>
-                <button onClick={() => setShowCreateModal(true)} style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => setShowCreateModal(true)} style={{ background: '#10B981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg> Create New
                 </button>
               </div>
@@ -188,7 +188,7 @@ export default function TutorCommunityPage() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   style={{ width: '100%', padding: '12px 16px 12px 44px', border: `1px solid ${palette.border}`, borderRadius: 12, fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: 'none', transition: 'border-color 0.2s' }}
-                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                  onFocus={e => e.target.style.borderColor = '#10B981'}
                   onBlur={e => e.target.style.borderColor = palette.border}
                 />
               </div>
@@ -221,7 +221,7 @@ export default function TutorCommunityPage() {
                       ))}
                     </div>
                     <div style={{ marginTop: 'auto' }}>
-                      <div style={{ width: '100%', background: '#EFF6FF', border: `1px solid #DBEAFE`, color: '#1D4ED8', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+                      <div style={{ width: '100%', background: '#ECFDF5', border: `1px solid #A7F3D0`, color: '#059669', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
                         Manage Community &rarr;
                       </div>
                     </div>
@@ -244,7 +244,7 @@ export default function TutorCommunityPage() {
                 {communities.map(ac => {
                   return (
                     <Link href={`/dashboard/tutor/community/${ac.id}`} key={ac.id} style={{ textDecoration: 'none' }}>
-                      <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => e.currentTarget.style.background = '#F9FAFB'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                      <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: palette.textSecondary, transition: 'all 0.2s', textAlign: 'left', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => e.currentTarget.style.background = palette.surfaceAlt} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                         {ac.icon}
                         {ac.name}
                       </button>
