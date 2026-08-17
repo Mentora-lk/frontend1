@@ -589,9 +589,6 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <p className="anim-fade-up delay-6" style={{ marginTop: 18, fontSize: 13, color: "rgba(255,255,255,0.38)", fontStyle: "italic" }}>
-                ඔබට අවශ්‍ය හොඳම ගුරුවරයෙකු හොයාගන්නේ?
-              </p>
 
               <div className="anim-fade-up cta-btns" style={{ display: "flex", gap: 12, marginTop: 22, flexWrap: "wrap" }}>
                 <Link href="/auth/signup">

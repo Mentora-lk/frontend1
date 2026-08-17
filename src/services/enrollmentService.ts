@@ -20,9 +20,9 @@ export const submitEnrollment = async (data: EnrollmentData) => {
   return response.data;
 };
 
-// PATCH /api/enrollments/:id — update an enrollment's personal details + schedule
+// PUT /api/enrollments/:id — update an enrollment's personal details + schedule
 export const updateEnrollment = async (enrollmentId: number, data: EnrollmentData) => {
-  const response = await api.patch(`/enrollments/${enrollmentId}`, data);
+  const response = await api.put(`/enrollments/${enrollmentId}`, data);
   return response.data;
 };
 

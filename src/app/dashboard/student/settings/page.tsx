@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { authService } from '@/services/authService';
@@ -43,23 +43,6 @@ export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
-  const [saved, setSaved] = useState(false);
-
-  // Language preference — a real, persisted choice. Note: this does not
-  // translate any UI text yet (no i18n library is wired up in this app) —
-  // that's a separate, larger project. This just remembers the choice.
-  const [language, setLanguage] = useState('English');
-  useEffect(() => {
-    const stored = localStorage.getItem('language');
-    if (stored) setLanguage(stored);
-  }, []);
-  const changeLanguage = (value: string) => {
-    setLanguage(value);
-    localStorage.setItem('language', value);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
   const clearSession = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -89,37 +72,14 @@ export default function SettingsPage() {
     }
   };
 
-  const selStyle: React.CSSProperties = { width:'100%', padding:'10px 12px', borderRadius:10, border:isDark?'1.5px solid #232E28':'1.5px solid #E5E7EB', fontSize:13, fontFamily:"'DM Sans',sans-serif", color:isDark?'#F3F4F6':'#374151', background:isDark?'#0F1512':'white', cursor:'pointer', outline:'none' };
-
   return (
     <DashboardLayout title="Settings" subtitle="Manage your account preferences.">
-      <style>{`@keyframes slideDown{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}`}</style>
-
-      {saved && (
-        <div style={{ position:'fixed', top:84, right:24, zIndex:999, background:'#10B981', color:'white', borderRadius:12, padding:'12px 20px', fontSize:14, fontWeight:600, boxShadow:'0 8px 24px rgba(16,185,129,0.4)', display:'flex', alignItems:'center', gap:8, animation:'slideDown 0.3s ease' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Settings saved!
-        </div>
-      )}
 
       {/* Appearance */}
       <Section isDark={isDark} title="Appearance" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>}>
         <SettingRow isDark={isDark} label="Dark Mode" desc="Switch the dashboard to a dark theme">
           <Toggle on={isDark} onChange={toggleTheme}/>
         </SettingRow>
-      </Section>
-
-      {/* Language */}
-      <Section isDark={isDark} title="Language" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>}>
-        <div style={{ display:'flex', flexDirection:'column', gap:6, maxWidth:280 }}>
-          <label style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:isDark?'#8B968F':'#9CA3AF' }}>Display Language</label>
-          <select value={language} onChange={e=>changeLanguage(e.target.value)} style={selStyle}>
-            <option>English</option>
-            <option>Sinhala</option>
-            <option>Tamil</option>
-          </select>
-          <p style={{ fontSize:11, color:isDark?'#8B968F':'#9CA3AF', marginTop:4 }}>Your preference is saved — full translation of the app is coming in a future update.</p>
-        </div>
       </Section>
 
       {/* Log Out */}

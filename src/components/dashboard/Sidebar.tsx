@@ -60,12 +60,16 @@ export default function Sidebar() {
       {/* Student profile */}
       <div style={{ padding: '0 20px 20px', borderBottom: isDark ? '1px solid #232E28' : '1px solid #F3F4F6', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#10B981,#059669)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontWeight: 700, fontSize: 18, flexShrink: 0,
-          }}>{getInitial(user)}</div>
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt={displayName} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}/>
+          ) : (
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'linear-gradient(135deg,#10B981,#059669)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontWeight: 700, fontSize: 18, flexShrink: 0,
+            }}>{getInitial(user)}</div>
+          )}
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#F3F4F6' : '#111827', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</p>
             <p style={{ fontSize: 11, color: isDark ? '#8B968F' : '#9CA3AF' }}>{roleLabel}</p>

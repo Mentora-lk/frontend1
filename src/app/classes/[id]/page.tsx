@@ -309,19 +309,37 @@ export default function ClassDetailPage() {
               <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
                 <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:20 }}>Available Time Slots</h3>
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                  {course.schedule && Object.entries(course.schedule).map(([day, times]: [string, any]) => (
-                    <div key={day} style={{ background:palette.surfaceAlt, borderRadius:14, padding:'16px 20px', border:`1px solid ${palette.border}` }}>
-                      <p style={{ fontWeight:700, fontSize:14, color:palette.textPrimary, marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+                  {!course.schedule ? (
+                    <p style={{ fontSize:14, color:palette.textMuted, textAlign:'center', padding:'20px 0' }}>
+                      No schedule provided yet.
+                    </p>
+                  ) : typeof course.schedule === 'string' ? (
+                    // Legacy free-text schedule (tutor "Post Ad" form only has a
+                    // single text field) — not structured day/time data, so just
+                    // show it as-is instead of trying to iterate over it.
+                    <div style={{ background:palette.surfaceAlt, borderRadius:14, padding:'16px 20px', border:`1px solid ${palette.border}` }}>
+                      <p style={{ fontSize:14, color:palette.textPrimary, display:'flex', alignItems:'center', gap:8 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        {day}
+                        {course.schedule}
                       </p>
-                      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                        {times.map((t: string) => (
-                          <span key={t} style={{ padding:'6px 14px', background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:8, fontSize:13, fontWeight:600, color:'#059669' }}>🕐 {t}</span>
-                        ))}
-                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    Object.entries(course.schedule).map(([day, times]: [string, any]) => (
+                      <div key={day} style={{ background:palette.surfaceAlt, borderRadius:14, padding:'16px 20px', border:`1px solid ${palette.border}` }}>
+                        <p style={{ fontWeight:700, fontSize:14, color:palette.textPrimary, marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                          {day}
+                        </p>
+                        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                          {Array.isArray(times) ? times.map((t: string) => (
+                            <span key={t} style={{ padding:'6px 14px', background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:8, fontSize:13, fontWeight:600, color:'#059669' }}>🕐 {t}</span>
+                          )) : (
+                            <span style={{ padding:'6px 14px', background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:8, fontSize:13, fontWeight:600, color:'#059669' }}>🕐 {String(times)}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

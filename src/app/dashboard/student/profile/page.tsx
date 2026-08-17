@@ -13,6 +13,7 @@ interface StudentProfile {
   grade: string;
   bio: string;
   address: string;
+  photoUrl: string | null;
 }
 
 interface AcademicStats {
@@ -38,8 +39,17 @@ export default function ProfilePage() {
   const [stats,   setStats]   = useState<AcademicStats>(EMPTY_STATS);
 
   const [form, setForm] = useState<StudentProfile>({
-    name: '', email: '', phone: '', school: '', grade: '', bio: '', address: '',
+    name: '', email: '', phone: '', school: '', grade: '', bio: '', address: '', photoUrl: null,
   });
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -54,6 +64,7 @@ export default function ProfilePage() {
           grade:   data.grade   ?? prev.grade,
           bio:     data.bio     ?? prev.bio,
           address: data.address ?? prev.address,
+          photoUrl: data.profilePicture ?? prev.photoUrl,
         }));
         setStats(data.stats || EMPTY_STATS);
       } catch (err) {
@@ -66,15 +77,25 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
-  const update = (key: keyof StudentProfile, val: string) => setForm(f => ({ ...f, [key]: val }));
+  const update = (key: Exclude<keyof StudentProfile, 'photoUrl'>, val: string) => setForm(f => ({ ...f, [key]: val }));
 
   const save = async () => {
     setSaving(true);
     try {
-      await studentService.updateProfile({
+      const result = await studentService.updateProfile({
         name: form.name, phone: form.phone, school: form.school,
         grade: form.grade, bio: form.bio, address: form.address,
-      });
+      }, photoFile);
+
+      if (result?.profilePicture) {
+        setForm(f => ({ ...f, photoUrl: result.profilePicture }));
+        try {
+          const stored = JSON.parse(localStorage.getItem('user') || '{}');
+          localStorage.setItem('user', JSON.stringify({ ...stored, avatarUrl: result.profilePicture }));
+        } catch {}
+      }
+      setPhotoFile(null);
+      setPhotoPreview(null);
       setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -86,7 +107,7 @@ export default function ProfilePage() {
     }
   };
 
-  const inp = (key: keyof StudentProfile, placeholder: string, type = 'text', disabled = false) => (
+  const inp = (key: Exclude<keyof StudentProfile, 'photoUrl'>, placeholder: string, type = 'text', disabled = false) => (
     <input
       type={type}
       value={form[key]}
@@ -140,13 +161,19 @@ export default function ProfilePage() {
         <div style={{ width:240, flexShrink:0 }}>
           <div style={{ background:palette.surface, borderRadius:20, padding:'28px 20px', boxShadow:palette.shadow, border:`1px solid ${palette.border}`, textAlign:'center' }}>
             <div style={{ position:'relative', display:'inline-block', marginBottom:16 }}>
-              <div style={{ width:90, height:90, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:900, fontSize:34, fontFamily:"'Playfair Display',serif", margin:'0 auto', boxShadow:'0 8px 24px rgba(16,185,129,0.4)' }}>
-                {form.name ? form.name.charAt(0).toUpperCase() : 'S'}
-              </div>
-              {editing && (
-                <div style={{ position:'absolute', bottom:0, right:0, width:28, height:28, borderRadius:'50%', background:'#111827', border:'2px solid white', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              {(photoPreview || form.photoUrl) ? (
+                <img src={photoPreview || form.photoUrl || ''} alt={form.name || 'Profile photo'}
+                  style={{ width:90, height:90, borderRadius:'50%', objectFit:'cover', margin:'0 auto', display:'block', boxShadow:'0 8px 24px rgba(16,185,129,0.4)' }}/>
+              ) : (
+                <div style={{ width:90, height:90, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:900, fontSize:34, fontFamily:"'Playfair Display',serif", margin:'0 auto', boxShadow:'0 8px 24px rgba(16,185,129,0.4)' }}>
+                  {form.name ? form.name.charAt(0).toUpperCase() : 'S'}
                 </div>
+              )}
+              {editing && (
+                <label style={{ position:'absolute', bottom:0, right:0, width:28, height:28, borderRadius:'50%', background:'#111827', border:'2px solid white', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display:'none' }}/>
+                </label>
               )}
             </div>
             <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:palette.textPrimary, marginBottom:4 }}>{form.name || 'Student'}</h3>
@@ -190,7 +217,7 @@ export default function ProfilePage() {
                     Edit Profile
                   </button>
                 : <div style={{ display:'flex', gap:10 }}>
-                    <button onClick={()=>setEditing(false)} disabled={saving} style={{ background:'none', border:`1.5px solid ${palette.border}`, borderRadius:10, padding:'8px 18px', fontSize:13, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
+                    <button onClick={()=>{ setEditing(false); setPhotoFile(null); setPhotoPreview(null); }} disabled={saving} style={{ background:'none', border:`1.5px solid ${palette.border}`, borderRadius:10, padding:'8px 18px', fontSize:13, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
                     <button onClick={save} disabled={saving} style={{ background:'linear-gradient(135deg,#10B981,#059669)', border:'none', borderRadius:10, padding:'8px 20px', fontSize:13, fontWeight:700, color:'white', cursor:saving?'default':'pointer', opacity:saving?0.7:1, fontFamily:"'DM Sans',sans-serif", boxShadow:'0 4px 12px rgba(16,185,129,0.38)' }}>{saving ? 'Saving...' : 'Save Changes'}</button>
                   </div>
               }
@@ -207,7 +234,7 @@ export default function ProfilePage() {
               ].map(f=>(
                 <div key={f.key} style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   <label style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:palette.textMuted }}>{f.label}</label>
-                  {inp(f.key as keyof StudentProfile, f.ph, f.type||'text', f.disabled)}
+                  {inp(f.key as Exclude<keyof StudentProfile, 'photoUrl'>, f.ph, f.type||'text', f.disabled)}
                 </div>
               ))}
 

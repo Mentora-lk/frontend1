@@ -6,6 +6,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService';
 import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
 import { usePalette } from '@/hooks/usePalette';
+import { useEnrollmentStatusSocket } from '@/hooks/useEnrollmentStatusSocket';
 
 type MyClassStatus = 'active' | 'requested' | 'approved';
 type MyClassMode = 'online' | 'offline' | 'both';
@@ -28,7 +29,6 @@ type MyClass = {
 
 function MyClassCard({ cls, view, onCancel, onView }: { cls: MyClass; view: 'grid' | 'list'; onCancel?: () => void; onView?: () => void }) {
   const palette = usePalette();
-  const progress = Math.min(100, Math.round((cls.sessionsAttended / Math.max(1, cls.totalSessions)) * 100));
   const statusColor = cls.status === 'active' ? '#10B981' : cls.status === 'approved' ? '#3B82F6' : '#F59E0B';
   const thumbnail = cls.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
 
@@ -68,20 +68,16 @@ function MyClassCard({ cls, view, onCancel, onView }: { cls: MyClass; view: 'gri
         </div>
         <p style={{ fontSize: 12, color: palette.textSecondary, marginBottom: 6 }}>{cls.subject} • {cls.tutor}</p>
         <p style={{ fontSize: 12, color: palette.textMuted, marginBottom: 8 }}>{cls.location} • {cls.mode} • Rs. {cls.fee}</p>
-        <p style={{ fontSize: 12, color: palette.textSecondary, marginBottom: 8 }}>Next: {cls.nextSession}</p>
-        <div style={{ width: '100%', height: 7, borderRadius: 999, background: palette.surfaceAlt, overflow: 'hidden', marginBottom: 6 }}>
-          <div style={{ width: `${progress}%`, height: '100%', background: '#10B981' }} />
-        </div>
-        <p style={{ fontSize: 11, color: palette.textSecondary }}>{cls.sessionsAttended}/{cls.totalSessions} sessions</p>
+        <p style={{ fontSize: 12, color: palette.textSecondary }}>Next: {cls.nextSession}</p>
       </div>
     </div>
   );
 }
 
-// The backend has no route to edit an enrollment's submitted details yet — its
-// only PATCH /enrollments/:id is a status-transition endpoint (approved/rejected/
-// active/cancelled), not a content edit. Flip this once a real edit endpoint exists.
-const ENROLLMENT_EDIT_ENABLED = false;
+// PUT /enrollments/:id (updateEnrollmentDetails) now exists on the backend for
+// editing a still-pending enrollment's details/schedule — separate from PATCH
+// /enrollments/:id, which is the status-transition endpoint.
+const ENROLLMENT_EDIT_ENABLED = true;
 
 function EnrollmentDetailsModal({ enrollment, onClose }: { enrollment: any; onClose: () => void }) {
   const palette = usePalette();
@@ -198,6 +194,12 @@ export default function StudentDashboard() {
     fetchEnrollments();
   }, []);
 
+  // Live-update a class's status the moment a tutor approves/rejects it —
+  // no reload needed. Backend pushes this from updateEnrollmentStatus.
+  useEnrollmentStatusSocket((update) => {
+    setClasses(prev => prev.map(c => c.id === update.id ? { ...c, status: update.status } : c));
+  });
+
   const handleCancel = async (enrollmentId: number) => {
     if (!confirm('Are you sure you want to cancel this enrollment?')) return;
     try {
@@ -214,12 +216,17 @@ export default function StudentDashboard() {
   const activeClasses  = classes.filter(c => c.status === 'active');
   const pendingClasses  = classes.filter(c => c.status === 'requested');
 
-  // Filter by search query on the frontend (status filter is done by backend)
+  const approvedClasses = classes.filter(c => c.status === 'approved');
+
+  // Filter by both the selected status tab and the search query, all client-side
+  // against the full enrollment list already fetched above.
   const filtered = classes.filter(c => {
     const title = c.title?.toLowerCase() || '';
     const tutor = c.tutor_name?.toLowerCase() || '';
     const q     = searchQuery.toLowerCase();
-    return !q || title.includes(q) || tutor.includes(q);
+    const matchesSearch = !q || title.includes(q) || tutor.includes(q);
+    const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -390,7 +397,7 @@ export default function StudentDashboard() {
                       { key: 'all',       label: `All (${classes.length})` },
                       { key: 'active',    label: `Active (${activeClasses.length})` },
                       { key: 'requested', label: `Pending (${pendingClasses.length})` },
-                      { key: 'approved',  label: 'Approved' },
+                      { key: 'approved',  label: `Approved (${approvedClasses.length})` },
                     ].map(tab => (
                       <button key={tab.key} className="filter-tab" onClick={() => setStatus(tab.key)}
                         style={{

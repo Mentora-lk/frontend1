@@ -10,6 +10,8 @@ import { submitEnrollment, updateEnrollment, getMyEnrollments } from '@/services
 import { usePalette } from '@/hooks/usePalette';
 
 
+const WEEK_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
 // ── Reusable sub-pieces (small, only used inside this file) ────────────────────
 function ErrMsg({ msg }: { msg:string }) {
   return <span style={{ fontSize:11, color:'#EF4444', marginTop:4, display:'flex', alignItems:'center', gap:4 }}>
@@ -136,8 +138,13 @@ function EnrollPageContent() {
 
   // Step 2 state
   const [preferredMode, setPreferredMode] = useState('');
-  const [selectedDay,   setSelectedDay]   = useState('');
+  // Students can pick more than one preferred day; the backend only stores a
+  // single `selected_day` text value, so multiple picks are joined into one
+  // comma-separated string (e.g. "Monday, Thursday") rather than needing a
+  // schema change.
+  const [selectedDays,  setSelectedDays]  = useState<string[]>([]);
   const [selectedTime,  setSelectedTime]  = useState('');
+  const selectedDay = selectedDays.join(', ');
 
   // Step 3 state
   const [agreed, setAgreed] = useState(false);
@@ -199,7 +206,7 @@ function EnrollPageContent() {
     setGrade(existingEnrollment.grade || '');
     setMessage(existingEnrollment.message || '');
     if (course.mode === 'both') setPreferredMode(existingEnrollment.preferred_mode || '');
-    setSelectedDay(existingEnrollment.selected_day || '');
+    setSelectedDays((existingEnrollment.selected_day || '').split(',').map((d: string) => d.trim()).filter(Boolean));
     setSelectedTime(existingEnrollment.selected_time || '');
     prefilledRef.current = true;
   }, [isEditMode, course, existingEnrollment]);
@@ -475,41 +482,42 @@ function EnrollPageContent() {
                   </div>
                 )}
 
-                {/* Day selection */}
+                {/* Preferred day(s) — always all 7 days, since tutors don't currently
+                    enter real per-day slot data (the "Post Ad"/"Edit Ad" forms only
+                    collect one free-text schedule string). Students can pick more
+                    than one day. */}
                 <div style={{ background:palette.surface, borderRadius:22, padding:'28px 32px', marginBottom:20, boxShadow:palette.shadow, border:`1px solid ${palette.border}` }}>
                   <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:6, display:'flex', alignItems:'center', gap:10 }}>
-                    <span style={{ width:4, height:20, background:'#10B981', borderRadius:2, display:'inline-block' }}/>Preferred Day
+                    <span style={{ width:4, height:20, background:'#10B981', borderRadius:2, display:'inline-block' }}/>Preferred Day(s)
                   </h2>
-                  <p style={{ fontSize:13, color:palette.textMuted, marginBottom:20 }}>Choose the day that works best for you</p>
+                  <p style={{ fontSize:13, color:palette.textMuted, marginBottom:20 }}>Choose every day that works for you</p>
                   <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-                    {Object.keys(course?.schedule || {}).map(day=>(
-                      <div key={day} onClick={()=>{ setSelectedDay(day); setSelectedTime(''); }} style={{ flex:'1', minWidth:80, maxWidth:110, border:`2px solid ${selectedDay===day?'#10B981':'#E5E7EB'}`, borderRadius:14, padding:'14px 8px', cursor:'pointer', textAlign:'center', transition:'all 0.22s', background:selectedDay===day?'linear-gradient(135deg,#f0fdf4,#ecfdf5)':'white', boxShadow:selectedDay===day?'0 6px 20px rgba(16,185,129,0.18)':'none', transform:selectedDay===day?'translateY(-3px)':'none' }}>
-                        <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:selectedDay===day?'#10B981':'#9CA3AF', textTransform:'uppercase', marginBottom:4 }}>{day}</div>
-                        <div style={{ fontSize:12, color:palette.textSecondary }}>{course?.schedule?.[day]?.length || 0} slots</div>
-                        {selectedDay===day && <div style={{ width:20, height:20, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', margin:'8px auto 0' }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        </div>}
-                      </div>
-                    ))}
+                    {WEEK_DAYS.map(day=>{
+                      const isSelected = selectedDays.includes(day);
+                      return (
+                        <div key={day} onClick={()=>setSelectedDays(prev => isSelected ? prev.filter(d=>d!==day) : [...prev, day])} style={{ flex:'1', minWidth:80, maxWidth:110, border:`2px solid ${isSelected?'#10B981':'#E5E7EB'}`, borderRadius:14, padding:'14px 8px', cursor:'pointer', textAlign:'center', transition:'all 0.22s', background:isSelected?'linear-gradient(135deg,#f0fdf4,#ecfdf5)':'white', boxShadow:isSelected?'0 6px 20px rgba(16,185,129,0.18)':'none', transform:isSelected?'translateY(-3px)':'none' }}>
+                          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:isSelected?'#10B981':'#9CA3AF', textTransform:'uppercase' }}>{day}</div>
+                          {isSelected && <div style={{ width:20, height:20, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', margin:'8px auto 0' }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>}
+                        </div>
+                      );
+                    })}
                   </div>
                   {errors.day && <span style={{ fontSize:11, color:'#EF4444', marginTop:10, display:'flex' }}>{errors.day}</span>}
                 </div>
 
-                {/* Time slots */}
-                {selectedDay && (
+                {/* Preferred time */}
+                {selectedDays.length > 0 && (
                   <div style={{ background:palette.surface, borderRadius:22, padding:'28px 32px', marginBottom:20, boxShadow:palette.shadow, border:`1px solid ${palette.border}` }}>
                     <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:6, display:'flex', alignItems:'center', gap:10 }}>
-                      <span style={{ width:4, height:20, background:'#10B981', borderRadius:2, display:'inline-block' }}/>Available Times — {selectedDay}
+                      <span style={{ width:4, height:20, background:'#10B981', borderRadius:2, display:'inline-block' }}/>Preferred Time
                     </h2>
-                    <p style={{ fontSize:13, color:palette.textMuted, marginBottom:20 }}>Pick your preferred session time</p>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-                      {course?.schedule?.[selectedDay]?.map((t: string)=>(
-                        <button key={t} onClick={()=>setSelectedTime(t)} style={{ padding:'10px 18px', borderRadius:11, fontSize:14, fontWeight:600, cursor:'pointer', border:`1.5px solid ${selectedTime===t?'#10B981':'#E5E7EB'}`, background:selectedTime===t?'#10B981':'white', color:selectedTime===t?'white':'#374151', fontFamily:"'DM Sans',sans-serif", boxShadow:selectedTime===t?'0 4px 12px rgba(16,185,129,0.35)':'none', transition:'all 0.2s' }}>
-                          🕐 {t}
-                        </button>
-                      ))}
+                    <p style={{ fontSize:13, color:palette.textMuted, marginBottom:20 }}>What time works best on {selectedDay}?</p>
+                    <div style={{ maxWidth:280 }}>
+                      <input style={inputStyle(!!errors.time)} type="text" placeholder="e.g. 9:00 AM" value={selectedTime} onChange={e=>setSelectedTime(e.target.value)} onFocus={focus} onBlur={e=>blur(e,!!errors.time)}/>
+                      {errors.time && <ErrMsg msg={errors.time}/>}
                     </div>
-                    {errors.time && <span style={{ fontSize:11, color:'#EF4444', marginTop:10, display:'flex' }}>{errors.time}</span>}
                   </div>
                 )}
 

@@ -7,6 +7,7 @@ export interface CurrentUser {
   email: string;
   role: 'student' | 'tutor' | 'admin';
   fullName?: string | null;
+  avatarUrl?: string | null;
 }
 
 /**

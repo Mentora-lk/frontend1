@@ -22,13 +22,14 @@ export default function EnrollSidebar({
   const palette = usePalette();
   const spotsLeft = maxStudents - enrolled;
   const fillPct   = Math.round((enrolled / maxStudents) * 100);
+  const thumbnail = image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
 
   return (
     <div style={{ position: 'sticky', top: 84 }}>
       {/* Course card */}
       <div style={{ background: palette.surface, borderRadius: 20, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.1)', border: '1px solid rgba(0,0,0,0.05)', marginBottom: 16 }}>
         <div style={{ position: 'relative', height: 150, overflow: 'hidden' }}>
-          <img src={image} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+          <img src={thumbnail} alt={title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 50%)' }}/>
           <div style={{ position: 'absolute', bottom: 10, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>LKR {fee.toLocaleString()}<span style={{ fontWeight: 400, opacity: 0.7 }}>/mo</span></span>
@@ -40,7 +41,13 @@ export default function EnrollSidebar({
           <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 15, fontWeight: 700, color: palette.textPrimary, lineHeight: 1.4, marginBottom: 10 }}>{title}</h3>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <img src={tutorAvatar} alt={tutorName} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '2px solid #d1fae5' }}/>
+            {tutorAvatar ? (
+              <img src={tutorAvatar} alt={tutorName} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '2px solid #d1fae5' }}/>
+            ) : (
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                {(tutorName || 'T').charAt(0)}
+              </div>
+            )}
             <span style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>{tutorName}</span>
           </div>
 
