@@ -43,14 +43,6 @@ function gradeSortValue(grade?: string | null): number {
   return 500;
 }
 
-// Full canonical set of grade levels, so the dropdown always shows every
-// possible grade — including ones with zero current students — and stays
-// identical to the Sessions page's grade filter.
-const ALL_GRADE_LEVELS = [
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-  'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
-  'O/L', 'Grade 12', 'Grade 13', 'A/L',
-];
 
 // Grade 11 and O/L refer to the same level in this school system, so they're
 // shown as one unified label ("O/L") instead of two separate dropdown
