@@ -56,6 +56,7 @@ export default function StudentDetailsPage() {
                 color: palette.textSecondary,
                 margin: "8px 0 0",
                 lineHeight: 1.6,
+                fontFamily: "'DM Sans', sans-serif"
               }}
             >
               Tell us about your learning goals
@@ -92,6 +93,7 @@ export default function StudentDetailsPage() {
               textTransform: "uppercase",
               letterSpacing: "0.06em",
               whiteSpace: "nowrap",
+              fontFamily: "'DM Sans', sans-serif"
             }}
           >
             or fill in your details

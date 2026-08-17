@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
-import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunities, createPost } from '@/services/tutorCommunityService';
+import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunities, createPost, deleteCommunity, removeCommunityMember } from '@/services/tutorCommunityService';
 import { useCommunitySocket } from '@/hooks/useCommunitySocket';
 import { usePalette } from '@/hooks/usePalette';
 
@@ -68,6 +68,40 @@ export default function TutorCommunityDetailPage() {
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [deleteCommunityPopup, setDeleteCommunityPopup] = useState(false);
+  const [deleteMemberPopup, setDeleteMemberPopup] = useState<{isOpen: boolean; memberId: number | null}>({isOpen: false, memberId: null});
+  const router = require('next/navigation').useRouter();
+
+  const handleDeleteCommunity = async () => {
+    try {
+      const res = await deleteCommunity(communityId);
+      if (res.status === 'success') {
+        router.push('/dashboard/tutor/community');
+      } else {
+        alert(res.message || 'Failed to delete community');
+      }
+    } catch (e) {
+      console.error("Error deleting community", e);
+      alert('Error deleting community');
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!deleteMemberPopup.memberId) return;
+    try {
+      const res = await removeCommunityMember(communityId, deleteMemberPopup.memberId);
+      if (res.status === 'success') {
+        setMembers(prev => prev.filter(m => m.id !== deleteMemberPopup.memberId));
+        setDeleteMemberPopup({ isOpen: false, memberId: null });
+      } else {
+        alert(res.message || 'Failed to remove member');
+      }
+    } catch (e) {
+      console.error("Error removing member", e);
+      alert('Error removing member');
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -143,6 +177,7 @@ export default function TutorCommunityDetailPage() {
         const fetchedMembers = membersRes.data.map((m: any, i: number) => ({
           name: m.name,
           role: m.role,
+          id: m.id,
           avatar: m.name ? m.name[0] : 'U',
           color: COLORS[i % COLORS.length],
           school: 'Mentora.lk', // fallback
@@ -262,7 +297,7 @@ export default function TutorCommunityDetailPage() {
         .member-card { transition: all 0.2s; }
         .member-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important; }
         .action-icon { transition: all 0.2s; cursor: pointer; }
-        .action-icon:hover { color: #3B82F6 !important; }
+        .action-icon:hover { color: #10B981 !important; }
       `}</style>
 
       {/* Back link + community banner */}
@@ -291,7 +326,7 @@ export default function TutorCommunityDetailPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <button style={{
+            <button onClick={() => setIsSettingsOpen(true)} style={{
               background: palette.surface, color: community.color,
               border: 'none', borderRadius: 10, padding: '8px 18px',
               fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6
@@ -299,17 +334,63 @@ export default function TutorCommunityDetailPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
               Settings
             </button>
-            <button style={{
-              background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', color: 'white',
-              border: '1px solid rgba(255,255,255,0.3)', borderRadius: 10, padding: '8px 18px',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
-              Invite Student
-            </button>
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setIsSettingsOpen(false)}>
+          <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 16px 0' }}>Community Settings</h2>
+            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>Manage your community preferences.</p>
+            
+            <button onClick={() => { setIsSettingsOpen(false); setDeleteCommunityPopup(true); }} style={{ width: '100%', background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+              Delete Community
+            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+              <button onClick={() => setIsSettingsOpen(false)} style={{ background: 'transparent', color: palette.textSecondary, border: 'none', padding: '10px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Community Popup */}
+      {deleteCommunityPopup && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+          <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+            </div>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 12px 0' }}>Are you sure?</h2>
+            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>This action cannot be undone. All posts, files, and members will be permanently removed.</p>
+            
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setDeleteCommunityPopup(false)} style={{ flex: 1, background: palette.surfaceAlt, color: palette.textSecondary, border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+              <button onClick={handleDeleteCommunity} style={{ flex: 1, background: '#DC2626', color: 'white', border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Yes, Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Member Popup */}
+      {deleteMemberPopup.isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+          <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+            </div>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 12px 0' }}>Remove Member?</h2>
+            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>Are you sure you want to permanently remove this student from the community?</p>
+            
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setDeleteMemberPopup({ isOpen: false, memberId: null })} style={{ flex: 1, background: palette.surfaceAlt, color: palette.textSecondary, border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+              <button onClick={handleRemoveMember} style={{ flex: 1, background: '#DC2626', color: 'white', border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Yes, Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
@@ -327,7 +408,7 @@ export default function TutorCommunityDetailPage() {
                   display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
                   borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
                   fontFamily: "'DM Sans',sans-serif",
-                  background: activeTab === tab.key ? '#3B82F6' : 'transparent',
+                  background: activeTab === tab.key ? '#10B981' : 'transparent',
                   color: activeTab === tab.key ? 'white' : palette.textSecondary,
                   whiteSpace: 'nowrap'
                 }}
@@ -356,7 +437,7 @@ export default function TutorCommunityDetailPage() {
                     onChange={e => setNewMessage(e.target.value)}
                     placeholder="Make an announcement or start a discussion..."
                     style={{ flex: 1, border: `1.5px solid ${palette.border}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: palette.textSecondary, resize: 'none', height: 70, outline: 'none', lineHeight: 1.5 }}
-                    onFocus={e => { e.target.style.borderColor = '#3B82F6'; }}
+                    onFocus={e => { e.target.style.borderColor = '#10B981'; }}
                     onBlur={e => { e.target.style.borderColor = '#E5E7EB'; }}
                   />
                 </div>
@@ -391,12 +472,12 @@ export default function TutorCommunityDetailPage() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <button onClick={handleAttachClick} style={{ background: 'none', border: 'none', color: palette.textSecondary, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, transition: 'color 0.2s' }} onMouseOver={e => { e.currentTarget.style.color = '#3B82F6'; }} onMouseOut={e => { e.currentTarget.style.color = '#6B7280'; }}>
+                    <button onClick={handleAttachClick} style={{ background: 'none', border: 'none', color: palette.textSecondary, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, transition: 'color 0.2s' }} onMouseOver={e => { e.currentTarget.style.color = '#10B981'; }} onMouseOut={e => { e.currentTarget.style.color = '#6B7280'; }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
                       Attach
                     </button>
                   </div>
-                  <button onClick={submitPost} style={{ background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: 'white', border: 'none', borderRadius: 10, padding: '8px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Post to Community</button>
+                  <button onClick={submitPost} style={{ background: 'linear-gradient(135deg,#10B981,#059669)', color: 'white', border: 'none', borderRadius: 10, padding: '8px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Post to Community</button>
                 </div>
               </div>
 
@@ -440,7 +521,7 @@ export default function TutorCommunityDetailPage() {
                           <p style={{ color: palette.textMuted, fontSize: 12 }}>Video</p>
                         </div>
                       </div>
-                      <button style={{ background: '#3B82F6', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Play</button>
+                      <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Play</button>
                     </div>
                   )}
 
@@ -450,7 +531,7 @@ export default function TutorCommunityDetailPage() {
                         <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12 }} />
                         <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
                         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600 }}>
+                          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#10B981', fontSize: 13, fontWeight: 600 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                             Download Image
                           </a>
@@ -469,7 +550,7 @@ export default function TutorCommunityDetailPage() {
                           <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached Document'}</p>
                           <p style={{ color: palette.textSecondary, fontSize: 12, textTransform: 'uppercase' }}>{post.type}</p>
                         </div>
-                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#3B82F6', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#10B981', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                           Download
                         </a>
                       </div>
@@ -512,15 +593,7 @@ export default function TutorCommunityDetailPage() {
                   )}
 
 
-                  <div style={{ display: 'flex', gap: 16, paddingTop: 12, borderTop: `1px solid ${palette.border}` }}>
-                    <button className="action-icon" onClick={() => toggleLike(post.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color: palette.textSecondary, fontFamily: "'DM Sans',sans-serif" }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                      {post.likes > 0 ? post.likes : 'Like'}
-                    </button>
-                    <button className="action-icon" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color: palette.textSecondary, fontFamily: "'DM Sans',sans-serif" }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                      {post.replies > 0 ? `${post.replies} Replies` : 'Reply'}
-                    </button>
+                  <div style={{ paddingTop: 12, borderTop: `1px solid ${palette.border}` }}>
                   </div>
                 </div>
               ))}
@@ -536,7 +609,7 @@ export default function TutorCommunityDetailPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: palette.textPrimary, margin: 0 }}>Shared Materials</h3>
                 <button style={{
-                  background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: 'white', border: 'none',
+                  background: 'linear-gradient(135deg,#10B981,#059669)', color: 'white', border: 'none',
                   borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700,
                   cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6,
                 }}>
@@ -580,9 +653,11 @@ export default function TutorCommunityDetailPage() {
                   background: palette.surface, borderRadius: 18, padding: 20, boxShadow: palette.shadow,
                   border: `1px solid ${palette.border}`, textAlign: 'center', position: 'relative'
                 }}>
-                  <button style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-                  </button>
+                  {member.role === 'Student' && (
+                    <button onClick={() => setDeleteMemberPopup({ isOpen: true, memberId: member.id })} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }} title="Remove Member">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    </button>
+                  )}
                   <div style={{
                     width: 52, height: 52, borderRadius: '50%', background: `${member.color}20`, color: member.color,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 20,
@@ -618,7 +693,7 @@ export default function TutorCommunityDetailPage() {
                 const isActive = ac.id.toString() === communityId;
                 return (
                   <Link href={`/dashboard/tutor/community/${ac.id}`} key={ac.id} style={{ textDecoration: 'none' }}>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? '#EFF6FF' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#1D4ED8' : '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB' }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? '#ECFDF5' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#059669' : '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB' }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
                       {ac.icon}
                       {ac.name}
                     </button>
@@ -637,7 +712,7 @@ export default function TutorCommunityDetailPage() {
                 </div>
                 <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary }}>Set Deadlines</h3>
               </div>
-              <button style={{ background: 'none', border: 'none', color: '#3B82F6', cursor: 'pointer' }}>
+              <button style={{ background: 'none', border: 'none', color: '#10B981', cursor: 'pointer' }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               </button>
             </div>

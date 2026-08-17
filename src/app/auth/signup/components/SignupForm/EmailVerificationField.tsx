@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { authService } from "@/services/authService";
 import { getInputStyle, getSecondaryButtonStyle, FORM_COLORS } from "@/utils/formStyles";
+import { usePalette } from "@/hooks/usePalette";
 
 interface EmailVerificationFieldProps {
   email: string;
@@ -25,6 +26,7 @@ export function EmailVerificationField({
   setHoveredField,
   disabled,
 }: EmailVerificationFieldProps) {
+  const palette = usePalette();
   const [phase, setPhase] = useState<Phase>("idle");
   const [otp, setOtp] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -33,6 +35,18 @@ export function EmailVerificationField({
   const [success, setSuccess] = useState("");
 
   const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const themedInput = (fieldName: string, extra?: Record<string, any>): React.CSSProperties => ({
+    ...getInputStyle(hoveredField, fieldName, extra),
+    background: palette.inputBg,
+    color: palette.textPrimary,
+    border: hoveredField === fieldName ? "2px solid #10b981" : `1px solid ${palette.border}`,
+  });
+
+  const themedSecondaryButton = (disabled: boolean): React.CSSProperties => ({
+    ...getSecondaryButtonStyle(disabled),
+    background: disabled ? palette.surfaceAlt : palette.surface,
+  });
 
   const sendCode = async () => {
     setIsSending(true);
@@ -76,7 +90,7 @@ export function EmailVerificationField({
   if (verified) {
     return (
       <div>
-        <div style={getInputStyle(hoveredField, "email")}>✓ {email}</div>
+        <div style={themedInput("email")}>✓ {email}</div>
         <button
           type="button"
           onClick={changeEmail}
@@ -109,7 +123,7 @@ export function EmailVerificationField({
           }}
           onFocus={() => setHoveredField("email")}
           onBlur={() => setHoveredField(null)}
-          style={{ ...getInputStyle(hoveredField, "email"), flex: 1 }}
+          style={{ ...themedInput("email"), flex: 1 }}
           disabled={disabled}
           required
         />
@@ -117,7 +131,7 @@ export function EmailVerificationField({
           type="button"
           onClick={sendCode}
           disabled={disabled || isSending || !looksLikeEmail}
-          style={getSecondaryButtonStyle(disabled || isSending || !looksLikeEmail)}
+          style={themedSecondaryButton(disabled || isSending || !looksLikeEmail)}
         >
           {isSending ? "Sending..." : phase === "sent" ? "Resend" : "Send Code"}
         </button>
@@ -136,7 +150,7 @@ export function EmailVerificationField({
             }}
             onFocus={() => setHoveredField("otp")}
             onBlur={() => setHoveredField(null)}
-            style={{ ...getInputStyle(hoveredField, "otp"), flex: 1, letterSpacing: 4, textAlign: "center" }}
+            style={{ ...themedInput("otp"), flex: 1, letterSpacing: 4, textAlign: "center" }}
             maxLength={6}
             disabled={disabled}
           />
@@ -144,7 +158,7 @@ export function EmailVerificationField({
             type="button"
             onClick={verifyCode}
             disabled={disabled || isVerifying || otp.length !== 6}
-            style={getSecondaryButtonStyle(disabled || isVerifying || otp.length !== 6)}
+            style={themedSecondaryButton(disabled || isVerifying || otp.length !== 6)}
           >
             {isVerifying ? "Verifying..." : "Verify"}
           </button>
