@@ -30,6 +30,29 @@ const MAX_PHOTO_BYTES = 8 * 1024 * 1024; // 8MB raw upload ceiling before we eve
 const AVATAR_OUTPUT_SIZE = 320; // px, square
 const CARD_PADDING = '22px';
 
+// ---------------------------------------------------------------------------
+// Validation constants
+// ---------------------------------------------------------------------------
+
+const NAME_MIN = 3;
+const NAME_MAX = 60;
+// Letters (incl. accented), spaces, hyphens, apostrophes, periods only.
+// Blocks pure-digit strings, emoji, and most junk paste-ins.
+const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*$/u;
+
+// Sri Lanka mobile/landline: 0XXXXXXXXX (10 digits) or +94XXXXXXXXX.
+// Swap/extend this if the admin panel needs to support other countries.
+const LK_PHONE_PATTERN = /^(?:\+94|0)(?:7\d{8}|[1-9]\d{8})$/;
+
+// Small denylist of the most common weak passwords — not a substitute for a
+// real breached-password API, but stops the most obvious cases client-side.
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', '12345678', '123456789', 'qwerty123',
+  'letmein1', 'admin123', 'welcome1', 'abc12345', 'iloveyou',
+]);
+
+const MIN_PASSWORD_SCORE = 3; // out of 5 — see passwordStrength()
+
 const PROFILE_LAYOUT_STYLES = `
   .profile-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
   @media (max-width: 860px) { .profile-grid { grid-template-columns: 1fr; } }
@@ -92,6 +115,9 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
 
 // Resize + compress an uploaded image client-side before it ever hits the
 // network — keeps the request small and avoids storing multi-MB blobs in the DB.
+// NOTE: this is a UX convenience only. The server must independently validate
+// file type (via magic bytes, not the client-supplied MIME string) and size —
+// never trust anything checked here as a security boundary.
 function fileToAvatarDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -361,14 +387,28 @@ export default function AdminProfilePage() {
 
   const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(savedForm), [form, savedForm]);
 
+  // ---- Profile field validation -------------------------------------------
   const validate = (values: ProfileForm) => {
     const next: Partial<Record<keyof ProfileForm, string>> = {};
-    if (!values.fullName.trim()) next.fullName = 'Name is required.';
-    else if (values.fullName.trim().length < 3) next.fullName = 'Name is too short.';
 
-    if (values.contactNumber.trim() && !/^\+?[0-9]{9,15}$/.test(values.contactNumber.trim())) {
-      next.contactNumber = 'Use 9-15 digits, optional + at start.';
+    const name = values.fullName.trim();
+    if (!name) {
+      next.fullName = 'Name is required.';
+    } else if (name.length < NAME_MIN) {
+      next.fullName = `Name must be at least ${NAME_MIN} characters.`;
+    } else if (name.length > NAME_MAX) {
+      next.fullName = `Name must be under ${NAME_MAX} characters.`;
+    } else if (!NAME_PATTERN.test(name)) {
+      next.fullName = 'Name can only contain letters, spaces, hyphens, and apostrophes.';
+    } else if (/^\d+$/.test(name.replace(/[\s'.-]/g, ''))) {
+      next.fullName = 'Name cannot be only numbers.';
     }
+
+    const phone = values.contactNumber.trim();
+    if (phone && !LK_PHONE_PATTERN.test(phone)) {
+      next.contactNumber = 'Enter a valid Sri Lankan number, e.g. 0771234567 or +94771234567.';
+    }
+
     return next;
   };
 
@@ -430,30 +470,45 @@ export default function AdminProfilePage() {
 
   const strength = passwordStrength(passwordForm.newPassword);
 
+  // ---- Password change validation -----------------------------------------
   const onChangePassword = async () => {
     setPasswordError('');
     setPasswordStatus('');
 
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError('All password fields are required.');
       return;
     }
-    if (passwordForm.newPassword.length < 8) {
+    if (newPassword.length < 8) {
       setPasswordError('New password must be at least 8 characters.');
       return;
     }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    if (newPassword.length > 128) {
+      setPasswordError('New password is too long.');
+      return;
+    }
+    if (COMMON_PASSWORDS.has(newPassword.toLowerCase())) {
+      setPasswordError('That password is too common — please choose something less predictable.');
+      return;
+    }
+    if (passwordStrength(newPassword).score < MIN_PASSWORD_SCORE) {
+      setPasswordError('Password is too weak. Mix uppercase, lowercase, numbers, and symbols.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
       setPasswordError('New password and confirmation do not match.');
       return;
     }
-    if (passwordForm.newPassword === passwordForm.currentPassword) {
+    if (newPassword === currentPassword) {
       setPasswordError('New password must be different from your current password.');
       return;
     }
 
     setChangingPassword(true);
     try {
-      await changeAdminPassword(passwordForm.currentPassword, passwordForm.newPassword);
+      await changeAdminPassword(currentPassword, newPassword);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setPasswordStatus('Password updated successfully.');
     } catch (err: any) {
@@ -533,7 +588,9 @@ export default function AdminProfilePage() {
                   <input
                     className="field"
                     value={form.fullName}
+                    maxLength={NAME_MAX}
                     onChange={(e) => { setForm({ ...form, fullName: e.target.value }); if (errors.fullName) setErrors({ ...errors, fullName: undefined }); }}
+                    onBlur={() => setErrors((prev) => ({ ...prev, fullName: validate(form).fullName }))}
                     placeholder="Full name"
                     style={inputStyle(errors.fullName)}
                   />
@@ -553,8 +610,15 @@ export default function AdminProfilePage() {
                   <input
                     className="field"
                     value={form.contactNumber}
-                    onChange={(e) => { setForm({ ...form, contactNumber: e.target.value }); if (errors.contactNumber) setErrors({ ...errors, contactNumber: undefined }); }}
-                    placeholder="+94770000000"
+                    inputMode="tel"
+                    onChange={(e) => {
+                      // Allow only digits, leading +, and spaces while typing — reject other characters outright.
+                      const cleaned = e.target.value.replace(/[^\d+\s]/g, '');
+                      setForm({ ...form, contactNumber: cleaned });
+                      if (errors.contactNumber) setErrors({ ...errors, contactNumber: undefined });
+                    }}
+                    onBlur={() => setErrors((prev) => ({ ...prev, contactNumber: validate(form).contactNumber }))}
+                    placeholder="0771234567 or +94771234567"
                     style={inputStyle(errors.contactNumber)}
                   />
                 </Field>
@@ -582,6 +646,7 @@ export default function AdminProfilePage() {
                   <input
                     className="field"
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={passwordForm.currentPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
@@ -593,6 +658,7 @@ export default function AdminProfilePage() {
                   <input
                     className="field"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
@@ -606,12 +672,16 @@ export default function AdminProfilePage() {
                       <span style={{ fontSize: 11.5, fontWeight: 700, color: strength.color, whiteSpace: 'nowrap' }}>{strength.label}</span>
                     </div>
                   )}
+                  <div style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 11.5 }}>
+                    At least 8 characters, mixing upper/lowercase, numbers, and symbols.
+                  </div>
                 </Field>
 
                 <Field label="Confirm new password">
                   <input
                     className="field"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
