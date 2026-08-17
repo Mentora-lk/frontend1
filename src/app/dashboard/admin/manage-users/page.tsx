@@ -12,9 +12,64 @@ type BackendTutor = {
   subject: string;
   city: string;
   created_at: string;
+  university: string | null;
+  degree_title: string | null;
+  graduation_year: number | null;
+  experience: string | null;
+  credentials: string | null;
+  description: string | null;
+  dob: string | null;
+  gender: string | null;
+  phone: string | null;
+  address: string | null;
+  medium: string | null;
+  level: string | null;
+  grade_range: string | null;
+  class_type: string | null;
+  fee: string | null;
 };
 
-type Tutor = BackendTutor & { status: 'Pending' | 'Verified' | 'Missing Docs' };
+type Tutor = BackendTutor & {
+  status: 'Pending' | 'Verified' | 'Rejected';
+  rejectionReason?: string;
+};
+
+// Persisted per-tutor review state. Kept as an object (not just a status
+// string) so the specific rejection reason travels with the status.
+type StoredReview = { status: Tutor['status']; reason?: string };
+
+type SortOrder = 'newest' | 'oldest';
+
+// Internal-only rejection reasons. Never sent to the tutor — kept purely
+// in the admin audit trail / drawer so decisions stay fast and consistent.
+const REJECTION_REASONS = [
+  'Incomplete or missing qualification details',
+  'Unable to verify university / degree',
+  'Subject expertise does not match application',
+  'Duplicate application already on file',
+  'Suspicious or inconsistent information',
+  'Other (add note below)',
+];
+
+// A small fixed palette, cycled deterministically by subject name so each
+// subject always gets the same distinct color across the whole page.
+const SUBJECT_COLOR_PALETTE = [
+  { bg: '#ecfeff', color: '#0f766e', border: '#99f6e4' }, // teal
+  { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' }, // blue
+  { bg: '#fdf4ff', color: '#a21caf', border: '#f0abfc' }, // purple
+  { bg: '#fff7ed', color: '#c2410c', border: '#fdba74' }, // orange
+  { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' }, // green
+  { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' }, // red
+  { bg: '#fefce8', color: '#a16207', border: '#fde68a' }, // amber
+  { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe' }, // indigo
+];
+
+function subjectColor(subject?: string | null) {
+  if (!subject) return SUBJECT_COLOR_PALETTE[0];
+  let hash = 0;
+  for (let i = 0; i < subject.length; i++) hash = (hash * 31 + subject.charCodeAt(i)) >>> 0;
+  return SUBJECT_COLOR_PALETTE[hash % SUBJECT_COLOR_PALETTE.length];
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -37,6 +92,18 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Small caption shown under a "Rejected" badge — the specific internal
+// reason, kept out of the Status filter so that stays simple (All /
+// Pending / Verified / Rejected) instead of one filter option per reason.
+function RejectionCaption({ reason }: { reason?: string }) {
+  if (!reason) return null;
+  return (
+    <div style={{ marginTop: 4, fontSize: 11, color: '#9f1239', maxWidth: 220, lineHeight: 1.4 }}>
+      {reason}
+    </div>
+  );
+}
+
 function StatCard({ title, value, accent, loading }: { title: string; value: string; accent: string; loading: boolean }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
@@ -46,6 +113,19 @@ function StatCard({ title, value, accent, loading }: { title: string; value: str
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
       <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6, display: 'flex', alignItems: 'center' }}>
         {loading ? <Spinner size={22} /> : value}
+      </div>
+    </div>
+  );
+}
+
+// Small labeled field used throughout the details drawer, kept at a normal
+// readable size rather than very small captions.
+function DetailField({ label, value, fullWidth }: { label: string; value: React.ReactNode; fullWidth?: boolean }) {
+  return (
+    <div style={{ gridColumn: fullWidth ? '1 / -1' : undefined }}>
+      <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 15, color: '#111827', fontWeight: 600, marginTop: 3, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+        {value || <span style={{ color: '#9ca3af', fontWeight: 500 }}>Not specified</span>}
       </div>
     </div>
   );
@@ -94,23 +174,31 @@ export default function TutorsPage() {
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [page, setPage] = useState(1);
   const pageSize = 5;
-  const [note, setNote] = useState('');
   const [statusText, setStatusText] = useState('');
   const [copied, setCopied] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'Verified' | 'Missing Docs' | null>(null);
-  const [noteError, setNoteError] = useState('');
+
+  // Rejection flow state — used both from the table row and the drawer.
+  const [rejectTarget, setRejectTarget] = useState<Tutor | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectNote, setRejectNote] = useState('');
+  const [rejectError, setRejectError] = useState('');
 
   useEffect(() => {
     async function fetchTutors() {
       try {
         const data: BackendTutor[] = await getTutors();
-        const statusMap = loadStoredState<Record<number, Tutor['status']>>(ADMIN_STORAGE_KEYS.tutorQueue, {});
-        const merged: Tutor[] = data.map((t) => ({
-          ...t,
-          status: statusMap[t.id] || 'Pending',
-        }));
+        const reviewMap = loadStoredState<Record<number, StoredReview>>(ADMIN_STORAGE_KEYS.tutorQueue, {});
+        const merged: Tutor[] = data.map((t) => {
+          const review = reviewMap[t.id];
+          return {
+            ...t,
+            status: review?.status || 'Pending',
+            rejectionReason: review?.status === 'Rejected' ? review.reason : undefined,
+          };
+        });
         setTutors(merged);
       } catch (err: any) {
         console.error('Failed to fetch tutors:', err);
@@ -122,64 +210,102 @@ export default function TutorsPage() {
     fetchTutors();
   }, []);
 
-  const filteredTutors = useMemo(() => tutors.filter((tutor) => {
-    const matchesSearch =
-      tutor.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tutor.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || tutor.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }), [tutors, searchQuery, statusFilter]);
+  const filteredTutors = useMemo(() => {
+    const filtered = tutors.filter((tutor) => {
+      const matchesSearch =
+        tutor.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tutor.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'All' || tutor.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    // Sort by application date using the created_at value already returned
+    // by the backend — no extra column or endpoint needed.
+    const sorted = [...filtered].sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return sortOrder === 'newest' ? timeB - timeA : timeA - timeB;
+    });
+
+    return sorted;
+  }, [tutors, searchQuery, statusFilter, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTutors.length / pageSize));
   const visibleTutors = filteredTutors.slice((page - 1) * pageSize, page * pageSize);
   const paginationRange = useMemo(() => getPaginationRange(page, totalPages), [page, totalPages]);
 
-  const persistStatus = (tutorId: number, status: Tutor['status']) => {
-    const statusMap = loadStoredState<Record<number, Tutor['status']>>(ADMIN_STORAGE_KEYS.tutorQueue, {});
-    statusMap[tutorId] = status;
-    saveStoredState(ADMIN_STORAGE_KEYS.tutorQueue, statusMap);
-    setTutors((prev) => prev.map((t) => (t.id === tutorId ? { ...t, status } : t)));
+  const persistReview = (tutorId: number, review: StoredReview, auditDetail: string) => {
+    const reviewMap = loadStoredState<Record<number, StoredReview>>(ADMIN_STORAGE_KEYS.tutorQueue, {});
+    reviewMap[tutorId] = review;
+    saveStoredState(ADMIN_STORAGE_KEYS.tutorQueue, reviewMap);
+    setTutors((prev) => prev.map((t) => (
+      t.id === tutorId
+        ? { ...t, status: review.status, rejectionReason: review.status === 'Rejected' ? review.reason : undefined }
+        : t
+    )));
+    appendAudit('TUTOR_REVIEW', auditDetail);
   };
 
-  const exportQueue = () => {
-    const header = ['Tutor', 'Email', 'Subjects', 'City', 'Status'];
-    const rows = filteredTutors.map((t) => [t.full_name, t.email, t.subject, t.city, t.status]);
+  // Export builds a report from whatever is currently filtered/sorted —
+  // search + status + newest/oldest — same behavior and numbering as the
+  // Students page export.
+  const exportReport = () => {
+    if (filteredTutors.length === 0) return;
+    const header = ['Tutor', 'Email', 'Subjects', 'City', 'Status', 'Rejection Reason'];
+    const rows = filteredTutors.map((t) => [t.full_name, t.email, t.subject, t.city, t.status, t.rejectionReason || '']);
     const csv = [header, ...rows].map((r) => r.join(',')).join('\n');
-    downloadFile('tutor-review-queue.csv', csv, 'text/csv;charset=utf-8;');
-    appendAudit('TUTOR_QUEUE_EXPORT', `Exported ${filteredTutors.length} tutor records`);
-    setStatusText('Queue exported.');
+    downloadFile('tutors-report.csv', csv, 'text/csv;charset=utf-8;');
+    appendAudit('TUTOR_QUEUE_EXPORT', `Exported ${filteredTutors.length} tutor record(s)`);
+    setStatusText(`Exported ${filteredTutors.length} tutor${filteredTutors.length === 1 ? '' : 's'}.`);
   };
 
   const openDetails = (tutor: Tutor) => {
     setSelectedTutor(tutor);
-    setNote('');
-    setNoteError('');
-    setPendingAction(null);
     setCopied(false);
   };
 
   const closeDetails = () => {
     setSelectedTutor(null);
-    setNote('');
-    setNoteError('');
-    setPendingAction(null);
   };
 
-  const requestAction = (action: 'Verified' | 'Missing Docs') => {
-    if (action === 'Missing Docs' && !note.trim()) {
-      setNoteError('A reason is required before rejecting a tutor.');
+  // Approve — quick, no reason needed. Works from row or drawer.
+  const approveTutor = (tutor: Tutor) => {
+    persistReview(tutor.id, { status: 'Verified' }, `${tutor.full_name} approved`);
+    setStatusText(`${tutor.full_name} approved.`);
+    if (selectedTutor?.id === tutor.id) closeDetails();
+  };
+
+  // Reject — opens a structured reason picker instead of a free-text-only note.
+  const startReject = (tutor: Tutor) => {
+    setRejectTarget(tutor);
+    setRejectReason('');
+    setRejectNote('');
+    setRejectError('');
+  };
+
+  const cancelReject = () => {
+    setRejectTarget(null);
+    setRejectReason('');
+    setRejectNote('');
+    setRejectError('');
+  };
+
+  const confirmReject = () => {
+    if (!rejectTarget) return;
+    if (!rejectReason) {
+      setRejectError('Select a reason for this rejection.');
       return;
     }
-    setNoteError('');
-    setPendingAction(action);
-  };
-
-  const confirmAction = () => {
-    if (!selectedTutor || !pendingAction) return;
-    persistStatus(selectedTutor.id, pendingAction);
-    appendAudit('TUTOR_REVIEW', `${selectedTutor.full_name} marked as ${pendingAction}${note ? ` (${note})` : ''}`);
-    setStatusText(`${selectedTutor.full_name} updated to ${pendingAction}.`);
-    closeDetails();
+    if (rejectReason === 'Other (add note below)' && !rejectNote.trim()) {
+      setRejectError('Add a short note describing the reason.');
+      return;
+    }
+    const finalReason = rejectReason === 'Other (add note below)' ? rejectNote.trim() : rejectReason;
+    const auditDetail = `${rejectTarget.full_name} rejected — ${finalReason}`;
+    persistReview(rejectTarget.id, { status: 'Rejected', reason: finalReason }, auditDetail);
+    setStatusText(`${rejectTarget.full_name} rejected internally. No message was sent to the applicant.`);
+    if (selectedTutor?.id === rejectTarget.id) closeDetails();
+    cancelReject();
   };
 
   const copyEmail = async () => {
@@ -231,7 +357,7 @@ export default function TutorsPage() {
       </div>
 
       <div style={{ background: 'linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)', border: '1px solid #d7f2ea', borderRadius: 16, padding: 16, boxShadow: '0 8px 20px rgba(15,118,110,0.06)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.8fr auto', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 0.7fr', gap: 10 }}>
           <input
             type="text"
             placeholder="Search by tutor name or email..."
@@ -239,26 +365,57 @@ export default function TutorsPage() {
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}
           />
+          {/* Status filter stays to lifecycle states only — specific rejection
+              reasons are shown per-row instead of becoming filter options. */}
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
             <option value="All">Status: All</option>
             <option value="Pending">Pending</option>
             <option value="Verified">Verified</option>
-            <option value="Missing Docs">Missing Docs</option>
+            <option value="Rejected">Rejected</option>
           </select>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={exportQueue} style={{ borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#374151', padding: '0 14px', cursor: 'pointer' }}>Export</button>
-          </div>
+          {/* Sort by application date — uses the created_at value already
+              returned by the API, no new field or button elsewhere needed. */}
+          <select value={sortOrder} onChange={(e) => { setSortOrder(e.target.value as SortOrder); setPage(1); }} style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+        {/* Header row matches the Students page: title left, Export Report
+            button right, same teal styling and live count. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '18px 18px 0' }}>
+          <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif", fontSize: 16 }}>Tutor Directory</h3>
+          <button
+            onClick={exportReport}
+            disabled={filteredTutors.length === 0}
+            style={{
+              borderRadius: 10,
+              border: '1px solid ' + (filteredTutors.length === 0 ? '#e5e7eb' : '#0f766e'),
+              background: filteredTutors.length === 0 ? '#f3f4f6' : '#0f766e',
+              color: filteredTutors.length === 0 ? '#9ca3af' : '#fff',
+              padding: '10px 16px',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: filteredTutors.length === 0 ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Export Report {filteredTutors.length > 0 ? `(${filteredTutors.length})` : ''}
+          </button>
+        </div>
+
+        <div style={{ overflowX: 'auto', marginTop: 14 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
               <tr style={{ background: 'linear-gradient(90deg, #ecfeff 0%, #f0fdfa 100%)', textAlign: 'left' }}>
-                {['Tutor Profile', 'Subjects', 'City', 'Status', 'Actions'].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
-                ))}
+                <th style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>Tutor Profile</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>Subjects</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>City</th>
+                <th style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>Status</th>
+                {/* Centered over the button group below it, rather than right-aligned */}
+                <th style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e', textAlign: 'center', width: 300 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -266,7 +423,9 @@ export default function TutorsPage() {
                 <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center' }}><Spinner size={26} /></td></tr>
               ) : visibleTutors.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9CA3AF' }}>No tutors found</td></tr>
-              ) : visibleTutors.map((tutor) => (
+              ) : visibleTutors.map((tutor) => {
+                const sc = subjectColor(tutor.subject);
+                return (
                 <tr
                   key={tutor.id}
                   style={{ borderTop: '1px solid #ecf4ef', transition: 'background 0.15s ease' }}
@@ -283,15 +442,35 @@ export default function TutorsPage() {
                     </div>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
-                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: '#ecfeff', color: '#0f766e', border: '1px solid #99f6e4' }}>{tutor.subject}</span>
+                    <span style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{tutor.subject}</span>
                   </td>
                   <td style={{ padding: '14px 16px', color: '#374151' }}>📍 {tutor.city}</td>
-                  <td style={{ padding: '14px 16px' }}><StatusBadge status={tutor.status} /></td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                    <button onClick={() => openDetails(tutor)} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '6px 12px', fontSize: 13 }}>View Details</button>
+                  <td style={{ padding: '14px 16px' }}>
+                    <StatusBadge status={tutor.status} />
+                    <RejectionCaption reason={tutor.rejectionReason} />
+                  </td>
+                  <td style={{ padding: '14px 16px', width: 300 }}>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'nowrap' }}>
+                      <button
+                        onClick={() => approveTutor(tutor)}
+                        style={{ border: '1px solid #0f766e', background: '#0f766e', color: '#fff', fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, whiteSpace: 'nowrap' }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => startReject(tutor)}
+                        style={{ border: '1px solid #fca5a5', background: '#fff1f2', color: '#be123c', fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, whiteSpace: 'nowrap' }}
+                      >
+                        Reject
+                      </button>
+                      <button onClick={() => openDetails(tutor)} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', fontWeight: 700, cursor: 'pointer', borderRadius: 8, padding: '7px 14px', fontSize: 13, whiteSpace: 'nowrap' }}>
+                        View Details
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -344,106 +523,158 @@ export default function TutorsPage() {
         )}
       </div>
 
+      {/* ── Details drawer ─────────────────────────────────────────────── */}
       {selectedTutor && (
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,22,0.5)', zIndex: 40 }} onClick={closeDetails} />
-          <div style={{ position: 'fixed', top: 0, right: 0, width: '100%', maxWidth: 460, height: '100vh', zIndex: 50, background: 'linear-gradient(180deg, #fbfdfc 0%, #f4faf8 100%)', borderLeft: '1px solid #e5e7eb', overflowY: 'auto', boxShadow: '-12px 0 32px rgba(0,0,0,0.14)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, width: '100%', maxWidth: 520, height: '100vh', zIndex: 50, background: 'linear-gradient(180deg, #fbfdfc 0%, #f4faf8 100%)', borderLeft: '1px solid #e5e7eb', overflowY: 'auto', boxShadow: '-12px 0 32px rgba(0,0,0,0.14)', display: 'flex', flexDirection: 'column' }}>
 
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid #ecf4ef', background: 'linear-gradient(90deg, #ecfeff 0%, #f0fdfa 100%)', position: 'sticky', top: 0, zIndex: 1 }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid #ecf4ef', background: 'linear-gradient(90deg, #ecfeff 0%, #f0fdfa 100%)', position: 'sticky', top: 0, zIndex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 12, color: '#0f766e', fontWeight: 700, marginBottom: 4 }}>TUTOR VERIFICATION &nbsp;/&nbsp; #{selectedTutor.id}</div>
-                  <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif", fontSize: 20 }}>Applicant Review</h3>
+                  <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif", fontSize: 21 }}>Applicant Review</h3>
                 </div>
-                <button onClick={closeDetails} aria-label="Close" style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer', width: 30, height: 30, borderRadius: 8, fontSize: 16, lineHeight: 1 }}>×</button>
+                <button onClick={closeDetails} aria-label="Close" style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer', width: 32, height: 32, borderRadius: 8, fontSize: 17, lineHeight: 1 }}>×</button>
               </div>
             </div>
 
-            <div style={{ padding: 20, display: 'grid', gap: 18, flex: 1 }}>
+            <div style={{ padding: 22, display: 'grid', gap: 18, flex: 1 }}>
 
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div style={{ width: 54, height: 54, borderRadius: 14, background: 'linear-gradient(135deg, #ecfeff 0%, #d7f2ea 100%)', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#0f766e', fontSize: 20, flexShrink: 0 }}>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18, display: 'flex', gap: 14, alignItems: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #ecfeff 0%, #d7f2ea 100%)', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#0f766e', fontSize: 21, flexShrink: 0 }}>
                   {selectedTutor.full_name?.charAt(0) || 'T'}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ color: '#111827', fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedTutor.full_name}</div>
-                  <div style={{ marginTop: 6 }}><StatusBadge status={selectedTutor.status} /></div>
+                  <div style={{ color: '#111827', fontSize: 18, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedTutor.full_name}</div>
+                  <div style={{ marginTop: 6 }}>
+                    <StatusBadge status={selectedTutor.status} />
+                    <RejectionCaption reason={selectedTutor.rejectionReason} />
+                  </div>
                 </div>
               </div>
 
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 16 }}>
-                <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 12 }}>Contact Information</div>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18 }}>
+                <div style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 14 }}>Contact Information</div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>Email address</div>
-                    <div style={{ fontSize: 14, color: '#111827', fontWeight: 600 }}>{selectedTutor.email}</div>
-                  </div>
+                  <DetailField label="Email address" value={selectedTutor.email} />
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={copyEmail} title="Copy email" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 12, color: '#374151' }}>
+                    <button onClick={copyEmail} title="Copy email" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 13, color: '#374151' }}>
                       {copied ? '✓' : '⧉'}
                     </button>
-                    <a href={`mailto:${selectedTutor.email}`} title="Send email" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, width: 30, height: 30, display: 'grid', placeItems: 'center', fontSize: 12, color: '#374151', textDecoration: 'none' }}>
+                    <a href={`mailto:${selectedTutor.email}`} title="Send email" style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 8, width: 32, height: 32, display: 'grid', placeItems: 'center', fontSize: 13, color: '#374151', textDecoration: 'none' }}>
                       ✉
                     </a>
                   </div>
                 </div>
 
-                <div style={{ padding: '10px 0 0' }}>
-                  <div style={{ fontSize: 11, color: '#9ca3af' }}>Location</div>
-                  <div style={{ fontSize: 14, color: '#111827', fontWeight: 600 }}>📍 {selectedTutor.city || 'Not specified'}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, paddingTop: 12 }}>
+                  <DetailField label="Phone" value={selectedTutor.phone} />
+                  <DetailField label="Location" value={`📍 ${selectedTutor.city || 'Not specified'}`} />
+                  <DetailField label="Address" value={selectedTutor.address} fullWidth />
                 </div>
               </div>
 
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 16 }}>
-                <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 12 }}>Application Details</div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>Subject(s)</div>
-                    <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginTop: 2 }}>{selectedTutor.subject || 'Not specified'}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>Tutor ID</div>
-                    <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginTop: 2, fontFamily: 'monospace' }}>#{String(selectedTutor.id).padStart(5, '0')}</div>
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>Applied on</div>
-                    <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginTop: 2 }}>{formatDate(selectedTutor.created_at)}</div>
-                  </div>
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18 }}>
+                <div style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 14 }}>Personal Information</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <DetailField label="Gender" value={selectedTutor.gender} />
+                  <DetailField label="Date of Birth" value={selectedTutor.dob ? formatDate(selectedTutor.dob) : null} />
                 </div>
               </div>
 
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 16 }}>
-                <div style={{ color: '#6b7280', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 10 }}>Reviewer Notes</div>
-                <textarea
-                  value={note}
-                  onChange={(e) => { setNote(e.target.value); if (noteError) setNoteError(''); }}
-                  placeholder="Add context for this decision (required if rejecting)..."
-                  rows={4}
-                  style={{ width: '100%', border: noteError ? '1px solid #fca5a5' : '1px solid #d1d5db', borderRadius: 10, padding: 12, resize: 'vertical', background: '#fff', color: '#111827', fontSize: 13 }}
-                />
-                {noteError && <div style={{ color: '#be123c', fontSize: 12, marginTop: 6, fontWeight: 600 }}>{noteError}</div>}
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18 }}>
+                <div style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 14 }}>Application Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <DetailField label="Subject(s)" value={selectedTutor.subject} />
+                  <DetailField label="Tutor ID" value={`#${String(selectedTutor.id).padStart(5, '0')}`} />
+                  <DetailField label="Applied on" value={formatDate(selectedTutor.created_at)} fullWidth />
+                </div>
+              </div>
+
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18 }}>
+                <div style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 14 }}>Teaching Preferences</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <DetailField label="Medium" value={selectedTutor.medium} />
+                  <DetailField label="Level" value={selectedTutor.level} />
+                  <DetailField label="Grade Range" value={selectedTutor.grade_range} />
+                  <DetailField label="Class Type" value={selectedTutor.class_type} />
+                  <DetailField label="Fee" value={selectedTutor.fee} fullWidth />
+                </div>
+              </div>
+
+              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18 }}>
+                <div style={{ color: '#0f766e', fontSize: 13, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 14 }}>Qualifications</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <DetailField label="University" value={selectedTutor.university} />
+                  <DetailField label="Degree" value={selectedTutor.degree_title} />
+                  <DetailField label="Graduation Year" value={selectedTutor.graduation_year} />
+                  <DetailField label="Experience" value={selectedTutor.experience} fullWidth />
+                  <DetailField label="Credentials" value={selectedTutor.credentials} fullWidth />
+                  <DetailField label="Additional Notes" value={selectedTutor.description} fullWidth />
+                </div>
               </div>
             </div>
 
-            <div style={{ padding: 20, borderTop: '1px solid #ecf4ef', background: 'linear-gradient(90deg, #f8faf9 0%, #f0fdfa 100%)', position: 'sticky', bottom: 0 }}>
-              {!pendingAction ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <button onClick={() => requestAction('Missing Docs')} style={{ border: '1px solid #fca5a5', background: '#fff1f2', color: '#be123c', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer' }}>Reject</button>
-                  <button onClick={() => requestAction('Verified')} style={{ border: '1px solid #0f766e', background: '#0f766e', color: '#fff', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer' }}>Approve</button>
-                </div>
-              ) : (
-                <div style={{ border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 12, padding: 14 }}>
-                  <div style={{ fontSize: 13, color: '#92400e', fontWeight: 600, marginBottom: 10 }}>
-                    Confirm: mark <strong>{selectedTutor.full_name}</strong> as <strong>{pendingAction}</strong>? This action is logged to the audit trail.
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <button onClick={() => setPendingAction(null)} style={{ border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: 10, padding: '10px 0', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-                    <button onClick={confirmAction} style={{ border: '1px solid #0f766e', background: '#0f766e', color: '#fff', borderRadius: 10, padding: '10px 0', fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
-                  </div>
-                </div>
-              )}
+            <div style={{ padding: 22, borderTop: '1px solid #ecf4ef', background: 'linear-gradient(90deg, #f8faf9 0%, #f0fdfa 100%)', position: 'sticky', bottom: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button onClick={() => startReject(selectedTutor)} style={{ border: '1px solid #fca5a5', background: '#fff1f2', color: '#be123c', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Reject</button>
+                <button onClick={() => approveTutor(selectedTutor)} style={{ border: '1px solid #0f766e', background: '#0f766e', color: '#fff', borderRadius: 10, padding: '12px 0', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Approve</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Rejection reason modal ─────────────────────────────────────── */}
+      {rejectTarget && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,22,0.55)', zIndex: 60 }} onClick={cancelReject} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100%', maxWidth: 440, zIndex: 70, background: '#fff', borderRadius: 18, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', padding: 24 }}>
+            <div style={{ fontSize: 12, color: '#be123c', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 6 }}>Reject Applicant</div>
+            <h3 style={{ margin: '0 0 6px', fontSize: 18, color: '#111827', fontFamily: "'Fraunces', serif" }}>{rejectTarget.full_name}</h3>
+            <p style={{ margin: '0 0 18px', fontSize: 13, color: '#6b7280' }}>
+              This is recorded for internal review only — the applicant will not be notified of the specific reason.
+            </p>
+
+            <div style={{ display: 'grid', gap: 8, marginBottom: 14 }}>
+              {REJECTION_REASONS.map((reason) => (
+                <label
+                  key={reason}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                    border: rejectReason === reason ? '1.5px solid #be123c' : '1px solid #e5e7eb',
+                    background: rejectReason === reason ? '#fff1f2' : '#fff',
+                    borderRadius: 10, cursor: 'pointer', fontSize: 14, color: '#111827',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="rejectReason"
+                    checked={rejectReason === reason}
+                    onChange={() => { setRejectReason(reason); setRejectError(''); }}
+                  />
+                  {reason}
+                </label>
+              ))}
+            </div>
+
+            {rejectReason === 'Other (add note below)' && (
+              <textarea
+                value={rejectNote}
+                onChange={(e) => { setRejectNote(e.target.value); setRejectError(''); }}
+                placeholder="Briefly describe the reason..."
+                rows={3}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: 10, padding: 12, resize: 'vertical', background: '#fff', color: '#111827', fontSize: 14, marginBottom: 14 }}
+              />
+            )}
+
+            {rejectError && <div style={{ color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{rejectError}</div>}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <button onClick={cancelReject} style={{ border: '1px solid #d1d5db', background: '#fff', color: '#374151', borderRadius: 10, padding: '11px 0', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+              <button onClick={confirmReject} style={{ border: '1px solid #be123c', background: '#be123c', color: '#fff', borderRadius: 10, padding: '11px 0', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>Confirm Rejection</button>
             </div>
           </div>
         </>
