@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { tutorService } from '@/services/tutorService';
 import { getPendingRequests, updateRequestStatus as updateCommunityRequestStatus } from '@/services/tutorCommunityService';
 import { usePalette } from '@/hooks/usePalette';
+import { useSocket } from '@/contexts/SocketContext';
 
 export default function RequestsPage() {
   const palette = usePalette();
+  const searchParams = useSearchParams();
+  const socket = useSocket();
   const [filter, setFilter] = useState('all');
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,21 +21,28 @@ export default function RequestsPage() {
   // shown as a tab on this same page since this is the page tutors actually
   // visit for "Requests". Previously these only appeared in a small widget on
   // the community management page, which tutors had no reason to check.
-  const [activeSection, setActiveSection] = useState<'enrollment' | 'community'>('enrollment');
+  // Initial tab honors ?tab=community — the notification bell deep-links here
+  // (see NotificationBell.tsx) so clicking a community request notification
+  // lands on the right tab instead of always defaulting to enrollment.
+  const [activeSection, setActiveSection] = useState<'enrollment' | 'community'>(
+    searchParams.get('tab') === 'community' ? 'community' : 'enrollment'
+  );
   const [communityRequests, setCommunityRequests] = useState<any[]>([]);
   const [communityLoading, setCommunityLoading] = useState(true);
 
+  // Refetches the full enrollment-requests list — used on mount, and again on
+  // a live 'new_enrollment_request' event rather than trying to reconstruct
+  // a row from a minimal socket payload (avatar color, "X mins ago" text,
+  // etc. are computed server-side in tutorController.getTutorRequests()).
+  const fetchRequests = () => {
+    tutorService
+      .getRequests()
+      .then(setRequests)
+      .catch((err) => console.error("Failed to fetch requests", err))
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const data = await tutorService.getRequests();
-        setRequests(data);
-      } catch (err) {
-        console.error("Failed to fetch requests", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchRequests();
   }, []);
 
@@ -48,6 +59,40 @@ export default function RequestsPage() {
     };
     fetchCommunityRequests();
   }, []);
+
+  // A new or cancelled request only reaches this page live via these four
+  // events — without them, the list only ever changes on a manual refresh.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleEnrollmentCancelled = ({ enrollmentId }: { enrollmentId: number }) => {
+      setRequests(prev => prev.filter(r => r.id !== enrollmentId));
+    };
+
+    const handleCommunityRequestCancelled = ({ membershipId }: { membershipId: number }) => {
+      setCommunityRequests(prev => prev.filter(r => r.membership_id !== membershipId));
+    };
+
+    const handleNewEnrollmentRequest = () => fetchRequests();
+
+    // Payload already matches getPendingRequests()'s row shape (see
+    // studentCommunityController.requestCommunityAccess) — prepend directly
+    // instead of a refetch, and dedupe in case of a double-delivery.
+    const handleNewMembershipRequest = (row: any) => {
+      setCommunityRequests(prev => (prev.some(r => r.membership_id === row.membership_id) ? prev : [row, ...prev]));
+    };
+
+    socket.on('enrollment_cancelled', handleEnrollmentCancelled);
+    socket.on('community_request_cancelled', handleCommunityRequestCancelled);
+    socket.on('new_enrollment_request', handleNewEnrollmentRequest);
+    socket.on('new_membership_request', handleNewMembershipRequest);
+    return () => {
+      socket.off('enrollment_cancelled', handleEnrollmentCancelled);
+      socket.off('community_request_cancelled', handleCommunityRequestCancelled);
+      socket.off('new_enrollment_request', handleNewEnrollmentRequest);
+      socket.off('new_membership_request', handleNewMembershipRequest);
+    };
+  }, [socket]);
 
   const filtered = requests.filter(r => filter === 'all' || r.status === filter);
   const pending  = requests.filter(r => r.status === 'pending').length;

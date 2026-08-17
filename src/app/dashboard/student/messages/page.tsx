@@ -5,8 +5,18 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { usePalette } from '@/hooks/usePalette';
 import { useMessaging } from '@/hooks/useMessaging';
 import { messageService, AvailableTutor } from '@/services/messageService';
+import { getMyClasses } from '@/services/studentCommunityService';
 import { formatMessageTime, formatRelativeTime } from '@/utils/date';
 import { colorForId, initialOf } from '@/utils/helpers';
+
+/** A tutor suggested because the student recently joined one of their communities. */
+interface SuggestedTutor {
+  userId: number;
+  name: string;
+  avatarUrl: string | null;
+  communityName: string;
+  joinedAt: string;
+}
 
 export default function MessagesPage() {
   const palette = usePalette();
@@ -36,6 +46,7 @@ export default function MessagesPage() {
   const [tutorSearch, setTutorSearch] = useState('');
   const [availableTutors, setAvailableTutors] = useState<AvailableTutor[]>([]);
   const [loadingTutors, setLoadingTutors] = useState(false);
+  const [suggestedTutors, setSuggestedTutors] = useState<SuggestedTutor[]>([]);
 
   useEffect(() => {
     if (!showCompose) return;
@@ -45,20 +56,58 @@ export default function MessagesPage() {
       .then(setAvailableTutors)
       .catch((err) => console.error('Failed to load tutors:', err))
       .finally(() => setLoadingTutors(false));
+
+    // One tutor per community the student has joined, most recently joined
+    // first — surfaced as suggestions since they're the tutors a student is
+    // most likely trying to reach right after joining a class community.
+    getMyClasses()
+      .then((classes: any[]) => {
+        const byTutor = new Map<number, SuggestedTutor>();
+        for (const c of classes || []) {
+          if (!c.tutor_id) continue;
+          const existing = byTutor.get(c.tutor_id);
+          if (!existing || new Date(c.joined_at) > new Date(existing.joinedAt)) {
+            byTutor.set(c.tutor_id, {
+              userId: c.tutor_id,
+              name: c.tutor_name || 'Unknown Tutor',
+              avatarUrl: c.tutor_avatar || null,
+              communityName: c.name,
+              joinedAt: c.joined_at,
+            });
+          }
+        }
+        setSuggestedTutors(
+          Array.from(byTutor.values()).sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
+        );
+      })
+      .catch((err) => console.error('Failed to load recently joined communities:', err));
   }, [showCompose]);
 
   const contactIds = new Set(contacts.map((c) => c.userId));
+  const tutorSearchQuery = tutorSearch.trim().toLowerCase();
+
+  const suggestedResults = suggestedTutors.filter((t) => {
+    if (contactIds.has(t.userId)) return false; // already have a thread — find them in the list instead
+    if (!tutorSearchQuery) return true;
+    return t.name.toLowerCase().includes(tutorSearchQuery) || t.communityName.toLowerCase().includes(tutorSearchQuery);
+  });
+  const suggestedIds = new Set(suggestedResults.map((t) => t.userId));
+
   const tutorResults = availableTutors.filter((t) => {
     if (contactIds.has(t.userId)) return false; // already have a thread — find them in the list instead
-    const q = tutorSearch.trim().toLowerCase();
-    if (!q) return true;
-    return t.name.toLowerCase().includes(q) || (t.subject || '').toLowerCase().includes(q);
+    if (suggestedIds.has(t.userId)) return false; // already shown in the suggestions above
+    if (!tutorSearchQuery) return true;
+    return t.name.toLowerCase().includes(tutorSearchQuery) || (t.subject || '').toLowerCase().includes(tutorSearchQuery);
   });
 
   const pickTutor = (tutor: AvailableTutor) => {
     startConversation(tutor);
     setShowCompose(false);
     setTutorSearch('');
+  };
+
+  const pickSuggestedTutor = (tutor: SuggestedTutor) => {
+    pickTutor({ userId: tutor.userId, name: tutor.name, avatarUrl: tutor.avatarUrl, subject: null });
   };
 
   // Auto-select the first conversation once contacts load.
@@ -240,7 +289,41 @@ export default function MessagesPage() {
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
               {loadingTutors && <p style={{ padding: 18, fontSize: 13, color: palette.textMuted }}>Loading tutors…</p>}
-              {!loadingTutors && tutorResults.length === 0 && (
+
+              {suggestedResults.length > 0 && (
+                <>
+                  <p style={{ padding: '6px 22px', fontSize: 11, fontWeight: 700, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    From communities you've joined
+                  </p>
+                  {suggestedResults.map(t => {
+                    const color = colorForId(t.userId);
+                    return (
+                      <div key={t.userId} onClick={() => pickSuggestedTutor(t)}
+                        style={{ padding: '10px 22px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, transition: 'background 0.15s' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = palette.hoverBg; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}>
+                        {t.avatarUrl ? (
+                          <img src={t.avatarUrl} alt={t.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 38, height: 38, borderRadius: '50%', background: `linear-gradient(135deg,${color},${color}cc)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{initialOf(t.name)}</div>
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary }}>{t.name}</p>
+                          <p style={{ fontSize: 11, color: palette.textMuted }}>via {t.communityName}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {!loadingTutors && tutorResults.length > 0 && suggestedResults.length > 0 && (
+                <p style={{ padding: '10px 22px 6px', fontSize: 11, fontWeight: 700, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  All tutors
+                </p>
+              )}
+
+              {!loadingTutors && tutorResults.length === 0 && suggestedResults.length === 0 && (
                 <p style={{ padding: 18, fontSize: 13, color: palette.textMuted }}>
                   {tutorSearch ? 'No tutors match your search.' : 'No tutors available to message right now.'}
                 </p>

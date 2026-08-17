@@ -2,20 +2,52 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePalette } from '@/hooks/usePalette';
 import { formatRelativeTime } from '@/utils/date';
+import type { AppNotification } from '@/services/notification';
 
 const TYPE_ICON: Record<string, string> = {
   enrollment_request: '📩',
   enrollment_status: '✅',
   community_join_request: '👥',
+  community_status: '✅',
 };
+
+/**
+ * Where clicking a notification should land, based on who receives that
+ * type and what it's about. Tutor-received "request" notifications go to
+ * the matching tab on the Requests page; student-received "status"
+ * notifications go straight to the thing that changed.
+ */
+function hrefForNotification(n: AppNotification): string | null {
+  switch (n.type) {
+    case 'enrollment_request':
+      return '/dashboard/tutor/requests?tab=enrollment';
+    case 'community_join_request':
+      return '/dashboard/tutor/requests?tab=community';
+    case 'enrollment_status':
+      return '/dashboard/student/my-classes';
+    case 'community_status':
+      // A declined request never became a membership, so the per-community
+      // detail page (which assumes the viewer is an approved member) 403s
+      // when it fetches the feed — see tutorCommunityController.js's
+      // 'Community request declined' title. Send declines to the community
+      // list instead, where the declined community reappears in Discover.
+      return n.related_community_id && !n.title.toLowerCase().includes('declined')
+        ? `/dashboard/student/community/${n.related_community_id}`
+        : '/dashboard/student/community';
+    default:
+      return null;
+  }
+}
 
 export default function NotificationBell({ role }: { role: 'student' | 'tutor' }) {
   const { notifications, unreadNotifCount, unreadMessageCount, unreadMessagesBySender, markAsRead, markAllAsRead } =
     useNotifications();
   const palette = usePalette();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -30,6 +62,15 @@ export default function NotificationBell({ role }: { role: 'student' | 'tutor' }
 
   const totalBadge = unreadNotifCount + (unreadMessageCount > 0 ? 1 : 0);
   const messagesHref = `/dashboard/${role}/messages`;
+
+  const handleNotificationClick = (n: AppNotification) => {
+    markAsRead(n.id);
+    const href = hrefForNotification(n);
+    if (href) {
+      setOpen(false);
+      router.push(href);
+    }
+  };
 
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
@@ -73,14 +114,23 @@ export default function NotificationBell({ role }: { role: 'student' | 'tutor' }
               <p style={{ padding: 24, textAlign: 'center', fontSize: 13, color: palette.textMuted }}>No notifications yet.</p>
             )}
 
+            {/* Always the full recent list (read + unread mixed, oldest included), not
+                just today's new ones — unread rows are visually highlighted (tinted
+                background, left accent bar, bold title, dot); read ones sit at normal
+                weight so the list stays a real history, not a disappearing inbox. */}
             {notifications.map((n) => (
-              <div key={n.id} onClick={() => markAsRead(n.id)}
-                style={{ padding: '12px 16px', display: 'flex', gap: 10, cursor: 'pointer', background: n.is_read ? palette.surface : palette.surfaceAlt, borderBottom: `1px solid ${palette.border}`, transition: 'background 0.15s' }}
+              <div key={n.id} onClick={() => handleNotificationClick(n)}
+                style={{
+                  padding: '12px 16px 12px 13px', display: 'flex', gap: 10, cursor: 'pointer',
+                  background: n.is_read ? palette.surface : palette.activeBg,
+                  borderLeft: n.is_read ? '3px solid transparent' : '3px solid #10B981',
+                  borderBottom: `1px solid ${palette.border}`, transition: 'background 0.15s',
+                }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = palette.hoverBg; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.is_read ? palette.surface : palette.surfaceAlt; }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>{TYPE_ICON[n.type] || '🔔'}</span>
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.is_read ? palette.surface : palette.activeBg; }}>
+                <span style={{ fontSize: 16, flexShrink: 0, opacity: n.is_read ? 0.6 : 1 }}>{TYPE_ICON[n.type] || '🔔'}</span>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary }}>{n.title}</p>
+                  <p style={{ fontSize: 13, fontWeight: n.is_read ? 500 : 700, color: n.is_read ? palette.textSecondary : palette.textPrimary }}>{n.title}</p>
                   <p style={{ fontSize: 12, color: palette.textSecondary, marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
                   <p style={{ fontSize: 10, color: palette.textMuted, marginTop: 4 }}>{formatRelativeTime(n.created_at)}</p>
                 </div>

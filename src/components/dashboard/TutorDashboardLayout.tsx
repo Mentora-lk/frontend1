@@ -7,6 +7,7 @@ import NotificationBell from './NotificationBell';
 import ClientOnly from '@/components/ClientOnly';
 import { tutorService } from '@/services/tutorService';
 import { useTheme } from '@/hooks/useTheme';
+import { useSocket } from '@/contexts/SocketContext';
 // SocketProvider/NotificationsProvider live at the route layout level
 // (src/app/dashboard/tutor/layout.tsx) — a true ancestor of this
 // component's own callers (page.tsx files), unlike this component itself,
@@ -19,8 +20,19 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
 }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const socket = useSocket();
   const [profile, setProfile] = useState<any>(null);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Real pending-request count, shared by the sidebar "Requests" badge and the
+  // notification bell below — replaces the hardcoded fake counts that used to
+  // be shown here regardless of actual data.
+  const fetchPendingCount = () => {
+    tutorService
+      .getRequests()
+      .then((requests) => setPendingCount((requests || []).filter((r: any) => r.status === 'pending').length))
+      .catch((err) => console.error("Failed to fetch pending request count", err));
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,20 +44,21 @@ export default function TutorDashboardLayout({ children, title, subtitle }: {
       }
     };
     fetchProfile();
-
-    // Real pending-request count, shared by the sidebar "Requests" badge and the
-    // notification bell below — replaces the hardcoded fake counts that used to
-    // be shown here regardless of actual data.
-    const fetchPendingCount = async () => {
-      try {
-        const requests = await tutorService.getRequests();
-        setPendingCount((requests || []).filter((r: any) => r.status === 'pending').length);
-      } catch (err) {
-        console.error("Failed to fetch pending request count", err);
-      }
-    };
     fetchPendingCount();
   }, []);
+
+  // A new or cancelled enrollment request only reaches this badge via these
+  // events — a coarse resync (refetch) rather than trying to track locally
+  // whether the affected enrollment was actually pending.
+  useEffect(() => {
+    if (!socket) return;
+    socket.on('enrollment_cancelled', fetchPendingCount);
+    socket.on('new_enrollment_request', fetchPendingCount);
+    return () => {
+      socket.off('enrollment_cancelled', fetchPendingCount);
+      socket.off('new_enrollment_request', fetchPendingCount);
+    };
+  }, [socket]);
 
   const displayName = profile?.name || 'Tutor';
   const displayInitial = displayName.charAt(0).toUpperCase();

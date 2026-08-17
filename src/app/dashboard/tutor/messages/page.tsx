@@ -95,6 +95,7 @@ export default function MessagesPage() {
                     ) : (
                       <div style={{ width: 42, height: 42, borderRadius: '50%', background: `${color}20`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>{initialOf(c.name)}</div>
                     )}
+                    {c.online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, borderRadius: '50%', background: '#10B981', border: `2px solid ${palette.surface}` }} />}
                     {c.unreadCount > 0 && <span style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', color: 'white', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{c.unreadCount}</span>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -122,15 +123,20 @@ export default function MessagesPage() {
             <>
               {/* Chat header */}
               <div style={{ padding: '18px 22px', borderBottom: `1px solid ${palette.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                {active.avatarUrl ? (
-                  <img src={active.avatarUrl} alt={active.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: `${colorForId(active.userId)}20`, color: colorForId(active.userId), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>{initialOf(active.name)}</div>
-                )}
+                <div style={{ position: 'relative' }}>
+                  {active.avatarUrl ? (
+                    <img src={active.avatarUrl} alt={active.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: `${colorForId(active.userId)}20`, color: colorForId(active.userId), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>{initialOf(active.name)}</div>
+                  )}
+                  {active.online && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, borderRadius: '50%', background: '#10B981', border: `2px solid ${palette.surface}` }} />}
+                </div>
                 <div>
                   <p style={{ fontSize: 15, fontWeight: 700, color: palette.textPrimary }}>{active.name}</p>
-                  <p style={{ fontSize: 12, color: '#10B981', fontWeight: 600 }}>
-                    {typingFrom === active.userId ? 'Typing…' : active.subject ? `📚 ${active.subject}` : ''}
+                  <p style={{ fontSize: 12, color: active.online ? '#10B981' : palette.textMuted, fontWeight: 600 }}>
+                    {typingFrom === active.userId
+                      ? 'Typing…'
+                      : `${active.online ? 'Online now' : 'Offline'}${active.subject ? ` · 📚 ${active.subject}` : ''}`}
                   </p>
                 </div>
               </div>
