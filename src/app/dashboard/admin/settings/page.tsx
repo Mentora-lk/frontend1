@@ -1,8 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { ADMIN_STORAGE_KEYS, appendAudit, downloadFile, loadStoredState, saveStoredState } from '../utils/operations';
+import * as XLSX from 'xlsx';
+import { ADMIN_STORAGE_KEYS, appendAudit, loadStoredState, saveStoredState } from '../utils/operations';
 import { useAppearance } from '../appearance-context';
+
+// NOTE: `xlsx` (SheetJS) is required for the Excel export below.
+// If it isn't already a dependency, install it with: npm install xlsx
 
 const defaultSettings = {
   twoFactorAuth: false,
@@ -15,16 +19,14 @@ const defaultSettings = {
   maintenanceMode: false,
   tutorVerificationRequired: true,
   studentSelfRegistration: true,
-  studentsPerPage: '10',
   defaultSessionDuration: '60',
-  autoApprovalAds: false,
   maxAdsPerTutor: '3',
   currency: 'LKR',
   timezone: 'Asia/Colombo',
 };
 
 type Settings = typeof defaultSettings;
-type NavId = 'security' | 'appearance' | 'notifications' | 'platform' | 'students' | 'sessions' | 'ads' | 'localization' | 'data' | 'danger';
+type NavId = 'security' | 'appearance' | 'notifications' | 'platform' | 'sessions' | 'ads' | 'localization' | 'data' | 'danger';
 
 const ROW_PADDING = '18px 0';
 const CARD_PADDING = '22px';
@@ -67,7 +69,6 @@ const NAV_ITEMS: { id: NavId; icon: string; label: string; danger?: boolean }[] 
   { id: 'appearance', icon: '🎨', label: 'Appearance' },
   { id: 'notifications', icon: '🔔', label: 'Notifications' },
   { id: 'platform', icon: '⚙️', label: 'Platform Behavior' },
-  { id: 'students', icon: '🧑‍🎓', label: 'Students' },
   { id: 'sessions', icon: '📅', label: 'Sessions' },
   { id: 'ads', icon: '📣', label: 'Advertisements' },
   { id: 'localization', icon: '🌍', label: 'Localization' },
@@ -80,6 +81,14 @@ function generateSecret(length = 16) {
   let out = '';
   for (let i = 0; i < length; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
+}
+
+// Turns a camelCase settings key into a readable label for the exported spreadsheet.
+function formatSettingLabel(key: string) {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -144,6 +153,63 @@ function SelectRow({ title, description, value, options, onChange, divider = tru
   );
 }
 
+// Common session-length presets, plus a "Custom" option that reveals a free-entry
+// minutes field — so admins aren't locked into one of a few fixed durations.
+const SESSION_DURATION_PRESETS = [
+  { value: '30', label: '30 minutes' },
+  { value: '45', label: '45 minutes' },
+  { value: '60', label: '60 minutes' },
+  { value: '90', label: '90 minutes' },
+  { value: '120', label: '2 hours' },
+];
+
+function SessionDurationRow({ value, onChange, divider = true }: {
+  value: string; onChange: (v: string) => void; divider?: boolean;
+}) {
+  const isCustom = !SESSION_DURATION_PRESETS.some((o) => o.value === value);
+  const [customDraft, setCustomDraft] = useState(isCustom ? value : '');
+
+  const handleSelectChange = (v: string) => {
+    if (v === 'custom') {
+      setCustomDraft('');
+      // Wait for the admin to type a value before persisting anything.
+      return;
+    }
+    onChange(v);
+  };
+
+  const handleCustomChange = (v: string) => {
+    const digits = v.replace(/\D/g, '').slice(0, 3);
+    setCustomDraft(digits);
+    if (digits) onChange(digits);
+  };
+
+  return (
+    <div className="settings-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 20, padding: `${ROW_PADDING.split(' ')[0]} 10px`, margin: '0 -10px', borderBottom: divider ? '1px solid var(--divider)' : 'none', flexWrap: 'wrap' }}>
+      <RowLabel title="Default session duration" description="Used when a duration isn't specified manually" />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+        <select
+          className="select-field"
+          value={isCustom ? 'custom' : value}
+          onChange={(e) => handleSelectChange(e.target.value)}
+          style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: 13.5, fontWeight: 600, minWidth: 130 }}
+        >
+          {SESSION_DURATION_PRESETS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <option value="custom">Custom…</option>
+        </select>
+        {isCustom && (
+          <input
+            value={customDraft}
+            onChange={(e) => handleCustomChange(e.target.value)}
+            placeholder="Minutes"
+            inputMode="numeric"
+            style={{ width: 90, padding: '9px 10px', borderRadius: 10, border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: 13.5, fontWeight: 600 }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 function SectionCard({ icon, accent, title, subtitle, children }: {
   icon: string; accent: string; title: string; subtitle: string; children: React.ReactNode;
 }) {
@@ -387,10 +453,20 @@ export default function AdminSettingsPage() {
     statusTimer = setTimeout(() => setStatusText(''), 2500);
   };
 
+  // Exports the current settings as a real .xlsx workbook (SheetJS), not JSON.
   const exportSettings = () => {
-    downloadFile('admin-settings.json', JSON.stringify(settings, null, 2), 'application/json');
+    const rows = Object.entries(settings)
+      .filter(([key]) => key !== 'twoFactorSecret') // never export the 2FA secret
+      .map(([key, value]) => ({ Setting: formatSettingLabel(key), Value: String(value) }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet['!cols'] = [{ wch: 32 }, { wch: 24 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Settings');
+    XLSX.writeFile(workbook, 'admin-settings.xlsx');
+
     setStatusText('Settings exported.');
-    appendAudit('SETTINGS_EXPORT', 'Admin settings exported');
+    appendAudit('SETTINGS_EXPORT', 'Admin settings exported to Excel');
   };
 
   const clearCache = () => {
@@ -484,10 +560,29 @@ export default function AdminSettingsPage() {
 
           {activeSection === 'notifications' && (
             <SectionCard icon="🔔" accent="#1d4ed8" title="Notifications" subtitle="Choose which alerts you want to receive.">
-              <SettingRow title="Email Notifications" description="Receive admin alerts via email" checked={settings.emailNotifications} onChange={toggle('emailNotifications', 'Email notifications')} />
-              <SettingRow title="SMS Notifications" description="Receive urgent alerts via SMS" checked={settings.smsNotifications} onChange={toggle('smsNotifications', 'SMS notifications')} />
+              <SettingRow
+                title="Email Notifications"
+                description="Sent to the email address on your admin login"
+                checked={settings.emailNotifications}
+                onChange={toggle('emailNotifications', 'Email notifications')}
+              />
+              <SettingRow
+                title="SMS Notifications"
+                description="Sent to the phone number saved on your profile"
+                checked={settings.smsNotifications}
+                onChange={toggle('smsNotifications', 'SMS notifications')}
+              />
               <SettingRow title="Session Reminder Emails" description="Notify students before an upcoming session" checked={settings.sessionReminderEmails} onChange={toggle('sessionReminderEmails', 'Session reminder emails')} />
-              <SettingRow title="Weekly Summary Email" description="A weekly digest of platform activity" checked={settings.weeklySummaryEmail} onChange={toggle('weeklySummaryEmail', 'Weekly summary email')} divider={false} />
+              <SettingRow
+                title="Weekly Summary Email"
+                description="A weekly digest of platform activity, emailed to your login address"
+                checked={settings.weeklySummaryEmail}
+                onChange={toggle('weeklySummaryEmail', 'Weekly summary email')}
+                divider={false}
+              />
+              <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '4px 0 18px', lineHeight: 1.6 }}>
+                To change the email or phone number these are sent to, update them in your admin profile.
+              </p>
             </SectionCard>
           )}
 
@@ -499,32 +594,11 @@ export default function AdminSettingsPage() {
             </SectionCard>
           )}
 
-          {activeSection === 'students' && (
-            <SectionCard icon="🧑‍🎓" accent="#0891b2" title="Students" subtitle="Controls for the student directory.">
-              <SelectRow
-                title="Rows per page"
-                description="Number of students shown per page in the directory"
-                value={settings.studentsPerPage}
-                onChange={select('studentsPerPage', 'Students per page')}
-                options={[{ value: '6', label: '6' }, { value: '10', label: '10' }, { value: '20', label: '20' }, { value: '50', label: '50' }]}
-                divider={false}
-              />
-            </SectionCard>
-          )}
-
           {activeSection === 'sessions' && (
             <SectionCard icon="📅" accent="#d97706" title="Sessions" subtitle="Defaults applied when scheduling sessions.">
-              <SelectRow
-                title="Default session duration"
-                description="Used when a duration isn't specified manually"
+              <SessionDurationRow
                 value={settings.defaultSessionDuration}
                 onChange={select('defaultSessionDuration', 'Default session duration')}
-                options={[
-                  { value: '30', label: '30 minutes' },
-                  { value: '45', label: '45 minutes' },
-                  { value: '60', label: '60 minutes' },
-                  { value: '90', label: '90 minutes' },
-                ]}
                 divider={false}
               />
             </SectionCard>
@@ -532,7 +606,12 @@ export default function AdminSettingsPage() {
 
           {activeSection === 'ads' && (
             <SectionCard icon="📣" accent="#be185d" title="Advertisements" subtitle="Moderation rules for tutor ads.">
-              <SettingRow title="Auto-Approve Advertisements" description="New ads go live immediately without manual review" checked={settings.autoApprovalAds} onChange={toggle('autoApprovalAds', 'Auto-approve advertisements')} />
+              <div style={{ padding: ROW_PADDING, borderBottom: '1px solid var(--divider)' }}>
+                <RowLabel
+                  title="Manual Review Required"
+                  description="Every new advertisement is queued for manual admin approval before it goes live. Approving an ad is a trust-and-safety decision, so this can't be automated."
+                />
+              </div>
               <SelectRow
                 title="Max active ads per tutor"
                 description="Limit how many ads a single tutor can run at once"
@@ -567,7 +646,7 @@ export default function AdminSettingsPage() {
           {activeSection === 'data' && (
             <SectionCard icon="🗄️" accent="#374151" title="Data" subtitle="Export or clear locally cached settings.">
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '18px 0 22px' }}>
-                <button className="btn" onClick={exportSettings} style={{ border: '1px solid var(--input-border)', background: 'var(--card-bg)', color: 'var(--text-primary)', borderRadius: 10, padding: '10px 18px', fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>↓ Export settings</button>
+                <button className="btn" onClick={exportSettings} style={{ border: '1px solid var(--input-border)', background: 'var(--card-bg)', color: 'var(--text-primary)', borderRadius: 10, padding: '10px 18px', fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>↓ Export settings (.xlsx)</button>
                 <button className="btn" onClick={clearCache} style={{ border: '1px solid var(--input-border)', background: 'var(--card-bg)', color: 'var(--text-primary)', borderRadius: 10, padding: '10px 18px', fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>↺ Clear cache</button>
               </div>
             </SectionCard>
