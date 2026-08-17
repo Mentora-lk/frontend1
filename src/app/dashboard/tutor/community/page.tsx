@@ -135,6 +135,7 @@ export default function TutorCommunityPage() {
         .modal-content { background: ${palette.surface}; padding: 32px; border-radius: 24px; width: 100%; max-width: 500px; box-shadow: 0 20px 40px rgba(0,0,0,0.35); }
         .input-field { width: 100%; padding: 12px 16px; border: 1.5px solid ${palette.border}; border-radius: 12px; font-size: 14px; font-family: 'DM Sans', sans-serif; margin-top: 8px; outline: none; transition: border-color 0.2s; background: ${palette.inputBg}; color: ${palette.textPrimary}; }
         .input-field:focus { border-color: #10B981; }
+        @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
       `}</style>
 
       {/* Create Community Modal */}
@@ -166,7 +167,10 @@ export default function TutorCommunityPage() {
       )}
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>Loading...</div>
+        <div style={{ textAlign: 'center', padding: '80px 0' }}>
+          <div style={{ width: 40, height: 40, border: `3px solid ${palette.border}`, borderTop: '3px solid #10B981', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <p style={{ color: palette.textMuted, fontSize: 14 }}>Loading your communities...</p>
+        </div>
       ) : (
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* Main Content Area */}

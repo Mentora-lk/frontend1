@@ -278,7 +278,15 @@ export default function TutorCommunityDetailPage() {
   ];
 
   if (loading) {
-    return <TutorDashboardLayout title="Loading..." subtitle="Fetching community details"><div style={{ padding: 40, textAlign: 'center' }}>Loading...</div></TutorDashboardLayout>;
+    return (
+      <TutorDashboardLayout title="Loading..." subtitle="Fetching community details">
+        <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
+        <div style={{ textAlign: 'center', padding: '80px 0' }}>
+          <div style={{ width: 40, height: 40, border: `3px solid ${palette.border}`, borderTop: '3px solid #10B981', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <p style={{ color: palette.textMuted, fontSize: 14 }}>Loading community details...</p>
+        </div>
+      </TutorDashboardLayout>
+    );
   }
 
   if (!community) {
