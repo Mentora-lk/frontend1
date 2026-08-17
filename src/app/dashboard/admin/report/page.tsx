@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { getTutorPayments } from '@/services/adminApi';
 import { appendAudit, downloadFile } from '../utils/operations';
+import Spinner from '@/components/ui/Spinner';
 
 // ── Types ────────────────────────────────────────────────────────────────
 type TutorPayment = {
@@ -16,8 +18,7 @@ type TutorPayment = {
   date: string; // ISO yyyy-mm-dd
 };
 
-// tutor_name must come from your API route joining tutor_payments -> tutors/users on tutor_id.
-// If your route doesn't join it yet, this falls back to showing the tutor_id.
+// tutor_name comes from the backend join: tutor_payments -> tutor_profiles on tutor_id.
 function mapRow(row: any): TutorPayment {
   return {
     id: String(row.id),
@@ -31,6 +32,42 @@ function mapRow(row: any): TutorPayment {
     status: (row.status ?? 'PENDING') as TutorPayment['status'],
     date: (row.createdAt ?? '').slice(0, 10),
   };
+}
+
+// ── Pagination helper (same as Tutors / Sessions pages) ─────────────────
+function getPaginationRange(current: number, total: number, siblingCount = 1): (number | 'dots')[] {
+  const totalPageNumbers = siblingCount * 2 + 5;
+
+  if (totalPageNumbers >= total) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const leftSiblingIndex = Math.max(current - siblingCount, 1);
+  const rightSiblingIndex = Math.min(current + siblingCount, total);
+
+  const showLeftDots = leftSiblingIndex > 2;
+  const showRightDots = rightSiblingIndex < total - 1;
+
+  const firstPageIndex = 1;
+  const lastPageIndex = total;
+
+  if (!showLeftDots && showRightDots) {
+    const leftItemCount = 3 + 2 * siblingCount;
+    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+    return [...leftRange, 'dots', lastPageIndex];
+  }
+
+  if (showLeftDots && !showRightDots) {
+    const rightItemCount = 3 + 2 * siblingCount;
+    const rightRange = Array.from({ length: rightItemCount }, (_, i) => total - rightItemCount + i + 1);
+    return [firstPageIndex, 'dots', ...rightRange];
+  }
+
+  const middleRange = Array.from(
+    { length: rightSiblingIndex - leftSiblingIndex + 1 },
+    (_, i) => leftSiblingIndex + i
+  );
+  return [firstPageIndex, 'dots', ...middleRange, 'dots', lastPageIndex];
 }
 
 // ── UI helpers ───────────────────────────────────────────────────────────
@@ -59,29 +96,30 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// StatCard now matches the Tutors/Sessions page look: small accent-colored
+// icon chip up top, title, then value (or Spinner while loading).
 function StatCard({
   title,
   value,
   detail,
   accent,
+  loading,
 }: {
   title: string;
   value: string;
   detail?: string;
-  accent?: boolean;
+  accent: string;
+  loading: boolean;
 }) {
   return (
-    <div
-      style={{
-        background: accent ? '#ecfeff' : '#fff',
-        border: `1px solid ${accent ? '#99f6e4' : '#e5e7eb'}`,
-        borderRadius: 16,
-        padding: 18,
-        boxShadow: '0 8px 20px rgba(0,0,0,0.04)',
-      }}
-    >
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ width: 44, height: 32, borderRadius: 10, background: accent, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
+      </div>
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
-      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
+      <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6, display: 'flex', alignItems: 'center' }}>
+        {loading ? <Spinner size={22} /> : value}
+      </div>
       {detail && <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>{detail}</div>}
     </div>
   );
@@ -252,15 +290,23 @@ export default function ReportPage() {
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch('/api/admin/tutor-payments');
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        const data = await res.json();
+        const data = await getTutorPayments();
         if (!cancelled) {
           setPayments((Array.isArray(data) ? data : data.rows ?? []).map(mapRow));
           setLoadError(null);
         }
-      } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load payments');
+      } catch (err: any) {
+        console.error('Failed to fetch tutor payments:', err);
+        if (!cancelled) {
+          const status = err?.response?.status;
+          setLoadError(
+            status
+              ? `Request failed (${status})`
+              : err instanceof Error
+              ? err.message
+              : 'Failed to load payments'
+          );
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -291,6 +337,8 @@ export default function ReportPage() {
     const start = (page - 1) * pageSize;
     return filteredPayments.slice(start, start + pageSize);
   }, [page, filteredPayments]);
+
+  const paginationRange = useMemo(() => getPaginationRange(page, totalPages), [page, totalPages]);
 
   const periodActive = appliedFrom !== '' || appliedTo !== '';
   const periodTotal = useMemo(() => {
@@ -348,37 +396,98 @@ export default function ReportPage() {
   };
 
   return (
-    <div style={{ display: 'grid', gap: 22 }}>
+    <div
+      style={{
+        display: 'grid',
+        gap: 20,
+        background: 'linear-gradient(160deg, #f0fdfa 0%, #eef6ff 55%, #f6f4ff 100%)',
+        borderRadius: 24,
+        padding: 20,
+        margin: -20,
+      }}
+    >
       <div>
         <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Tutor Advertisement Payments</h2>
         <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Payments made by tutors for advertisement placements, in LKR.</p>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-        {hasActiveFilters && (
-          <button onClick={clearFilters} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 12, padding: '10px 14px', cursor: 'pointer' }}>Clear Filters</button>
-        )}
-        <button onClick={exportCsv} disabled={filteredPayments.length === 0} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', borderRadius: 12, padding: '10px 14px', cursor: filteredPayments.length === 0 ? 'not-allowed' : 'pointer', opacity: filteredPayments.length === 0 ? 0.5 : 1 }}>Export Report</button>
-      </div>
-
       {loadError && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #fca5a5', color: '#991B1B', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
-          Couldn't load payments: {loadError}
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+          ⚠️ Couldn't load payments: {loadError}
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <StatCard title="Total Ad Revenue" value={`LKR ${fmtCurrency(totalRevenue)}`} />
-        <StatCard title="Pending Payments" value={`LKR ${fmtCurrency(pendingTotal)}`} />
-        <StatCard title="Total Payments" value={String(payments.length)} />
+        <StatCard title="Total Ad Revenue" value={`LKR ${fmtCurrency(totalRevenue)}`} accent="#0f766e" loading={loading} />
+        <StatCard title="Pending Payments" value={`LKR ${fmtCurrency(pendingTotal)}`} accent="#f59e0b" loading={loading} />
+        <StatCard title="Total Payments" value={String(payments.length)} accent="#27c3ff" loading={loading} />
         {periodActive && periodTotal !== null && (
-          <StatCard accent title={`Total: ${appliedFrom || 'Start'} → ${appliedTo || 'Now'}`} value={`LKR ${fmtCurrency(periodTotal)}`} detail={`${filteredPayments.length} payment${filteredPayments.length === 1 ? '' : 's'} in range`} />
+          <StatCard
+            title={`Total: ${appliedFrom || 'Start'} → ${appliedTo || 'Now'}`}
+            value={`LKR ${fmtCurrency(periodTotal)}`}
+            detail={`${filteredPayments.length} payment${filteredPayments.length === 1 ? '' : 's'} in range`}
+            accent="#22c55e"
+            loading={loading}
+          />
         )}
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-        <div style={{ padding: 18, borderBottom: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif" }}>Payment History</h3>
+        {/* Header row: title left, Export Report button right — matches Tutors/Sessions pages */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '18px 18px 0' }}>
+          <div>
+            <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif", fontSize: 16 }}>Payment History</h3>
+            <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>Live data from your backend</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+              >
+                Clear Filters
+              </button>
+            )}
+            <button
+              onClick={exportCsv}
+              disabled={filteredPayments.length === 0}
+              style={{
+                borderRadius: 10,
+                border: '1px solid ' + (filteredPayments.length === 0 ? '#e5e7eb' : '#0f766e'),
+                background: filteredPayments.length === 0 ? '#f3f4f6' : '#0f766e',
+                color: filteredPayments.length === 0 ? '#9ca3af' : '#fff',
+                padding: '10px 16px',
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: filteredPayments.length === 0 ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Export Report {filteredPayments.length > 0 ? `(${filteredPayments.length})` : ''}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ background: 'linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)', border: '1px solid #d7f2ea', borderRadius: 12, padding: 12, margin: '16px 18px 0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.6fr', gap: 10, marginBottom: 10 }}>
+            <input
+              type="text"
+              placeholder="Search by tutor, ad ID, order ID, or payment ID..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}
+            />
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#111827', fontSize: 14 }}
+            >
+              <option value="All">Status: All</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING">Pending</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               type="date"
@@ -386,16 +495,16 @@ export default function ReportPage() {
               max={dateTo || undefined}
               onChange={(e) => setDateFrom(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && runDateSearch()}
-              style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151' }}
+              style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 13, color: '#374151', background: '#fff' }}
             />
-            <span style={{ color: '#6b7280' }}>to</span>
+            <span style={{ color: '#6b7280', fontSize: 13 }}>to</span>
             <input
               type="date"
               value={dateTo}
               min={dateFrom || undefined}
               onChange={(e) => setDateTo(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && runDateSearch()}
-              style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 13, color: '#374151' }}
+              style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 13, color: '#374151', background: '#fff' }}
             />
             <button
               onClick={runDateSearch}
@@ -404,7 +513,7 @@ export default function ReportPage() {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 border: '1px solid #0f766e', background: '#0f766e', color: '#fff',
-                borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700,
+                borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 700,
                 cursor: !dateFrom && !dateTo ? 'not-allowed' : 'pointer',
                 opacity: !dateFrom && !dateTo ? 0.5 : 1,
               }}
@@ -414,44 +523,24 @@ export default function ReportPage() {
           </div>
         </div>
 
-        <div style={{ padding: '12px 18px', borderBottom: '1px solid #ecf4ef', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            placeholder="Search by tutor, ad ID, order ID, or payment ID..."
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}
-          />
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}
-          >
-            <option value="All">All Status</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="PENDING">Pending</option>
-            <option value="FAILED">Failed</option>
-          </select>
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', marginTop: 14 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
-              <tr style={{ color: '#6b7280', fontSize: 12, textAlign: 'left', background: '#f0fdf4' }}>
+              <tr style={{ background: 'linear-gradient(90deg, #ecfeff 0%, #f0fdfa 100%)', textAlign: 'left' }}>
                 {['Payment ID', 'Date', 'Tutor', 'Ad ID', 'Order ID', 'Amount (LKR)', 'Status', 'Actions'].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                  <th key={h} style={{ padding: '12px 16px', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f766e' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>Loading payments…</td>
+                  <td colSpan={8} style={{ padding: 32, textAlign: 'center' }}><Spinner size={26} /></td>
                 </tr>
               )}
               {!loading && visiblePayments.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#9CA3AF' }}>
                     No payments match your filters.
                   </td>
                 </tr>
@@ -460,8 +549,8 @@ export default function ReportPage() {
                 <tr
                   key={p.id}
                   onClick={() => setSelectedPayment(p)}
-                  style={{ borderTop: '1px solid #ecf4ef', cursor: 'pointer' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                  style={{ borderTop: '1px solid #ecf4ef', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fdfb')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '14px 16px', color: '#6b7280', fontSize: 12, fontFamily: 'monospace' }}>{p.id}</td>
@@ -497,75 +586,53 @@ export default function ReportPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div
-          style={{
-            padding: '14px 18px',
-            borderTop: '1px solid #ecf4ef',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#f9fafb',
-          }}
-        >
-          <div style={{ color: '#6b7280', fontSize: 13 }}>
-            Page {page} of {totalPages} ({filteredPayments.length} total rows)
-          </div>
-
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={{
-                border: '1px solid #99f6e4',
-                background: '#fff',
-                borderRadius: 8,
-                padding: '4px 10px',
-                color: '#0f766e',
-                cursor: page === 1 ? 'not-allowed' : 'pointer',
-                opacity: page === 1 ? 0.5 : 1,
-              }}
-            >
-              ‹
-            </button>
-
-            {Array.from(
-              { length: totalPages },
-              (_, i) => i + 1
-            ).map((n) => (
+        {/* Pagination — Previous / numbered pages (with dots) / Next, same as Tutors & Sessions pages */}
+        {!loading && filteredPayments.length > 0 && (
+          <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', background: '#fafdfc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
+            <span>Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredPayments.length)} of {filteredPayments.length} payments</span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button
-                key={n}
-                onClick={() => setPage(n)}
-                style={{
-                  border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4',
-                  background: n === page ? '#0f766e' : '#fff',
-                  borderRadius: 8,
-                  padding: '4px 10px',
-                  color: n === page ? '#fff' : '#0f766e',
-                  cursor: 'pointer',
-                }}
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page === 1}
+                style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
               >
-                {n}
+                Previous
               </button>
-            ))}
 
-            <button
-              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={page === totalPages}
-              style={{
-                border: '1px solid #99f6e4',
-                background: '#fff',
-                borderRadius: 8,
-                padding: '4px 10px',
-                color: '#0f766e',
-                cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                opacity: page === totalPages ? 0.5 : 1,
-              }}
-            >
-              ›
-            </button>
+              {paginationRange.map((item, idx) =>
+                item === 'dots' ? (
+                  <span key={`dots-${idx}`} style={{ padding: '4px 6px', color: '#6b7280', fontSize: 13, userSelect: 'none' }}>
+                    &hellip;
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setPage(item)}
+                    style={{
+                      border: item === page ? '1px solid #0f766e' : '1px solid #99f6e4',
+                      background: item === page ? '#0f766e' : '#fff',
+                      borderRadius: 8,
+                      padding: '4px 10px',
+                      color: item === page ? '#fff' : '#0f766e',
+                      cursor: 'pointer',
+                      minWidth: 32,
+                    }}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={page === totalPages}
+                style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Drawer */}
