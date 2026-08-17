@@ -253,7 +253,9 @@ export default function TutorProfilePage() {
       )}
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-        {/* Left — Avatar card */}
+        {/* Left — Avatar card — only on the Personal Info tab; hidden on
+            Revenue Analytics / To Do List so those panels get the full width */}
+        {activeTab === 'info' && (
         <div style={{ width: 240, flexShrink: 0 }}>
           <div style={{ background: palette.surface, borderRadius: 20, padding: '28px 20px', boxShadow: palette.shadow, border: `1px solid ${palette.border}`, textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
@@ -324,6 +326,7 @@ export default function TutorProfilePage() {
             })()}
           </div>
         </div>
+        )}
 
         {/* Right — Form */}
         <div style={{ flex: 1 }}>
