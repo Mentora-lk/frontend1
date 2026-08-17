@@ -7,6 +7,7 @@ import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunities, createPost, deleteCommunity, removeCommunityMember } from '@/services/tutorCommunityService';
 import { useCommunitySocket } from '@/hooks/useCommunitySocket';
 import { usePalette } from '@/hooks/usePalette';
+import { toDownloadUrl } from '@/utils/cloudinaryDownload';
 
 // Fallback colors/icons for communities without them in DB
 const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
@@ -70,7 +71,9 @@ export default function TutorCommunityDetailPage() {
   const [error, setError] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [deleteCommunityPopup, setDeleteCommunityPopup] = useState(false);
-  const [deleteMemberPopup, setDeleteMemberPopup] = useState<{isOpen: boolean; memberId: number | null}>({isOpen: false, memberId: null});
+  const [isMemberListOpen, setIsMemberListOpen] = useState(false);
+  const [deleteMemberPopup, setDeleteMemberPopup] = useState<{isOpen: boolean; memberId: number | null; memberName: string}>({isOpen: false, memberId: null, memberName: ''});
+  const [removingMember, setRemovingMember] = useState(false);
   const router = require('next/navigation').useRouter();
 
   const handleDeleteCommunity = async () => {
@@ -88,18 +91,23 @@ export default function TutorCommunityDetailPage() {
   };
 
   const handleRemoveMember = async () => {
-    if (!deleteMemberPopup.memberId) return;
+    if (!deleteMemberPopup.memberId || removingMember) return;
     try {
+      setRemovingMember(true);
       const res = await removeCommunityMember(communityId, deleteMemberPopup.memberId);
       if (res.status === 'success') {
         setMembers(prev => prev.filter(m => m.id !== deleteMemberPopup.memberId));
-        setDeleteMemberPopup({ isOpen: false, memberId: null });
+        // Keep the banner's member count in step with the list we just trimmed.
+        setCommunity((prev: any) => prev ? { ...prev, members: Math.max(0, (prev.members || 1) - 1) } : prev);
+        setDeleteMemberPopup({ isOpen: false, memberId: null, memberName: '' });
       } else {
         alert(res.message || 'Failed to remove member');
       }
     } catch (e) {
       console.error("Error removing member", e);
       alert('Error removing member');
+    } finally {
+      setRemovingMember(false);
     }
   };
 
@@ -110,7 +118,7 @@ export default function TutorCommunityDetailPage() {
 
   // Live updates: join the community's Socket.io room so posts/deadlines the
   // tutor (or a student) creates elsewhere show up here without a refresh.
-  const { status: socketStatus } = useCommunitySocket(
+  useCommunitySocket(
     communityId,
     (rawPost) => {
       setDiscussions(prev => {
@@ -271,6 +279,10 @@ export default function TutorCommunityDetailPage() {
     setDiscussions(prev => prev.map(d => d.id === id ? { ...d, likes: d.likes + 1 } : d));
   };
 
+  // Everyone except the community's own tutor can be removed. Role casing
+  // varies by endpoint, so compare case-insensitively.
+  const removableMembers = members.filter(m => String(m.role || '').toLowerCase() !== 'tutor');
+
   const tabs = [
     { key: 'discussions' as const, label: 'Feed & Discussions', count: discussions.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg> },
     { key: 'files' as const, label: 'Materials', count: files.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg> },
@@ -325,10 +337,6 @@ export default function TutorCommunityDetailPage() {
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 10 }}>
                 {community.name}
-                <span title={`Live updates: ${socketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '3px 9px', fontSize: 10, fontWeight: 700, letterSpacing: '0.03em' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: socketStatus === 'connected' ? '#34D399' : socketStatus === 'connecting' ? '#FBBF24' : '#F87171' }} />
-                  {socketStatus === 'connected' ? 'LIVE' : socketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
-                </span>
               </h2>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>{community.members} members · {community.category}</p>
             </div>
@@ -352,13 +360,50 @@ export default function TutorCommunityDetailPage() {
           <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 16px 0' }}>Community Settings</h2>
             <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>Manage your community preferences.</p>
-            
+
+            <button onClick={() => { setIsSettingsOpen(false); setIsMemberListOpen(true); }} style={{ width: '100%', background: palette.surfaceAlt, color: palette.textPrimary, border: `1px solid ${palette.border}`, padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+              Remove Member
+            </button>
+
             <button onClick={() => { setIsSettingsOpen(false); setDeleteCommunityPopup(true); }} style={{ width: '100%', background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               Delete Community
             </button>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
               <button onClick={() => setIsSettingsOpen(false)} style={{ background: 'transparent', color: palette.textSecondary, border: 'none', padding: '10px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Member — member picker (opened from Settings) */}
+      {isMemberListOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setIsMemberListOpen(false)}>
+          <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 440, boxShadow: '0 20px 40px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 8px 0' }}>Remove a Member</h2>
+            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 20 }}>Removing a student permanently revokes their access to this community.</p>
+
+            <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {removableMembers.map(member => (
+                <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: `1px solid ${palette.border}`, borderRadius: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${member.color}20`, color: member.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>{member.avatar}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.name}</p>
+                    <p style={{ fontSize: 11, color: palette.textMuted }}>Joined {member.joined}</p>
+                  </div>
+                  <button onClick={() => { setIsMemberListOpen(false); setDeleteMemberPopup({ isOpen: true, memberId: member.id, memberName: member.name }); }} style={{ background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '8px 14px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {removableMembers.length === 0 && (
+                <p style={{ textAlign: 'center', padding: '20px 0', color: palette.textSecondary, fontSize: 14 }}>No students in this community yet.</p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+              <button onClick={() => setIsMemberListOpen(false)} style={{ background: 'transparent', color: palette.textSecondary, border: 'none', padding: '10px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Close</button>
             </div>
           </div>
         </div>
@@ -390,11 +435,15 @@ export default function TutorCommunityDetailPage() {
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
             </div>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 12px 0' }}>Remove Member?</h2>
-            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>Are you sure you want to permanently remove this student from the community?</p>
-            
+            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>
+              {deleteMemberPopup.memberName
+                ? <>Permanently remove <strong style={{ color: palette.textPrimary }}>{deleteMemberPopup.memberName}</strong> from this community? They will lose access to all posts and materials.</>
+                : 'Are you sure you want to permanently remove this student from the community?'}
+            </p>
+
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setDeleteMemberPopup({ isOpen: false, memberId: null })} style={{ flex: 1, background: palette.surfaceAlt, color: palette.textSecondary, border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
-              <button onClick={handleRemoveMember} style={{ flex: 1, background: '#DC2626', color: 'white', border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Yes, Remove</button>
+              <button onClick={() => setDeleteMemberPopup({ isOpen: false, memberId: null, memberName: '' })} disabled={removingMember} style={{ flex: 1, background: palette.surfaceAlt, color: palette.textSecondary, border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: removingMember ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+              <button onClick={handleRemoveMember} disabled={removingMember} style={{ flex: 1, background: '#DC2626', color: 'white', border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: removingMember ? 'not-allowed' : 'pointer', opacity: removingMember ? 0.7 : 1, fontFamily: "'DM Sans', sans-serif" }}>{removingMember ? 'Removing…' : 'Yes, Remove'}</button>
             </div>
           </div>
         </div>
@@ -539,7 +588,7 @@ export default function TutorCommunityDetailPage() {
                         <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12 }} />
                         <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
                         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#10B981', fontSize: 13, fontWeight: 600 }}>
+                          <a href={toDownloadUrl(post.media_url, post.mediaName)} rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#10B981', fontSize: 13, fontWeight: 600 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                             Download Image
                           </a>
@@ -558,7 +607,7 @@ export default function TutorCommunityDetailPage() {
                           <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached Document'}</p>
                           <p style={{ color: palette.textSecondary, fontSize: 12, textTransform: 'uppercase' }}>{post.type}</p>
                         </div>
-                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#10B981', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={toDownloadUrl(post.media_url, post.mediaName)} rel="noreferrer" style={{ background: '#10B981', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                           Download
                         </a>
                       </div>
@@ -575,7 +624,7 @@ export default function TutorCommunityDetailPage() {
                           <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached File'}</p>
                           <p style={{ color: palette.textSecondary, fontSize: 12 }}>Attachment</p>
                         </div>
-                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#4F46E5', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={toDownloadUrl(post.media_url, post.mediaName)} rel="noreferrer" style={{ background: '#4F46E5', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                           Download
                         </a>
                       </div>
@@ -661,8 +710,8 @@ export default function TutorCommunityDetailPage() {
                   background: palette.surface, borderRadius: 18, padding: 20, boxShadow: palette.shadow,
                   border: `1px solid ${palette.border}`, textAlign: 'center', position: 'relative'
                 }}>
-                  {member.role === 'Student' && (
-                    <button onClick={() => setDeleteMemberPopup({ isOpen: true, memberId: member.id })} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }} title="Remove Member">
+                  {String(member.role || '').toLowerCase() !== 'tutor' && (
+                    <button onClick={() => setDeleteMemberPopup({ isOpen: true, memberId: member.id, memberName: member.name })} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }} title="Remove Member">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
                   )}
@@ -708,31 +757,6 @@ export default function TutorCommunityDetailPage() {
                   </Link>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Deadlines Widget (Static for now as no API for fetching deadlines) */}
-          <div style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}`, marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                </div>
-                <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary }}>Set Deadlines</h3>
-              </div>
-              <button style={{ background: 'none', border: 'none', color: '#10B981', cursor: 'pointer' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: 4, borderRadius: 4, background: '#EF4444' }} />
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: palette.textPrimary }}>Integration Quiz 1</p>
-                  <p style={{ fontSize: 11, color: '#EF4444', fontWeight: 600, marginTop: 2 }}>Due Tomorrow, 11:59 PM</p>
-                </div>
-              </div>
             </div>
           </div>
 

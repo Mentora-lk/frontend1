@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { discoverCommunities, getMyClasses, getMyDeadlines, getCommunityStats, getCommunityFeed, requestCommunityAccess, cancelCommunityRequest, getMyPendingRequests, togglePostReaction } from '@/services/studentCommunityService';
+import { discoverCommunities, getMyClasses, getMyDeadlines, getCommunityStats, getCommunityFeed, requestCommunityAccess, cancelCommunityRequest, getMyPendingRequests, togglePostReaction, leaveCommunity } from '@/services/studentCommunityService';
 import { useCommunitySocket } from '@/hooks/useCommunitySocket';
 import { useStudentRequestSocket } from '@/hooks/useStudentRequestSocket';
 import { usePalette } from '@/hooks/usePalette';
+import { toDownloadUrl } from '@/utils/cloudinaryDownload';
 
 const ALL_TAGS = ['All', 'Physics', 'Maths', 'ICT', 'Technology', 'Design', 'Backend', 'Science'];
 
@@ -34,6 +35,11 @@ export default function StudentCommunityPage() {
   const [requestingId, setRequestingId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [requestError, setRequestError] = useState('');
+
+  // Leave-community state
+  const [leaveTarget, setLeaveTarget] = useState<any>(null);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState('');
 
   // Hidden posts state to survive refresh
   const [hiddenPostIds, setHiddenPostIds] = useState<number[]>([]);
@@ -122,7 +128,7 @@ export default function StudentCommunityPage() {
 
   // Live updates: join the selected community's Socket.io room so a tutor's
   // new post shows up here immediately instead of only after a refresh.
-  const { status: socketStatus } = useCommunitySocket(
+  useCommunitySocket(
     selectedActiveCommunity?.id,
     (rawPost) => {
       setPosts(prev => {
@@ -150,7 +156,7 @@ export default function StudentCommunityPage() {
   // student's personal Socket.io room the moment a tutor accepts or declines
   // one of their pending community requests, so "My Requests" and the
   // Discover/Active-Communities lists update without a refresh.
-  const { status: requestSocketStatus } = useStudentRequestSocket((update) => {
+  useStudentRequestSocket((update) => {
     setPendingRequests(prev => prev.filter(r => r.membership_id !== update.membership_id));
     setPendingCommunities(prev => prev.filter(cid => cid !== update.community_id));
 
@@ -224,6 +230,30 @@ export default function StudentCommunityPage() {
     }
   };
 
+  const handleLeaveCommunity = async () => {
+    if (!leaveTarget || leaving) return;
+    const id = leaveTarget.id;
+    try {
+      setLeaveError('');
+      setLeaving(true);
+      await leaveCommunity(id);
+
+      // Drop it from Active Communities and close the detail view, then bring
+      // it back into Discover so the student can request access again.
+      setActiveCommunities(prev => prev.filter(c => c.id !== id));
+      setSelectedActiveCommunity((prev: any) => prev?.id === id ? null : prev);
+      setLeaveTarget(null);
+      discoverCommunities()
+        .then(res => { if (res) setCommunities(res); })
+        .catch(err => console.error('Failed to refresh discover communities', err));
+    } catch (err: any) {
+      console.error('Failed to leave community', err);
+      setLeaveError(err?.message || 'Failed to leave community. Please try again.');
+    } finally {
+      setLeaving(false);
+    }
+  };
+
   const filteredCommunities = communities.filter(c => {
     const matchesSearch = c.name?.toLowerCase().includes(searchQuery.toLowerCase()) || c.tutor_name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTag = selectedTag === 'All' || (c.tags && c.tags.includes(selectedTag));
@@ -271,7 +301,7 @@ export default function StudentCommunityPage() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <img src={post.media_url} alt="Post media" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12, display: 'block' }} />
                 <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                  <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                  <a href={toDownloadUrl(post.media_url)} rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                     Download Image
                   </a>
@@ -289,7 +319,7 @@ export default function StudentCommunityPage() {
                 <p style={{ fontSize: 14, fontWeight: 700, color: palette.textPrimary, margin: '0 0 2px 0' }}>Attached Document</p>
                 <p style={{ fontSize: 12, color: palette.textSecondary, margin: 0, textTransform: 'uppercase' }}>{post.type}</p>
               </div>
-              <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
+              <a href={toDownloadUrl(post.media_url)} rel="noreferrer" title="Download" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               </a>
             </div>
@@ -310,7 +340,7 @@ export default function StudentCommunityPage() {
                 <p style={{ fontSize: 14, fontWeight: 700, color: palette.textPrimary, margin: '0 0 2px 0' }}>Attached File</p>
                 <p style={{ fontSize: 12, color: palette.textSecondary, margin: 0 }}>Attachment</p>
               </div>
-              <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
+              <a href={toDownloadUrl(post.media_url)} rel="noreferrer" title="Download" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
               </a>
             </div>
@@ -368,6 +398,30 @@ export default function StudentCommunityPage() {
         .tag-btn:hover, .tag-btn.active { background: #10B981; color: white; border-color: #10B981; }
       `}</style>
 
+      {/* Leave Community confirmation */}
+      {leaveTarget && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }} onClick={() => { if (!leaving) setLeaveTarget(null); }}>
+          <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+            </div>
+            <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 12px 0' }}>Leave {leaveTarget.name}?</h2>
+            <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>You will lose access to this community&apos;s posts and materials. You can request access again later.</p>
+
+            {leaveError && (
+              <div style={{ background: '#FEE2E2', border: '1px solid #FECACA', color: '#DC2626', padding: '10px 14px', borderRadius: 10, fontSize: 12, marginBottom: 16, textAlign: 'left' }}>
+                {leaveError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setLeaveTarget(null)} disabled={leaving} style={{ flex: 1, background: palette.surfaceAlt, color: palette.textSecondary, border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: leaving ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+              <button onClick={handleLeaveCommunity} disabled={leaving} style={{ flex: 1, background: '#DC2626', color: 'white', border: 'none', padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: leaving ? 'not-allowed' : 'pointer', opacity: leaving ? 0.7 : 1, fontFamily: "'DM Sans', sans-serif" }}>{leaving ? 'Leaving…' : 'Yes, Leave'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', paddingTop: 24 }}>
         {/* Main Content Area */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -378,10 +432,6 @@ export default function StudentCommunityPage() {
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: palette.textPrimary, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
                     {selectedActiveCommunity.name}
-                    <span title={`Live updates: ${socketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: palette.surfaceAlt, borderRadius: 99, padding: '3px 9px', fontSize: 10, fontWeight: 700, letterSpacing: '0.03em', color: palette.textSecondary }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: socketStatus === 'connected' ? '#10B981' : socketStatus === 'connecting' ? '#F59E0B' : '#EF4444' }} />
-                      {socketStatus === 'connected' ? 'LIVE' : socketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
-                    </span>
                     {mutedCommunities.includes(selectedActiveCommunity.id) && (
                       <span style={{ marginLeft: 10, color: palette.textMuted, display: 'flex' }} title="Notifications Muted">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
@@ -406,7 +456,7 @@ export default function StudentCommunityPage() {
                         }}>
                           {mutedCommunities.includes(selectedActiveCommunity.id) ? 'Unmute Notifications' : 'Mute Notifications'}
                         </button>
-                        <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#EF4444', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.background = '#FEF2F2'} onMouseOut={e => e.currentTarget.style.background = 'white'} onClick={() => { setIsManageMenuOpen(false); alert('You have left the community.'); setSelectedActiveCommunity(null); }}>
+                        <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#EF4444', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.background = '#FEF2F2'} onMouseOut={e => e.currentTarget.style.background = palette.surface} onClick={() => { setIsManageMenuOpen(false); setLeaveError(''); setLeaveTarget(selectedActiveCommunity); }}>
                           Leave Community
                         </button>
                       </div>
@@ -517,10 +567,6 @@ export default function StudentCommunityPage() {
               <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 12, fontWeight: 700, color: palette.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                 My Requests
                 <span style={{ background: '#FEF3C7', color: '#B45309', borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0 }}>{pendingRequests.length}</span>
-                <span title={`Live updates: ${requestSocketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: palette.surfaceAlt, borderRadius: 99, padding: '2px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', color: palette.textSecondary, marginLeft: 'auto' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: requestSocketStatus === 'connected' ? '#10B981' : requestSocketStatus === 'connecting' ? '#F59E0B' : '#EF4444' }} />
-                  {requestSocketStatus === 'connected' ? 'LIVE' : requestSocketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
-                </span>
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {pendingRequests.map(r => (

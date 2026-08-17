@@ -36,7 +36,7 @@ export default function TutorCommunityPage() {
   // Live updates: the backend pushes `new_membership_request` to this tutor's
   // personal Socket.io room the moment a student requests access, so the
   // widget below updates without a refresh.
-  const { status: socketStatus } = useTutorRequestSocket((request) => {
+  useTutorRequestSocket((request) => {
     setPendingRequests(prev => {
       if (prev.some(r => r.membership_id === request.membership_id)) return prev; // duplicate event
       return [request, ...prev];
@@ -263,10 +263,6 @@ export default function TutorCommunityPage() {
               <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
                 Student Requests
-                <span title={`Live updates: ${socketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: palette.surfaceAlt, borderRadius: 99, padding: '2px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', color: '#4B5563', marginLeft: 'auto' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: socketStatus === 'connected' ? '#10B981' : socketStatus === 'connecting' ? '#F59E0B' : '#EF4444' }} />
-                  {socketStatus === 'connected' ? 'LIVE' : socketStatus === 'connecting' ? 'CONNECTING' : 'OFFLINE'}
-                </span>
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {pendingRequests.length > 0 ? pendingRequests.map(r => (
