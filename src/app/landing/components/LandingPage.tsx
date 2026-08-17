@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import Navbar from "../../../components/navbar/Navbar";
 import { searchCourses, getPlatformStats } from "@/services/classService";
@@ -210,6 +210,7 @@ export default function LandingPage() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
+  const coursesRef = useRef<HTMLElement>(null);
   const [activeTag, setActiveTag] = useState("IT");
   const [filterSubject, setFilterSubject] = useState("All");
   const [testimonialIdx, setTestimonialIdx] = useState(0);
@@ -567,6 +568,11 @@ export default function LandingPage() {
                     placeholder="What you discover"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && searchQuery.trim()) {
+                        coursesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }}
                   />
                 </div>
                 <button className="btn-green" style={{ borderRadius: 0, padding: "18px 26px", fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}
@@ -603,9 +609,9 @@ export default function LandingPage() {
 
             <div className="hero-stats-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { label: "Active Tutors", val: stats.activeTutors > 0 ? `${stats.activeTutors.toLocaleString()}+` : "1,200+", icon: "👨‍🏫", cls: "float-a" },
-                { label: "Students Enrolled", val: stats.studentsEnrolled > 0 ? `${stats.studentsEnrolled.toLocaleString()}+` : "25,000+", icon: "🎓", cls: "float-b" },
-                { label: "Subjects Available", val: stats.subjectsAvailable > 0 ? `${stats.subjectsAvailable.toLocaleString()}+` : "50+", icon: "📚", cls: "float-c" },
+                { label: "Active Tutors", val: loading ? "—" : `${stats.activeTutors.toLocaleString()}+`, icon: "👨‍🏫", cls: "float-a" },
+                { label: "Students Enrolled", val: loading ? "—" : `${stats.studentsEnrolled.toLocaleString()}+`, icon: "🎓", cls: "float-b" },
+                { label: "Subjects Available", val: loading ? "—" : `${stats.subjectsAvailable.toLocaleString()}+`, icon: "📚", cls: "float-c" },
               ].map((s, i) => (
                 <div key={i} className={`stat-float ${s.cls} anim-fade-up`} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>
                   <span style={{ fontSize: 30 }}>{s.icon}</span>
@@ -635,7 +641,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section style={{ maxWidth: 1280, margin: "0 auto", padding: "64px 6%" }}>
+        <section ref={coursesRef} style={{ maxWidth: 1280, margin: "0 auto", padding: "64px 6%" }}>
           <div style={{ display: "flex", gap: 36, alignItems: "flex-start" }}>
             <div className="sidebar" style={{ width: 230, flexShrink: 0 }}>
               <div className="filter-card">
@@ -896,9 +902,9 @@ export default function LandingPage() {
               }}
             >
               {[
-                { n: "1,200+", l: "Verified Tutors" },
-                { n: "25,000+", l: "Active Students" },
-                { n: "50+", l: "Subjects" },
+                { n: loading ? "—" : `${stats.activeTutors.toLocaleString()}+`, l: "Verified Tutors" },
+                { n: loading ? "—" : `${stats.studentsEnrolled.toLocaleString()}+`, l: "Active Students" },
+                { n: loading ? "—" : `${stats.subjectsAvailable.toLocaleString()}+`, l: "Subjects" },
               ].map((s, i) => (
                 <div key={i} style={{ background: palette.surface, padding: "28px 24px", textAlign: "center" }}>
                   <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 900, color: "#10B981", lineHeight: 1 }}>

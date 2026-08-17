@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePalette } from '@/hooks/usePalette';
+import { useCurrentUser, getInitial } from '@/hooks/useCurrentUser';
+import { DASHBOARD_PREFIX_BY_ROLE, isUserRole } from '@/lib/routeRoles';
 
 interface NavbarProps {
   scrollY: number;
@@ -10,6 +12,10 @@ interface NavbarProps {
 export default function Navbar({ scrollY }: NavbarProps) {
   const palette = usePalette();
   const scrolled = scrollY > 50;
+  const currentUser = useCurrentUser();
+  const dashboardHref = currentUser && isUserRole(currentUser.role)
+    ? DASHBOARD_PREFIX_BY_ROLE[currentUser.role]
+    : null;
 
   return (
     <nav
@@ -51,17 +57,13 @@ export default function Navbar({ scrollY }: NavbarProps) {
         </Link>
 
         <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
-          {['HOME', 'COURSES', 'ABOUT US', 'CONTACT US'].map((item) => (
-            <Link
-              key={item}
-              href={
-                item === 'COURSES'
-                  ? '/classes/search'
-                  : item === 'BECOME A TUTOR'
-                  ? '/auth/register'
-                  : '#'
-              }
-            >
+          {[
+            { label: 'HOME', href: '/' },
+            { label: 'COURSES', href: '/classes/search' },
+            { label: 'ABOUT US', href: '/about' },
+            { label: 'CONTACT US', href: '/contact' },
+          ].map(({ label: item, href }) => (
+            <Link key={item} href={href}>
               <span
                 className="nav-link"
                 style={{
@@ -77,6 +79,33 @@ export default function Navbar({ scrollY }: NavbarProps) {
               </span>
             </Link>
           ))}
+
+          {dashboardHref && (
+            <Link href={dashboardHref} title="Go to Dashboard">
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg,#10B981,#059669)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  border: scrolled ? 'none' : '2px solid rgba(255,255,255,0.5)',
+                  boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px) scale(1.06)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0) scale(1)'; }}
+              >
+                {getInitial(currentUser)}
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

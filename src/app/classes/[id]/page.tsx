@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/navbar/Navbar';
-import { getCourseById, getCourseReviews } from '@/services/classService';
+import { getCourseById, getCourseReviews, submitReview, Review } from '@/services/classService';
+import { getMyEnrollments } from '@/services/enrollmentService';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePalette } from '@/hooks/usePalette';
 
 const BADGE_COLORS: Record<string,string> = { 'Best Seller':'#10B981', 'Top Rated':'#8B5CF6', 'New':'#3B82F6' };
@@ -26,6 +28,18 @@ export default function ClassDetailPage() {
   const [activeTab, setActiveTab] = useState<'about'|'schedule'|'reviews'>('about');
   const [imgLoaded, setImgLoaded] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  const currentUser = useCurrentUser();
+  const [myEnrollment, setMyEnrollment] = useState<any>(null);
+  const [enrollmentChecked, setEnrollmentChecked] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+
+  const myReview = reviews.find((r: Review) =>
+    String(r.student?.id ?? r.student_id) === String(currentUser?.id)
+  );
 
   const thumbnail = course?.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80';
 
@@ -68,6 +82,46 @@ export default function ClassDetailPage() {
 
     if (id) fetchData();
   }, [id]);
+
+  // Only students with a matching active/approved enrollment may review this
+  // class. This page is public, so never call the authed endpoint without a
+  // token — api.ts hard-redirects to /auth/login on any 401.
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token || !id) { setEnrollmentChecked(true); return; }
+    (async () => {
+      try {
+        const all = await getMyEnrollments();
+        const found = (all || []).find((e: any) =>
+          Number(e.class_id) === Number(id) && (e.status === 'active' || e.status === 'approved')
+        );
+        setMyEnrollment(found || null);
+      } catch {
+        setMyEnrollment(null);
+      } finally {
+        setEnrollmentChecked(true);
+      }
+    })();
+  }, [id]);
+
+  const handleSubmitReview = async () => {
+    if (!reviewComment.trim()) return;
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      const created = await submitReview(id, 5, reviewComment.trim());
+      setReviews(prev => [
+        { ...created, student: created.student ?? { name: currentUser?.fullName || 'You' } },
+        ...prev,
+      ]);
+      setShowReviewModal(false);
+      setReviewComment('');
+    } catch (err: any) {
+      setReviewError(err.response?.data?.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -275,7 +329,27 @@ export default function ClassDetailPage() {
             {/* Tab: Reviews */}
             {activeTab==='reviews' && (
               <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
-                <p style={{ fontSize:13, color:palette.textMuted, marginBottom:20 }}>{course.review_count || 0} reviews</p>
+                <p style={{ fontSize:13, color:palette.textMuted, marginBottom:12 }}>{course.review_count || 0} reviews</p>
+
+                {enrollmentChecked && (
+                  <div style={{ marginBottom:20 }}>
+                    {myReview ? (
+                      <p style={{ fontSize:13, color:'#059669', fontWeight:600 }}>✓ You've already reviewed this class</p>
+                    ) : myEnrollment ? (
+                      <button onClick={()=>setShowReviewModal(true)}
+                        style={{ background:'none', border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'11px 22px', fontSize:13, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s' }}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#10B981'; e.currentTarget.style.color='#10B981';}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor=palette.border; e.currentTarget.style.color=palette.textSecondary;}}>
+                        Write a Review
+                      </button>
+                    ) : currentUser ? (
+                      <p style={{ fontSize:13, color:palette.textMuted }}>Only enrolled students can review this class.</p>
+                    ) : (
+                      <p style={{ fontSize:13, color:palette.textMuted }}>Sign in and enroll to write a review.</p>
+                    )}
+                  </div>
+                )}
+
                 {reviews.length === 0 ? (
                   <p style={{ fontSize:14, color:palette.textMuted, textAlign:'center', padding:'20px 0' }}>
                     No reviews yet. Be the first to review!
@@ -390,6 +464,31 @@ export default function ClassDetailPage() {
             <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
               <Link href="/auth/login"><button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Sign In</button></Link>
               <button onClick={()=>setShowModal(false)} style={{ background:palette.surface, color:palette.textSecondary, border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review submission modal */}
+      {showReviewModal && (
+        <div className="modal-overlay" onClick={()=>{ if(!reviewSubmitting){ setShowReviewModal(false); setReviewError(''); } }}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()} style={{ textAlign:'left' }}>
+            <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:700, marginBottom:16, textAlign:'center' }}>Write a Review</h3>
+            <textarea
+              value={reviewComment}
+              onChange={e=>setReviewComment(e.target.value)}
+              placeholder="Share your experience with this class..."
+              rows={5}
+              style={{ width:'100%', resize:'vertical', border:`1.5px solid ${palette.border}`, background:palette.inputBg, color:palette.textPrimary, borderRadius:12, padding:'12px 14px', fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:'none' }}
+            />
+            {reviewError && <p style={{ fontSize:13, color:'#EF4444', marginTop:10 }}>{reviewError}</p>}
+            <div style={{ display:'flex', gap:10, justifyContent:'center', marginTop:20 }}>
+              <button onClick={handleSubmitReview} disabled={!reviewComment.trim() || reviewSubmitting}
+                style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:700, cursor: (!reviewComment.trim()||reviewSubmitting) ? 'not-allowed' : 'pointer', fontFamily:"'DM Sans',sans-serif", opacity: (!reviewComment.trim()||reviewSubmitting) ? 0.6 : 1 }}>
+                {reviewSubmitting ? 'Submitting…' : 'Submit Review'}
+              </button>
+              <button onClick={()=>{ setShowReviewModal(false); setReviewError(''); }} disabled={reviewSubmitting}
+                style={{ background:palette.surface, color:palette.textSecondary, border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'12px 28px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
             </div>
           </div>
         </div>
