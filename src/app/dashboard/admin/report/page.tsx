@@ -1,30 +1,85 @@
 'use client';
-
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { transactions } from '../../../../data/adminData';
+import { useEffect, useMemo, useState } from 'react';
 import { appendAudit, downloadFile } from '../utils/operations';
 
-type Transaction = (typeof transactions)[number];
+// ── Types ────────────────────────────────────────────────────────────────
+type TutorPayment = {
+  id: string;
+  tutorId: string;
+  tutor: string;
+  adId: string;
+  orderId: string;
+  paymentId: string;
+  currency: string;
+  amount: number;
+  status: 'COMPLETED' | 'PENDING' | 'FAILED';
+  date: string; // ISO yyyy-mm-dd
+};
 
+// tutor_name must come from your API route joining tutor_payments -> tutors/users on tutor_id.
+// If your route doesn't join it yet, this falls back to showing the tutor_id.
+function mapRow(row: any): TutorPayment {
+  return {
+    id: String(row.id),
+    tutorId: String(row.tutor_id),
+    tutor: row.tutor_name ?? `Tutor #${row.tutor_id}`,
+    adId: row.ad_id != null ? String(row.ad_id) : '—',
+    orderId: row.order_id ?? '—',
+    paymentId: row.payment_id ?? '—',
+    currency: row.currency ?? 'LKR',
+    amount: Number(row.amount ?? 0),
+    status: (row.status ?? 'PENDING') as TutorPayment['status'],
+    date: (row.createdAt ?? '').slice(0, 10),
+  };
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const palette =
-    status === 'Success'
+    status === 'COMPLETED'
       ? { bg: 'rgba(34,197,94,0.10)', color: '#22c55e', border: 'rgba(34,197,94,0.20)' }
-      : status === 'Pending'
+      : status === 'PENDING'
       ? { bg: 'rgba(245,158,11,0.10)', color: '#f59e0b', border: 'rgba(245,158,11,0.20)' }
       : { bg: 'rgba(239,68,68,0.10)', color: '#ef4444', border: 'rgba(239,68,68,0.20)' };
 
-  return <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, background: palette.bg, color: palette.color, border: `1px solid ${palette.border}` }}>{status}</span>;
+  return (
+    <span
+      style={{
+        padding: '4px 10px',
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 700,
+        background: palette.bg,
+        color: palette.color,
+        border: `1px solid ${palette.border}`,
+      }}
+    >
+      {status}
+    </span>
+  );
 }
 
-function StatCard({ title, value, trend, detail, accent }: { title: string; value: string; trend?: string; detail?: string; accent?: boolean }) {
+function StatCard({
+  title,
+  value,
+  detail,
+  accent,
+}: {
+  title: string;
+  value: string;
+  detail?: string;
+  accent?: boolean;
+}) {
   return (
-    <div style={{ background: accent ? '#ecfeff' : '#fff', border: `1px solid ${accent ? '#99f6e4' : '#e5e7eb'}`, borderRadius: 16, padding: 18, boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ width: 44, height: 32, borderRadius: 10, background: accent ? '#0f766e' : '#1d4ed8', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700 }}>▣</div>
-        {trend && <span style={{ color: '#0f766e', fontSize: 12, fontWeight: 700 }}>{trend}</span>}
-      </div>
+    <div
+      style={{
+        background: accent ? '#ecfeff' : '#fff',
+        border: `1px solid ${accent ? '#99f6e4' : '#e5e7eb'}`,
+        borderRadius: 16,
+        padding: 18,
+        boxShadow: '0 8px 20px rgba(0,0,0,0.04)',
+      }}
+    >
       <div style={{ color: '#6b7280', fontSize: 13 }}>{title}</div>
       <div style={{ color: '#111827', fontSize: 28, fontWeight: 800, marginTop: 6 }}>{value}</div>
       {detail && <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>{detail}</div>}
@@ -72,21 +127,17 @@ function fmtDate(iso: string) {
   return d.toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-// ── Transaction detail drawer ───────────────────────────────────────────────
-
-function TransactionDrawer({
-  txn, studentId, tutorId, onClose, onCopy, copiedId, copyError,
+// ── Detail drawer ────────────────────────────────────────────────────────
+function PaymentDrawer({
+  payment, onClose, onCopy, copiedId, copyError,
 }: {
-  txn: Transaction | null;
-  studentId: string;
-  tutorId: string;
+  payment: TutorPayment | null;
   onClose: () => void;
   onCopy: (id: string) => void;
   copiedId: string | null;
   copyError: string | null;
 }) {
-  const open = txn !== null;
-
+  const open = payment !== null;
   return (
     <>
       <div
@@ -108,70 +159,66 @@ function TransactionDrawer({
           display: 'flex', flexDirection: 'column',
         }}
       >
-        {txn && (
+        {payment && (
           <>
             <div style={{ padding: '20px 22px', borderBottom: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ color: '#6b7280', fontSize: 12, fontFamily: 'monospace', marginBottom: 4 }}>{txn.id}</div>
-                <h3 style={{ margin: 0, color: '#111827', fontSize: 19, fontWeight: 800, fontFamily: "'Fraunces', serif" }}>Transaction Details</h3>
+                <div style={{ color: '#6b7280', fontSize: 12, fontFamily: 'monospace', marginBottom: 4 }}>{payment.id}</div>
+                <h3 style={{ margin: 0, color: '#111827', fontSize: 19, fontWeight: 800, fontFamily: "'Fraunces', serif" }}>Advertisement Payment</h3>
               </div>
               <button onClick={onClose} aria-label="Close details" style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>✕</button>
             </div>
 
             <div style={{ padding: 22, overflowY: 'auto', flex: 1, display: 'grid', gap: 22 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <StatusBadge status={txn.status} />
+                <StatusBadge status={payment.status} />
                 <button
-                  onClick={() => onCopy(txn.id)}
+                  onClick={() => onCopy(payment.id)}
                   style={{
-                    border: `1px solid ${copyError === txn.id ? '#fca5a5' : copiedId === txn.id ? '#99f6e4' : '#e5e7eb'}`,
-                    background: copyError === txn.id ? '#FEF2F2' : copiedId === txn.id ? '#ecfeff' : '#fff',
-                    color: copyError === txn.id ? '#991B1B' : copiedId === txn.id ? '#0f766e' : '#374151',
+                    border: `1px solid ${copyError === payment.id ? '#fca5a5' : copiedId === payment.id ? '#99f6e4' : '#e5e7eb'}`,
+                    background: copyError === payment.id ? '#FEF2F2' : copiedId === payment.id ? '#ecfeff' : '#fff',
+                    color: copyError === payment.id ? '#991B1B' : copiedId === payment.id ? '#0f766e' : '#374151',
                     borderRadius: 8, padding: '5px 11px', cursor: 'pointer', fontSize: 12.5, transition: 'all 0.15s ease',
                   }}
                 >
-                  {copyError === txn.id ? 'Failed' : copiedId === txn.id ? '✓ Copied' : 'Copy Transaction ID'}
+                  {copyError === payment.id ? 'Failed' : copiedId === payment.id ? '✓ Copied' : 'Copy Payment ID'}
                 </button>
               </div>
 
               <div>
-                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Timing</div>
+                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Date</div>
                 <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px', color: '#111827', fontSize: 13, fontWeight: 600 }}>
-                  {fmtDate(txn.date)}
+                  {fmtDate(payment.date)}
                 </div>
               </div>
 
               <div>
-                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Parties</div>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px' }}>
-                    <div style={{ color: '#9ca3af', fontSize: 11 }}>Student</div>
-                    <div style={{ color: '#111827', fontWeight: 700, marginTop: 2 }}>{txn.student}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>ID: {studentId}</div>
-                  </div>
-                  <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px' }}>
-                    <div style={{ color: '#9ca3af', fontSize: 11 }}>Tutor</div>
-                    <div style={{ color: '#111827', fontWeight: 700, marginTop: 2 }}>{txn.tutor}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>ID: {tutorId}</div>
-                  </div>
+                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Tutor</div>
+                <div style={{ background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '12px 14px' }}>
+                  <div style={{ color: '#111827', fontWeight: 700 }}>{payment.tutor}</div>
+                  <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>ID: {payment.tutorId}</div>
                 </div>
               </div>
 
               <div>
-                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Amounts</div>
+                <div style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Payment</div>
                 <div style={{ display: 'grid', gap: 8, background: '#f9fafb', border: '1px solid #f0f2f5', borderRadius: 12, padding: '14px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280', fontSize: 13 }}>Gross Amount</span>
-                    <span style={{ color: '#111827', fontWeight: 700, fontSize: 13 }}>LKR {fmtCurrency(txn.amount)}</span>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>Ad ID</span>
+                    <span style={{ color: '#111827', fontWeight: 700, fontSize: 13 }}>{payment.adId}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280', fontSize: 13 }}>Commission Rate</span>
-                    <span style={{ color: '#6b7280', fontSize: 13 }}>{txn.comm}</span>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>Order ID</span>
+                    <span style={{ color: '#6b7280', fontSize: 13, fontFamily: 'monospace' }}>{payment.orderId}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>Payment Gateway ID</span>
+                    <span style={{ color: '#6b7280', fontSize: 13, fontFamily: 'monospace' }}>{payment.paymentId}</span>
                   </div>
                   <div style={{ height: 1, background: '#ecf4ef', margin: '4px 0' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#0f766e', fontSize: 13, fontWeight: 700 }}>Platform Revenue</span>
-                    <span style={{ color: '#0f766e', fontSize: 14, fontWeight: 800 }}>LKR {fmtCurrency(txn.revenue)}</span>
+                    <span style={{ color: '#0f766e', fontSize: 13, fontWeight: 700 }}>Amount</span>
+                    <span style={{ color: '#0f766e', fontSize: 14, fontWeight: 800 }}>{payment.currency} {fmtCurrency(payment.amount)}</span>
                   </div>
                 </div>
               </div>
@@ -183,86 +230,108 @@ function TransactionDrawer({
   );
 }
 
+// ── Page ─────────────────────────────────────────────────────────────────
 export default function ReportPage() {
+  const [payments, setPayments] = useState<TutorPayment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [commFilter, setCommFilter] = useState('All');
-
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [appliedFrom, setAppliedFrom] = useState('');
   const [appliedTo, setAppliedTo] = useState('');
-
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
-  const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<TutorPayment | null>(null);
   const pageSize = 5;
 
-  // Built from the real data so it stays correct if new commission tiers appear.
-  const commissionOptions = useMemo(() => {
-    const distinct = Array.from(new Set(transactions.map((t) => t.comm)));
-    return distinct.sort((a, b) => parseFloat(a) - parseFloat(b));
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/admin/tutor-payments');
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        const data = await res.json();
+        if (!cancelled) {
+          setPayments((Array.isArray(data) ? data : data.rows ?? []).map(mapRow));
+          setLoadError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load payments');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((txn) => {
+  const filteredPayments = useMemo(() => {
+    return payments.filter((p) => {
       const q = search.trim().toLowerCase();
       const matchSearch =
         !q ||
-        txn.student.toLowerCase().includes(q) ||
-        txn.tutor.toLowerCase().includes(q) ||
-        txn.id.toLowerCase().includes(q);
-      const matchStatus = statusFilter === 'All' || txn.status === statusFilter;
-      const matchComm = commFilter === 'All' || txn.comm === commFilter;
-      const matchFrom = !appliedFrom || txn.date >= appliedFrom;
-      const matchTo = !appliedTo || txn.date <= appliedTo;
-
-      return matchSearch && matchStatus && matchComm && matchFrom && matchTo;
+        p.tutor.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q) ||
+        p.adId.toLowerCase().includes(q) ||
+        p.orderId.toLowerCase().includes(q) ||
+        p.paymentId.toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'All' || p.status === statusFilter;
+      const matchFrom = !appliedFrom || p.date >= appliedFrom;
+      const matchTo = !appliedTo || p.date <= appliedTo;
+      return matchSearch && matchStatus && matchFrom && matchTo;
     });
-  }, [search, statusFilter, commFilter, appliedFrom, appliedTo]);
+  }, [payments, search, statusFilter, appliedFrom, appliedTo]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
-  const visibleTransactions = useMemo(() => {
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / pageSize));
+
+  const visiblePayments = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return filteredTransactions.slice(start, start + pageSize);
-  }, [page, filteredTransactions]);
+    return filteredPayments.slice(start, start + pageSize);
+  }, [page, filteredPayments]);
 
   const periodActive = appliedFrom !== '' || appliedTo !== '';
-  const periodRevenue = useMemo(() => {
+  const periodTotal = useMemo(() => {
     if (!periodActive) return null;
-    return filteredTransactions.reduce((sum, t) => sum + t.revenue, 0);
-  }, [filteredTransactions, periodActive]);
+    return filteredPayments.reduce((sum, p) => sum + p.amount, 0);
+  }, [filteredPayments, periodActive]);
 
-  const hasActiveFilters = search !== '' || statusFilter !== 'All' || commFilter !== 'All' || periodActive || dateFrom !== '' || dateTo !== '';
+  const totalRevenue = useMemo(() => payments.reduce((sum, p) => sum + p.amount, 0), [payments]);
+  const pendingTotal = useMemo(
+    () => payments.filter((p) => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0),
+    [payments]
+  );
+
+  const hasActiveFilters = search !== '' || statusFilter !== 'All' || periodActive || dateFrom !== '' || dateTo !== '';
 
   const clearFilters = () => {
     setSearch('');
     setStatusFilter('All');
-    setCommFilter('All');
     setDateFrom('');
     setDateTo('');
     setAppliedFrom('');
     setAppliedTo('');
     setPage(1);
-    appendAudit('FILTER_CLEAR', 'Cleared report filters');
+    appendAudit('FILTER_CLEAR', 'Cleared advertisement payments filters');
   };
 
   const runDateSearch = () => {
     setAppliedFrom(dateFrom);
     setAppliedTo(dateTo);
     setPage(1);
-    appendAudit('DATE_RANGE_SEARCH', `Filtered report ${dateFrom || '…'} to ${dateTo || '…'}`);
+    appendAudit('DATE_RANGE_SEARCH', `Filtered ad payments ${dateFrom || '…'} to ${dateTo || '…'}`);
   };
 
   const exportCsv = () => {
-    if (filteredTransactions.length === 0) return;
-    const header = ['Transaction ID', 'Date', 'Student', 'Tutor', 'Amount', 'Commission', 'Revenue', 'Status'];
-    const rows = filteredTransactions.map((txn) => [txn.id, txn.date, txn.student, txn.tutor, txn.amount.toFixed(2), txn.comm, txn.revenue.toFixed(2), txn.status]);
+    if (filteredPayments.length === 0) return;
+    const header = ['Payment ID', 'Date', 'Tutor', 'Tutor ID', 'Ad ID', 'Order ID', 'Payment Gateway ID', 'Amount', 'Currency', 'Status'];
+    const rows = filteredPayments.map((p) => [p.id, p.date, p.tutor, p.tutorId, p.adId, p.orderId, p.paymentId, p.amount.toFixed(2), p.currency, p.status]);
     const csv = [header, ...rows].map((row) => row.join(',')).join('\n');
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadFile(`payments-report-${stamp}.csv`, csv, 'text/csv;charset=utf-8;');
-    appendAudit('REPORT_EXPORT', `Payments report downloaded (${filteredTransactions.length} rows)`);
+    downloadFile(`tutor-ad-payments-${stamp}.csv`, csv, 'text/csv;charset=utf-8;');
+    appendAudit('REPORT_EXPORT', `Tutor advertisement payments report downloaded (${filteredPayments.length} rows)`);
   };
 
   const handleCopy = async (id: string) => {
@@ -270,7 +339,7 @@ export default function ReportPage() {
     if (ok) {
       setCopiedId(id);
       setCopyError(null);
-      appendAudit('COPY_TRANSACTION_ID', `Copied ${id}`);
+      appendAudit('COPY_PAYMENT_ID', `Copied ${id}`);
       setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
     } else {
       setCopyError(id);
@@ -278,45 +347,38 @@ export default function ReportPage() {
     }
   };
 
-  const idsFor = (txn: Transaction, idx: number) => ({
-    studentId: `ST-00${(page - 1) * pageSize + idx + 41}`,
-    tutorId: `TR-10${(page - 1) * pageSize + idx + 92}`,
-  });
-
   return (
     <div style={{ display: 'grid', gap: 22 }}>
       <div>
-        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Payments & Commission</h2>
-        <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Revenue and payout summary in LKR.</p>
+        <h2 style={{ margin: 0, color: '#111827', fontSize: 30, fontWeight: 900, fontFamily: "'Fraunces', serif" }}>Tutor Advertisement Payments</h2>
+        <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Payments made by tutors for advertisement placements, in LKR.</p>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ background: '#ecfeff', color: '#0f766e', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, border: '1px solid #99f6e4' }}>Session Payments</span>
-          <Link href="/dashboard/admin/advertisements" style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#374151', padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            View Advertisement Payments →
-          </Link>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {hasActiveFilters && (
-            <button onClick={clearFilters} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 12, padding: '10px 14px', cursor: 'pointer' }}>Clear Filters</button>
-          )}
-          <button onClick={exportCsv} disabled={filteredTransactions.length === 0} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', borderRadius: 12, padding: '10px 14px', cursor: filteredTransactions.length === 0 ? 'not-allowed' : 'pointer', opacity: filteredTransactions.length === 0 ? 0.5 : 1 }}>Export Report</button>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        {hasActiveFilters && (
+          <button onClick={clearFilters} style={{ border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', borderRadius: 12, padding: '10px 14px', cursor: 'pointer' }}>Clear Filters</button>
+        )}
+        <button onClick={exportCsv} disabled={filteredPayments.length === 0} style={{ border: '1px solid #99f6e4', background: '#ecfeff', color: '#0f766e', borderRadius: 12, padding: '10px 14px', cursor: filteredPayments.length === 0 ? 'not-allowed' : 'pointer', opacity: filteredPayments.length === 0 ? 0.5 : 1 }}>Export Report</button>
       </div>
+
+      {loadError && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #fca5a5', color: '#991B1B', borderRadius: 12, padding: '12px 16px', fontSize: 13 }}>
+          Couldn't load payments: {loadError}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        <StatCard title="Total Commission" value="LKR 450,200.00" trend="+12.5%" />
-        <StatCard title="Pending Payouts to Tutors" value="LKR 125,800.00" detail="Target: 200k" />
-        <StatCard title="Total Transactions" value="1,284" trend="+5.7%" />
-        {periodActive && periodRevenue !== null && (
-          <StatCard accent title={`Revenue: ${appliedFrom || 'Start'} → ${appliedTo || 'Now'}`} value={`LKR ${fmtCurrency(periodRevenue)}`} detail={`${filteredTransactions.length} transaction${filteredTransactions.length === 1 ? '' : 's'} in range`} />
+        <StatCard title="Total Ad Revenue" value={`LKR ${fmtCurrency(totalRevenue)}`} />
+        <StatCard title="Pending Payments" value={`LKR ${fmtCurrency(pendingTotal)}`} />
+        <StatCard title="Total Payments" value={String(payments.length)} />
+        {periodActive && periodTotal !== null && (
+          <StatCard accent title={`Total: ${appliedFrom || 'Start'} → ${appliedTo || 'Now'}`} value={`LKR ${fmtCurrency(periodTotal)}`} detail={`${filteredPayments.length} payment${filteredPayments.length === 1 ? '' : 's'} in range`} />
         )}
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.04)' }}>
         <div style={{ padding: 18, borderBottom: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif" }}>Transaction History</h3>
+          <h3 style={{ margin: 0, color: '#111827', fontFamily: "'Fraunces', serif" }}>Payment History</h3>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               type="date"
@@ -353,70 +415,80 @@ export default function ReportPage() {
         </div>
 
         <div style={{ padding: '12px 18px', borderBottom: '1px solid #ecf4ef', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <input type="text" placeholder="Search by student, tutor or ID..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }} />
-          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}>
+          <input
+            type="text"
+            placeholder="Search by tutor, ad ID, order ID, or payment ID..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}
+          />
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+            style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}
+          >
             <option value="All">All Status</option>
-            <option value="Success">Success</option>
-            <option value="Pending">Pending</option>
-            <option value="Failed">Failed</option>
-          </select>
-          <select value={commFilter} onChange={e => { setCommFilter(e.target.value); setPage(1); }} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #d1d5db', fontSize: 14, color: '#111827' }}>
-            <option value="All">All Commission Rates</option>
-            {commissionOptions.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
+            <option value="COMPLETED">Completed</option>
+            <option value="PENDING">Pending</option>
+            <option value="FAILED">Failed</option>
           </select>
         </div>
+
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
               <tr style={{ color: '#6b7280', fontSize: 12, textAlign: 'left', background: '#f0fdf4' }}>
-                {['Transaction ID', 'Date', 'Student', 'Tutor', 'Amount (LKR)', 'Comm %', 'Revenue', 'Status', 'Actions'].map((h) => (
+                {['Payment ID', 'Date', 'Tutor', 'Ad ID', 'Order ID', 'Amount (LKR)', 'Status', 'Actions'].map((h) => (
                   <th key={h} style={{ padding: '12px 16px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {visibleTransactions.length === 0 && (
+              {loading && (
                 <tr>
-                  <td colSpan={9} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
-                    No transactions match your filters.
+                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>Loading payments…</td>
+                </tr>
+              )}
+              {!loading && visiblePayments.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
+                    No payments match your filters.
                   </td>
                 </tr>
               )}
-              {visibleTransactions.map((txn, idx) => (
+              {!loading && visiblePayments.map((p) => (
                 <tr
-                  key={txn.id}
-                  onClick={() => setSelectedTxn(txn)}
+                  key={p.id}
+                  onClick={() => setSelectedPayment(p)}
                   style={{ borderTop: '1px solid #ecf4ef', cursor: 'pointer' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <td style={{ padding: '14px 16px', color: '#6b7280', fontSize: 12, fontFamily: 'monospace' }}>{txn.id}</td>
-                  <td style={{ padding: '14px 16px', color: '#374151', fontSize: 13 }}>{fmtDate(txn.date)}</td>
+                  <td style={{ padding: '14px 16px', color: '#6b7280', fontSize: 12, fontFamily: 'monospace' }}>{p.id}</td>
+                  <td style={{ padding: '14px 16px', color: '#374151', fontSize: 13 }}>{fmtDate(p.date)}</td>
                   <td style={{ padding: '14px 16px' }}>
-                    <div style={{ color: '#111827', fontWeight: 700 }}>{txn.student}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: {idsFor(txn, idx).studentId}</div>
+                    <div style={{ color: '#111827', fontWeight: 700 }}>{p.tutor}</div>
+                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: {p.tutorId}</div>
                   </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ color: '#111827', fontWeight: 700 }}>{txn.tutor}</div>
-                    <div style={{ color: '#6b7280', fontSize: 12 }}>ID: {idsFor(txn, idx).tutorId}</div>
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#111827', fontWeight: 700 }}>{txn.amount.toFixed(2)}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#6b7280' }}>{txn.comm}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#0f766e', fontWeight: 700 }}>{txn.revenue.toFixed(2)}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center' }}><StatusBadge status={txn.status} /></td>
+                  <td style={{ padding: '14px 16px', color: '#374151', fontSize: 13 }}>{p.adId}</td>
+                  <td style={{ padding: '14px 16px', color: '#6b7280', fontSize: 12, fontFamily: 'monospace' }}>{p.orderId}</td>
+                  <td style={{ padding: '14px 16px', textAlign: 'right', color: '#0f766e', fontWeight: 700 }}>{p.amount.toFixed(2)}</td>
+                  <td style={{ padding: '14px 16px', textAlign: 'center' }}><StatusBadge status={p.status} /></td>
                   <td style={{ padding: '14px 16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => handleCopy(txn.id)}
+                      onClick={() => handleCopy(p.id)}
                       style={{
-                        border: `1px solid ${copyError === txn.id ? '#fca5a5' : copiedId === txn.id ? '#99f6e4' : '#e5e7eb'}`,
-                        background: copyError === txn.id ? '#FEF2F2' : copiedId === txn.id ? '#ecfeff' : '#fff',
-                        color: copyError === txn.id ? '#991B1B' : copiedId === txn.id ? '#0f766e' : '#374151',
-                        borderRadius: 8, padding: '4px 10px', cursor: 'pointer', minWidth: 78, fontSize: 13, transition: 'all 0.15s ease',
+                        border: '1px solid #e5e7eb',
+                        background: '#fff',
+                        color: '#374151',
+                        borderRadius: 8,
+                        padding: '6px 12px',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 600,
                       }}
                     >
-                      {copyError === txn.id ? 'Failed' : copiedId === txn.id ? '✓ Copied' : 'Copy ID'}
+                      Copy ID
                     </button>
                   </td>
                 </tr>
@@ -425,25 +497,81 @@ export default function ReportPage() {
           </table>
         </div>
 
-        <div style={{ padding: 16, borderTop: '1px solid #ecf4ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6b7280', fontSize: 13, flexWrap: 'wrap', gap: 10 }}>
-          <span>
-            Showing {filteredTransactions.length === 0 ? 0 : (page - 1) * pageSize + 1} to {Math.min(page * pageSize, filteredTransactions.length)} of {filteredTransactions.length} transactions
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button onClick={() => setPage((prev) => Math.max(prev - 1, 1))} disabled={page === 1} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}>‹</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-              <button key={n} onClick={() => setPage(n)} style={{ border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4', background: n === page ? '#0f766e' : '#fff', borderRadius: 8, padding: '4px 10px', color: n === page ? '#fff' : '#0f766e', cursor: 'pointer' }}>{n}</button>
+        {/* Pagination */}
+        <div
+          style={{
+            padding: '14px 18px',
+            borderTop: '1px solid #ecf4ef',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#f9fafb',
+          }}
+        >
+          <div style={{ color: '#6b7280', fontSize: 13 }}>
+            Page {page} of {totalPages} ({filteredPayments.length} total rows)
+          </div>
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              style={{
+                border: '1px solid #99f6e4',
+                background: '#fff',
+                borderRadius: 8,
+                padding: '4px 10px',
+                color: '#0f766e',
+                cursor: page === 1 ? 'not-allowed' : 'pointer',
+                opacity: page === 1 ? 0.5 : 1,
+              }}
+            >
+              ‹
+            </button>
+
+            {Array.from(
+              { length: totalPages },
+              (_, i) => i + 1
+            ).map((n) => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                style={{
+                  border: n === page ? '1px solid #0f766e' : '1px solid #99f6e4',
+                  background: n === page ? '#0f766e' : '#fff',
+                  borderRadius: 8,
+                  padding: '4px 10px',
+                  color: n === page ? '#fff' : '#0f766e',
+                  cursor: 'pointer',
+                }}
+              >
+                {n}
+              </button>
             ))}
-            <button onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))} disabled={page === totalPages} style={{ border: '1px solid #99f6e4', background: '#fff', borderRadius: 8, padding: '4px 10px', color: '#0f766e', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}>›</button>
+
+            <button
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page === totalPages}
+              style={{
+                border: '1px solid #99f6e4',
+                background: '#fff',
+                borderRadius: 8,
+                padding: '4px 10px',
+                color: '#0f766e',
+                cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                opacity: page === totalPages ? 0.5 : 1,
+              }}
+            >
+              ›
+            </button>
           </div>
         </div>
       </div>
 
-      <TransactionDrawer
-        txn={selectedTxn}
-        studentId={selectedTxn ? idsFor(selectedTxn, visibleTransactions.indexOf(selectedTxn)).studentId : ''}
-        tutorId={selectedTxn ? idsFor(selectedTxn, visibleTransactions.indexOf(selectedTxn)).tutorId : ''}
-        onClose={() => setSelectedTxn(null)}
+      {/* Drawer */}
+      <PaymentDrawer
+        payment={selectedPayment}
+        onClose={() => setSelectedPayment(null)}
         onCopy={handleCopy}
         copiedId={copiedId}
         copyError={copyError}
