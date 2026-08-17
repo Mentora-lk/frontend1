@@ -333,7 +333,6 @@ export default function TutorCommunityDetailPage() {
           borderRadius: 20, padding: '24px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ fontSize: 40 }}>{community.icon}</span>
             <div>
               <h2 style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 10 }}>
                 {community.name}
@@ -665,14 +664,6 @@ export default function TutorCommunityDetailPage() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: palette.textPrimary, margin: 0 }}>Shared Materials</h3>
-                <button style={{
-                  background: 'linear-gradient(135deg,#10B981,#059669)', color: 'white', border: 'none',
-                  borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6,
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                  Upload New File
-                </button>
               </div>
 
               <div style={{ background: palette.surface, borderRadius: 18, boxShadow: palette.shadow, border: `1px solid ${palette.border}`, overflow: 'hidden' }}>
@@ -751,7 +742,6 @@ export default function TutorCommunityDetailPage() {
                 return (
                   <Link href={`/dashboard/tutor/community/${ac.id}`} key={ac.id} style={{ textDecoration: 'none' }}>
                     <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: isActive ? '#ECFDF5' : 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: isActive ? '#059669' : '#4B5563', transition: 'all 0.2s', textAlign: 'left', fontWeight: isActive ? 700 : 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB' }} onMouseOut={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
-                      {ac.icon}
                       {ac.name}
                     </button>
                   </Link>

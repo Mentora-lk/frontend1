@@ -372,13 +372,7 @@ export default function StudentCommunityPage() {
             );
           })()}
 
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 4, paddingTop: 12, borderTop: `1px solid ${palette.border}` }}>
-            <button className="like-btn" onClick={() => alert("Reply functionality coming soon!")} style={{ color: palette.textSecondary }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-              Reply
-            </button>
-          </div>
+
         </div>
         ))}
       </>
@@ -432,11 +426,6 @@ export default function StudentCommunityPage() {
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: palette.textPrimary, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
                     {selectedActiveCommunity.name}
-                    {mutedCommunities.includes(selectedActiveCommunity.id) && (
-                      <span style={{ marginLeft: 10, color: palette.textMuted, display: 'flex' }} title="Notifications Muted">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                      </span>
-                    )}
                   </h2>
                   <p style={{ fontSize: 14, color: palette.textSecondary, margin: 0 }}>{selectedActiveCommunity.member_count || 0} Students active • Tutor: {selectedActiveCommunity.tutor_name}</p>
                 </div>
@@ -446,17 +435,7 @@ export default function StudentCommunityPage() {
                     <button onClick={() => setIsManageMenuOpen(!isManageMenuOpen)} style={{ background: palette.surface, color: palette.textSecondary, border: `1px solid ${palette.border}`, padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Manage</button>
                     {isManageMenuOpen && (
                       <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: palette.surface, border: `1px solid ${palette.border}`, borderRadius: 12, boxShadow: '0 10px 25px rgba(0,0,0,0.25)', width: 180, zIndex: 100, overflow: 'hidden' }}>
-                        <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, color: palette.textSecondary, cursor: 'pointer', borderBottom: `1px solid ${palette.border}` }} onMouseOver={e => e.currentTarget.style.background = palette.hoverBg} onMouseOut={e => e.currentTarget.style.background = palette.surface} onClick={() => {
-                          if (mutedCommunities.includes(selectedActiveCommunity.id)) {
-                            setMutedCommunities(prev => prev.filter(id => id !== selectedActiveCommunity.id));
-                          } else {
-                            setMutedCommunities(prev => [...prev, selectedActiveCommunity.id]);
-                          }
-                          setIsManageMenuOpen(false);
-                        }}>
-                          {mutedCommunities.includes(selectedActiveCommunity.id) ? 'Unmute Notifications' : 'Mute Notifications'}
-                        </button>
-                        <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#EF4444', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.background = '#FEF2F2'} onMouseOut={e => e.currentTarget.style.background = palette.surface} onClick={() => { setIsManageMenuOpen(false); setLeaveError(''); setLeaveTarget(selectedActiveCommunity); }}>
+                        <button style={{ width: '100%', padding: '12px 16px', borderWidth: 0, background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#EF4444', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.background = '#FEF2F2'} onMouseOut={e => e.currentTarget.style.background = palette.surface} onClick={() => { setIsManageMenuOpen(false); setLeaveError(''); setLeaveTarget(selectedActiveCommunity); }}>
                           Leave Community
                         </button>
                       </div>
@@ -489,13 +468,7 @@ export default function StudentCommunityPage() {
                     onBlur={e => e.target.style.borderColor = palette.border}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {ALL_TAGS.map(tag => (
-                    <button key={tag} className={`tag-btn ${selectedTag === tag ? 'active' : ''}`} onClick={() => setSelectedTag(tag)}>
-                      {tag}
-                    </button>
-                  ))}
-                </div>
+
               </div>
 
               {/* Discover Grid */}

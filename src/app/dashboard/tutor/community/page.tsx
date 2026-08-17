@@ -196,13 +196,7 @@ export default function TutorCommunityPage() {
                   onBlur={e => e.target.style.borderColor = palette.border}
                 />
               </div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {ALL_TAGS.map(tag => (
-                  <button key={tag} className={`tag-btn ${selectedTag === tag ? 'active' : ''}`} onClick={() => setSelectedTag(tag)}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
+
             </div>
 
             {/* Communities Grid */}
@@ -211,9 +205,6 @@ export default function TutorCommunityPage() {
                 <Link href={`/dashboard/tutor/community/${c.id}`} key={c.id} style={{ textDecoration: 'none' }}>
                   <div className="post-card" style={{ background: palette.surface, borderRadius: 20, padding: 20, boxShadow: palette.shadow, border: `1px solid ${palette.border}`, display: 'flex', flexDirection: 'column', height: '100%' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 12, background: `${c.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
-                        {c.icon}
-                      </div>
                       <div>
                         <h4 style={{ fontSize: 15, fontWeight: 700, color: palette.textPrimary, margin: '0 0 4px 0' }}>{c.name}</h4>
                         {/* <p style={{ fontSize: 12, color: palette.textSecondary, margin: 0 }}>{c.members} members</p> */}
@@ -249,7 +240,6 @@ export default function TutorCommunityPage() {
                   return (
                     <Link href={`/dashboard/tutor/community/${ac.id}`} key={ac.id} style={{ textDecoration: 'none' }}>
                       <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'transparent', border: 'none', borderRadius: 12, width: '100%', cursor: 'pointer', color: palette.textSecondary, transition: 'all 0.2s', textAlign: 'left', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }} onMouseOver={e => e.currentTarget.style.background = palette.surfaceAlt} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                        {ac.icon}
                         {ac.name}
                       </button>
                     </Link>
