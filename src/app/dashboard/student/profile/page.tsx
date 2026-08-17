@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { usePalette } from '@/hooks/usePalette';
 import { studentService } from '@/services/studentService';
+import { Check, Camera, Pencil } from 'lucide-react';
 
 interface StudentProfile {
   name: string;
@@ -144,7 +145,7 @@ export default function ProfilePage() {
       {/* Saved toast */}
       {saved && (
         <div style={{ position:'fixed', top:84, right:24, zIndex:999, background:'#10B981', color:'white', borderRadius:12, padding:'12px 20px', fontSize:14, fontWeight:600, boxShadow:'0 8px 24px rgba(16,185,129,0.4)', display:'flex', alignItems:'center', gap:8, animation:'slideDown 0.3s ease' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <Check size={16} color="white" strokeWidth={2.5} />
           Profile saved successfully!
         </div>
       )}
@@ -171,7 +172,7 @@ export default function ProfilePage() {
               )}
               {editing && (
                 <label style={{ position:'absolute', bottom:0, right:0, width:28, height:28, borderRadius:'50%', background:'#111827', border:'2px solid white', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <Camera size={13} color="white" strokeWidth={2} />
                   <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display:'none' }}/>
                 </label>
               )}
@@ -213,7 +214,7 @@ export default function ProfilePage() {
                 ? <button onClick={()=>setEditing(true)} style={{ background:'none', border:`1.5px solid ${palette.border}`, borderRadius:10, padding:'8px 18px', fontSize:13, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", display:'flex', alignItems:'center', gap:7, transition:'all 0.2s' }}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor='#10B981'; e.currentTarget.style.color='#10B981';}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor=palette.border; e.currentTarget.style.color=palette.textSecondary;}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <Pencil size={14} strokeWidth={2} />
                     Edit Profile
                   </button>
                 : <div style={{ display:'flex', gap:10 }}>

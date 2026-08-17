@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import api from '@/lib/api';
+import { Star, Check, MapPin } from 'lucide-react';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SUBJECTS = ['Mathematics','Physics','Chemistry','ICT','English','Biology','Music','Business','Science'];
@@ -64,10 +65,8 @@ function Stars({ rating }: { rating:number }) {
   return (
     <span style={{ display:'inline-flex', gap:2 }}>
       {[1,2,3,4,5].map(s=>(
-        <svg key={s} width="13" height="13" viewBox="0 0 24 24"
-          fill={s<=Math.round(Number(rating))?'#F59E0B':'none'} stroke="#F59E0B" strokeWidth="1.5">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-        </svg>
+        <Star key={s} size={13}
+          fill={s<=Math.round(Number(rating))?'#F59E0B':'none'} color="#F59E0B" strokeWidth={1.5} />
       ))}
     </span>
   );
@@ -250,7 +249,7 @@ export default function RecommendationsPage() {
 
       {saved && (
         <div style={{ position:'fixed', top:84, right:24, zIndex:9999, background:'#10B981', color:'white', borderRadius:12, padding:'12px 20px', fontSize:14, fontWeight:600, boxShadow:'0 8px 24px rgba(16,185,129,0.4)', display:'flex', alignItems:'center', gap:8 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <Check size={16} color="white" strokeWidth={2.5} />
           Preferences saved! Showing your matches.
         </div>
       )}
@@ -491,7 +490,7 @@ export default function RecommendationsPage() {
                                 </span>
                                 {course.location && (
                                   <span style={{ fontSize:12, color:'#9CA3AF', display:'flex', alignItems:'center', gap:4 }}>
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <MapPin size={11} strokeWidth={2} />
                                     {course.location}
                                   </span>
                                 )}

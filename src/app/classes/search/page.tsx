@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { X, ChevronRight, ChevronLeft, Search, SlidersHorizontal, LayoutGrid, List } from 'lucide-react';
 import Navbar from '@/components/navbar/Navbar';
 import { searchCourses } from '@/services/classService';
 import { usePalette } from '@/hooks/usePalette';
@@ -114,7 +115,7 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
     <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:99, padding:'5px 12px', fontSize:12, fontWeight:600, color:'#059669' }}>
       {label}
       <button onClick={onRemove} style={{ background:'none', border:'none', cursor:'pointer', color:'#059669', display:'flex', padding:0 }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <X size={13} strokeWidth={2.5} />
       </button>
     </div>
   );
@@ -220,7 +221,7 @@ useEffect(() => {
           <div style={{ maxWidth:1380, margin:'0 auto', position:'relative', zIndex:1 }}>
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
               <Link href="/"><span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>Home</span></Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <ChevronRight size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
               <span style={{ fontSize:12, color:'#34D399', fontWeight:600 }}>Browse Courses</span>
             </div>
             <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(28px,4vw,50px)', fontWeight:900, color:'white', marginBottom:8, lineHeight:1.1 }}>Browse All Classes</h1>
@@ -229,11 +230,11 @@ useEffect(() => {
             {/* Search */}
             <div style={{ display:'flex', background:palette.surface, borderRadius:14, overflow:'hidden', boxShadow:'0 4px 24px rgba(0,0,0,0.12)', maxWidth:680, border:'2px solid transparent' }}>
               <div style={{ flex:1, display:'flex', alignItems:'center', padding:'0 16px', gap:10 }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <Search size={17} color="#9CA3AF" strokeWidth={2} />
                 <input type="text" placeholder="Search by subject, tutor name, or keyword..." value={query} onChange={e=>setQuery(e.target.value)}
                   style={{ flex:1, border:'none', background:'transparent', padding:'15px 0', fontSize:14, color:'#111', fontFamily:"'DM Sans',sans-serif" }}/>
                 {query && <button onClick={()=>setQuery('')} style={{ background:'none', border:'none', cursor:'pointer', color:palette.textMuted, display:'flex' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <X size={16} strokeWidth={2} />
                 </button>}
               </div>
               <button style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', padding:'0 26px', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Search</button>
@@ -264,7 +265,7 @@ useEffect(() => {
             <div className="filter-card">
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:22, paddingBottom:16, borderBottom:`1px solid ${palette.border}` }}>
                 <div style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,#d1fae5,#a7f3d0)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                  <SlidersHorizontal size={14} color="#059669" strokeWidth={2} />
                 </div>
                 <h3 style={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:16 }}>Filters</h3>
                 {activeCount>0 && <span style={{ marginLeft:'auto', fontSize:11, fontWeight:700, background:'#10B981', color:'white', borderRadius:99, padding:'2px 8px' }}>{activeCount}</span>}
@@ -330,8 +331,8 @@ useEffect(() => {
                   {(['grid','list'] as const).map(v=>(
                     <button key={v} onClick={()=>setView(v)} style={{ width:36, height:34, border:'none', cursor:'pointer', background:view===v?'#10B981':'white', color:view===v?'white':'#9CA3AF', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}>
                       {v==='grid'
-                        ?<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                        :<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        ?<LayoutGrid size={14} strokeWidth={2} />
+                        :<List size={14} strokeWidth={2} />
                       }
                     </button>
                   ))}
@@ -376,13 +377,13 @@ useEffect(() => {
                 {totalPages>1 && (
                   <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:6, marginTop:40 }}>
                     <button className="pg-btn" onClick={()=>{setPage(p=>p-1);scrollTop();}} disabled={page===1}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+                      <ChevronLeft size={13} strokeWidth={2} />
                     </button>
                     {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
                       <button key={p} className={`pg-btn${page===p?' active':''}`} onClick={()=>{setPage(p);scrollTop();}}>{p}</button>
                     ))}
                     <button className="pg-btn" onClick={()=>{setPage(p=>p+1);scrollTop();}} disabled={page===totalPages}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                      <ChevronRight size={13} strokeWidth={2} />
                     </button>
                   </div>
                 )}

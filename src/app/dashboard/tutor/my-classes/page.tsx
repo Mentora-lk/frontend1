@@ -6,6 +6,7 @@ import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { authService } from '@/services/authService';
 import { classService } from '@/services/classService';
 import { usePalette } from '@/hooks/usePalette';
+import { Search, LayoutGrid, List } from 'lucide-react';
 
 type TutorClass = {
   id: number; title: string; subject: string; location: string;
@@ -108,15 +109,15 @@ export default function MyClassesPage() {
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, padding:'8px 14px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <Search size={14} color="#9CA3AF" strokeWidth={2} />
             <input type="text" placeholder="Search classes..." value={searchQuery} onChange={e => setSearch(e.target.value)} style={{ border:'none', outline:'none', fontSize:13, color:palette.textSecondary, background:'transparent', width:130, fontFamily:"'DM Sans',sans-serif" }} />
           </div>
           <div style={{ display:'flex', background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, overflow:'hidden' }}>
             {(['grid','list'] as const).map(v => (
               <button key={v} onClick={() => setView(v)} style={{ padding:'8px 13px', border:'none', cursor:'pointer', background:view===v?'#10B981':'transparent', color:view===v?'white':palette.textMuted, transition:'all 0.2s', display:'flex', alignItems:'center' }}>
                 {v === 'grid'
-                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>}
+                  ? <LayoutGrid size={15} strokeWidth={2} />
+                  : <List size={15} strokeWidth={2} />}
               </button>
             ))}
           </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 import { usePalette } from '@/hooks/usePalette';
 
 interface EnrollSidebarProps {
@@ -74,7 +75,7 @@ export default function EnrollSidebar({
             <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < 2 ? `1px solid ${palette.border}` : 'none' }}>
               <div style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: currentStep > s.n ? '#10B981' : currentStep === s.n ? 'linear-gradient(135deg,#10B981,#059669)' : palette.surfaceAlt, transition: 'all 0.3s' }}>
                 {currentStep > s.n
-                  ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  ? <Check size={12} color="white" strokeWidth={3} />
                   : <span style={{ fontSize: 11, fontWeight: 700, color: currentStep >= s.n ? 'white' : palette.textMuted }}>{s.n}</span>
                 }
               </div>

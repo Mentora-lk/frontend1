@@ -2,39 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Mail, Phone, MapPin, Clock, Plus } from 'lucide-react';
 import Navbar from '@/components/navbar/Navbar';
 import Footer from '@/components/footer/Footer';
 import { usePalette } from '@/hooks/usePalette';
 
 const CONTACT_INFO = [
   {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-        <path d="M22 6l-10 7L2 6" />
-        <path d="M2 6h20v12H2z" />
-      </svg>
-    ),
+    icon: <Mail size={22} color="#059669" strokeWidth={1.8} />,
     label: 'Email',
     value: 'support@mentora.lk',
     href: 'mailto:support@mentora.lk',
   },
   {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-      </svg>
-    ),
+    icon: <Phone size={22} color="#059669" strokeWidth={1.8} />,
     label: 'Phone',
     value: '+94 11 234 5678',
     href: 'tel:+94112345678',
   },
   {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
+    icon: <MapPin size={22} color="#059669" strokeWidth={1.8} />,
     label: 'Location',
     value: 'Faculty of IT, University of Moratuwa, Sri Lanka',
     href: undefined,
@@ -73,7 +60,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       >
         <span style={{ fontSize: 15, fontWeight: 700, color: palette.textPrimary }}>{q}</span>
         <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: '50%', background: open ? '#10B981' : palette.surfaceAlt, color: open ? 'white' : palette.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', transform: open ? 'rotate(45deg)' : 'none' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          <Plus size={13} strokeWidth={2.5} />
         </span>
       </button>
       {open && (
@@ -191,7 +178,7 @@ export default function ContactPage() {
         <section style={{ maxWidth: 900, margin: '0 auto', padding: '50px 6%' }}>
           <div style={{ background: palette.surface, border: `1px solid ${palette.border}`, borderRadius: 22, padding: '32px 36px', boxShadow: palette.shadow, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ width: 54, height: 54, borderRadius: 16, background: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              <Clock size={22} color="#059669" strokeWidth={1.8} />
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>
               <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: palette.textPrimary, marginBottom: 4 }}>Support Hours</h3>

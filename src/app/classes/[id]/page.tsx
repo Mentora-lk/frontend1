@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { ChevronRight, MapPin, Check, ClipboardCheck, MessageSquare } from 'lucide-react';
 import Navbar from '@/components/navbar/Navbar';
 import { getCourseById, getCourseReviews, submitReview, Review } from '@/services/classService';
 import { getMyEnrollments } from '@/services/enrollmentService';
@@ -24,7 +25,7 @@ export default function ClassDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [scrollY, setScrollY] = useState(0);
-  const [activeTab, setActiveTab] = useState<'about'|'schedule'|'reviews'>('about');
+  const [activeTab, setActiveTab] = useState<'about'|'reviews'>('about');
   const [imgLoaded, setImgLoaded] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
@@ -220,9 +221,9 @@ export default function ClassDetailPage() {
           <div style={{ maxWidth:1280, margin:'0 auto', position:'relative', zIndex:1 }}>
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
               <Link href="/"><span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>Home</span></Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <ChevronRight size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
               <Link href="/classes/search"><span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>Browse Courses</span></Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <ChevronRight size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
               <span style={{ fontSize:12, color:'#34D399', fontWeight:600 }}>{course.subject}</span>
             </div>
 
@@ -231,7 +232,7 @@ export default function ClassDetailPage() {
                 <h1 className="fade-up" style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(24px,3.5vw,46px)', fontWeight:900, color:'white', lineHeight:1.1, marginBottom:10, maxWidth:680 }}>{course.title}</h1>
                 <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
                   <span style={{ fontSize:13, color:'rgba(255,255,255,0.7)', display:'flex', alignItems:'center', gap:5 }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <MapPin size={13} strokeWidth={2} />
                     {course.location}
                   </span>
                   <span style={{ fontSize:12, fontWeight:700, color:MODE_COLOR[course.mode], background:`${MODE_COLOR[course.mode]}25`, border:`1px solid ${MODE_COLOR[course.mode]}50`, borderRadius:6, padding:'3px 10px', textTransform:'uppercase', letterSpacing:'0.06em' }}>{course.mode}</span>
@@ -273,7 +274,7 @@ export default function ClassDetailPage() {
                 <div style={{ position:'relative', flexShrink:0 }}>
                   <img src={tutor.avatar} alt={tutor.name} style={{ width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'3px solid #d1fae5' }}/>
                   {tutor.is_verified && <div style={{ position:'absolute', bottom:-2, right:-2, width:22, height:22, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid white' }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    <Check size={11} color="white" strokeWidth={3} />
                   </div>}
                 </div>
                 <div>
@@ -298,7 +299,7 @@ export default function ClassDetailPage() {
 
             {/* Tabs */}
             <div style={{ display:'flex', gap:6, marginBottom:22, background:palette.surface, borderRadius:14, padding:5, boxShadow:'0 2px 12px rgba(0,0,0,0.05)', width:'fit-content', border:`1px solid ${palette.border}` }}>
-              {([['about','About Me'],['schedule','Free Time Slots'],['reviews','Reviews']] as const).map(([key,label])=>(
+              {([['about','About Me'],['reviews','Reviews']] as const).map(([key,label])=>(
                 <button key={key} className="tab-btn" onClick={()=>setActiveTab(key)} style={{ background:activeTab===key?'#10B981':'transparent', color:activeTab===key?'white':'#6B7280', boxShadow:activeTab===key?'0 4px 12px rgba(16,185,129,0.35)':'none' }}>{label}</button>
               ))}
             </div>
@@ -309,58 +310,18 @@ export default function ClassDetailPage() {
                 <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:12 }}>About This Class</h3>
                 <p style={{ fontSize:14, color:'#4B5563', lineHeight:1.75, marginBottom:20 }}>{course.description}</p>
                 <h4 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:palette.textPrimary, marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <ClipboardCheck size={17} color="#10B981" strokeWidth={2} />
                   What You'll Learn
                 </h4>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                   {(course.what_you_learn || []).map((item: string) => (
                     <div key={item} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', background:'#F0FDF4', borderRadius:12, border:'1px solid #D1FAE5' }}>
                       <div style={{ width:18, height:18, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        <Check size={10} color="white" strokeWidth={3} />
                       </div>
                       <span style={{ fontSize:13, color:'#065F46', lineHeight:1.5 }}>{item}</span>
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tab: Schedule */}
-            {activeTab==='schedule' && (
-              <div style={{ background:palette.surface, borderRadius:20, padding:'28px', boxShadow:'0 4px 20px rgba(0,0,0,0.05)', border:`1px solid ${palette.border}` }}>
-                <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:20, fontWeight:700, color:palette.textPrimary, marginBottom:20 }}>Available Time Slots</h3>
-                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-                  {!course.schedule ? (
-                    <p style={{ fontSize:14, color:palette.textMuted, textAlign:'center', padding:'20px 0' }}>
-                      No schedule provided yet.
-                    </p>
-                  ) : typeof course.schedule === 'string' ? (
-                    // Legacy free-text schedule (tutor "Post Ad" form only has a
-                    // single text field) — not structured day/time data, so just
-                    // show it as-is instead of trying to iterate over it.
-                    <div style={{ background:palette.surfaceAlt, borderRadius:14, padding:'16px 20px', border:`1px solid ${palette.border}` }}>
-                      <p style={{ fontSize:14, color:palette.textPrimary, display:'flex', alignItems:'center', gap:8 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        {course.schedule}
-                      </p>
-                    </div>
-                  ) : (
-                    Object.entries(course.schedule).map(([day, times]: [string, any]) => (
-                      <div key={day} style={{ background:palette.surfaceAlt, borderRadius:14, padding:'16px 20px', border:`1px solid ${palette.border}` }}>
-                        <p style={{ fontWeight:700, fontSize:14, color:palette.textPrimary, marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                          {day}
-                        </p>
-                        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                          {Array.isArray(times) ? times.map((t: string) => (
-                            <span key={t} style={{ padding:'6px 14px', background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:8, fontSize:13, fontWeight:600, color:'#059669' }}>🕐 {t}</span>
-                          )) : (
-                            <span style={{ padding:'6px 14px', background:'#ECFDF5', border:'1px solid #A7F3D0', borderRadius:8, fontSize:13, fontWeight:600, color:'#059669' }}>🕐 {String(times)}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
                 </div>
               </div>
             )}
@@ -466,7 +427,7 @@ export default function ClassDetailPage() {
                   <button onClick={()=>setShowModal(true)} style={{ width:'100%', marginTop:10, background:'none', border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'12px', fontSize:14, fontWeight:600, color:palette.textSecondary, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor='#10B981'; e.currentTarget.style.color='#10B981';}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor='#E5E7EB'; e.currentTarget.style.color='#6B7280';}}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <MessageSquare size={15} strokeWidth={2} />
                     Message Tutor
                   </button>
                 </div>
@@ -496,7 +457,7 @@ export default function ClassDetailPage() {
         <div className="modal-overlay" onClick={()=>setShowModal(false)}>
           <div className="modal-box" onClick={e=>e.stopPropagation()}>
             <div style={{ width:56, height:56, borderRadius:'50%', background:'linear-gradient(135deg,#d1fae5,#6ee7b7)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <MessageSquare size={24} color="#059669" strokeWidth={2} />
             </div>
             <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:700, marginBottom:8 }}>Message Tutor</h3>
             <p style={{ fontSize:14, color:palette.textSecondary, marginBottom:20 }}>Please sign in to message {tutor?.name || "Tutor"}</p>

@@ -7,6 +7,7 @@ import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { getCommunityById, getCommunityPosts, getCommunityMembers, getCommunities, createPost, deleteCommunity, removeCommunityMember } from '@/services/tutorCommunityService';
 import { useCommunitySocket } from '@/hooks/useCommunitySocket';
 import { usePalette } from '@/hooks/usePalette';
+import { MessageSquare, FileText, Users, ChevronLeft, Settings, Trash2, AlertTriangle, UserX, Upload, Star, MoreVertical, Play, Download, BarChart3, X, Calendar, Plus } from 'lucide-react';
 
 // Fallback colors/icons for communities without them in DB
 const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
@@ -272,9 +273,9 @@ export default function TutorCommunityDetailPage() {
   };
 
   const tabs = [
-    { key: 'discussions' as const, label: 'Feed & Discussions', count: discussions.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg> },
-    { key: 'files' as const, label: 'Materials', count: files.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg> },
-    { key: 'members' as const, label: 'Members', count: members.length, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg> },
+    { key: 'discussions' as const, label: 'Feed & Discussions', count: discussions.length, icon: <MessageSquare size={14} strokeWidth={2} /> },
+    { key: 'files' as const, label: 'Materials', count: files.length, icon: <FileText size={14} strokeWidth={2} /> },
+    { key: 'members' as const, label: 'Members', count: members.length, icon: <Users size={14} strokeWidth={2} /> },
   ];
 
   if (loading) {
@@ -303,7 +304,7 @@ export default function TutorCommunityDetailPage() {
       {/* Back link + community banner */}
       <div style={{ marginBottom: 24 }}>
         <Link href="/dashboard/tutor/community" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: palette.textSecondary, fontWeight: 500, marginBottom: 16 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+          <ChevronLeft size={16} strokeWidth={2} />
           Back to My Communities
         </Link>
 
@@ -331,7 +332,7 @@ export default function TutorCommunityDetailPage() {
               border: 'none', borderRadius: 10, padding: '8px 18px',
               fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+              <Settings size={16} strokeWidth={2} />
               Settings
             </button>
           </div>
@@ -346,7 +347,7 @@ export default function TutorCommunityDetailPage() {
             <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>Manage your community preferences.</p>
             
             <button onClick={() => { setIsSettingsOpen(false); setDeleteCommunityPopup(true); }} style={{ width: '100%', background: '#FEE2E2', color: '#DC2626', border: 'none', padding: '12px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+              <Trash2 size={18} strokeWidth={2} />
               Delete Community
             </button>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
@@ -361,7 +362,7 @@ export default function TutorCommunityDetailPage() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
           <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)', textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+              <AlertTriangle size={32} color="#DC2626" strokeWidth={2} />
             </div>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 12px 0' }}>Are you sure?</h2>
             <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>This action cannot be undone. All posts, files, and members will be permanently removed.</p>
@@ -379,7 +380,7 @@ export default function TutorCommunityDetailPage() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
           <div style={{ background: palette.surface, padding: 32, borderRadius: 24, width: '100%', maxWidth: 400, boxShadow: '0 20px 40px rgba(0,0,0,0.35)', textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+              <UserX size={32} color="#DC2626" strokeWidth={2} />
             </div>
             <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: '0 0 12px 0' }}>Remove Member?</h2>
             <p style={{ fontSize: 14, color: palette.textSecondary, marginBottom: 24 }}>Are you sure you want to permanently remove this student from the community?</p>
@@ -453,7 +454,7 @@ export default function TutorCommunityDetailPage() {
                 {attachedFile && (
                   <div style={{ background: palette.surfaceAlt, border: `1px solid ${palette.border}`, borderRadius: 12, padding: 12, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                      <FileText size={16} color="#6B7280" strokeWidth={2} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: palette.textSecondary }}>{attachedFile.name}</span>
                       <span style={{ fontSize: 11, color: palette.textMuted }}>({(attachedFile.size / 1024).toFixed(2)} KB)</span>
                     </div>
@@ -473,7 +474,7 @@ export default function TutorCommunityDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button onClick={handleAttachClick} style={{ background: 'none', border: 'none', color: palette.textSecondary, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600, transition: 'color 0.2s' }} onMouseOver={e => { e.currentTarget.style.color = '#10B981'; }} onMouseOut={e => { e.currentTarget.style.color = '#6B7280'; }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                      <Upload size={16} strokeWidth={2} />
                       Attach
                     </button>
                   </div>
@@ -487,7 +488,7 @@ export default function TutorCommunityDetailPage() {
 
                   {post.pinned && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 12 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      <Star size={12} color="#F59E0B" fill="#F59E0B" strokeWidth={2} />
                       PINNED ANNOUNCEMENT
                     </div>
                   )}
@@ -503,7 +504,7 @@ export default function TutorCommunityDetailPage() {
                     </div>
                     {/* Tutor Options menu on posts */}
                     <button style={{ background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+                      <MoreVertical size={18} strokeWidth={2} />
                     </button>
                   </div>
 
@@ -514,7 +515,7 @@ export default function TutorCommunityDetailPage() {
                     <div style={{ background: '#111827', borderRadius: 12, padding: 20, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                          <Play size={20} color="white" fill="white" strokeWidth={2} />
                         </div>
                         <div>
                           <p style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>{post.mediaName}</p>
@@ -532,7 +533,7 @@ export default function TutorCommunityDetailPage() {
                         <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
                         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                           <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#10B981', fontSize: 13, fontWeight: 600 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            <Download size={14} strokeWidth={2} />
                             Download Image
                           </a>
                         </div>
@@ -544,7 +545,7 @@ export default function TutorCommunityDetailPage() {
                     <div style={{ background: palette.surfaceAlt, border: `1px solid ${palette.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 40, height: 40, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                          <FileText size={18} color="#EF4444" strokeWidth={2} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached Document'}</p>
@@ -561,7 +562,7 @@ export default function TutorCommunityDetailPage() {
                     <div style={{ background: palette.surfaceAlt, border: `1px solid ${palette.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                          <Download size={18} color="#4F46E5" strokeWidth={2} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <p style={{ color: palette.textPrimary, fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached File'}</p>
@@ -577,7 +578,7 @@ export default function TutorCommunityDetailPage() {
                   {post.type === 'poll' && post.pollOptions && (
                     <div style={{ background: '#F0F9FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E40AF" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                        <BarChart3 size={16} color="#1E40AF" strokeWidth={2} />
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Poll</span>
                       </div>
                       {post.pollOptions.map((option: string, index: number) => (
@@ -613,7 +614,7 @@ export default function TutorCommunityDetailPage() {
                   borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700,
                   cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 6,
                 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                  <Upload size={14} strokeWidth={2} />
                   Upload New File
                 </button>
               </div>
@@ -634,7 +635,7 @@ export default function TutorCommunityDetailPage() {
                       <p style={{ fontSize: 10, color: palette.textMuted }}>{file.downloads} downloads</p>
                     </div>
                     <button style={{ background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+                      <MoreVertical size={18} strokeWidth={2} />
                     </button>
                   </div>
                 ))}
@@ -655,7 +656,7 @@ export default function TutorCommunityDetailPage() {
                 }}>
                   {member.role === 'Student' && (
                     <button onClick={() => setDeleteMemberPopup({ isOpen: true, memberId: member.id })} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: palette.textMuted, cursor: 'pointer' }} title="Remove Member">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      <X size={16} strokeWidth={2} />
                     </button>
                   )}
                   <div style={{
@@ -708,12 +709,12 @@ export default function TutorCommunityDetailPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                  <Calendar size={16} color="#D97706" strokeWidth={2} />
                 </div>
                 <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary }}>Set Deadlines</h3>
               </div>
               <button style={{ background: 'none', border: 'none', color: '#10B981', cursor: 'pointer' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                <Plus size={18} strokeWidth={2} />
               </button>
             </div>
 

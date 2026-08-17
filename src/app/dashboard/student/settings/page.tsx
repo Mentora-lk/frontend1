@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { authService } from '@/services/authService';
 import { useTheme } from '@/hooks/useTheme';
+import { Sun, LogOut } from 'lucide-react';
 
 function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
   return (
@@ -76,14 +77,14 @@ export default function SettingsPage() {
     <DashboardLayout title="Settings" subtitle="Manage your account preferences.">
 
       {/* Appearance */}
-      <Section isDark={isDark} title="Appearance" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>}>
+      <Section isDark={isDark} title="Appearance" icon={<Sun size={18} color="#059669" strokeWidth={2} />}>
         <SettingRow isDark={isDark} label="Dark Mode" desc="Switch the dashboard to a dark theme">
           <Toggle on={isDark} onChange={toggleTheme}/>
         </SettingRow>
       </Section>
 
       {/* Log Out */}
-      <Section isDark={isDark} title="Log Out" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>}>
+      <Section isDark={isDark} title="Log Out" icon={<LogOut size={18} color="#059669" strokeWidth={2} />}>
         <SettingRow isDark={isDark} label="Sign out of Mentora" desc="You'll need to log in again to access your dashboard">
           <button onClick={handleLogout} style={{ background:isDark?'#1F2A25':'#F3F4F6', color:isDark?'#F3F4F6':'#374151', border:'none', borderRadius:10, padding:'9px 20px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
             Log Out

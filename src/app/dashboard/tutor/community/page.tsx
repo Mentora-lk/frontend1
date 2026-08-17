@@ -6,6 +6,7 @@ import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { getCommunities, getPendingRequests, updateRequestStatus, createCommunity } from '@/services/tutorCommunityService';
 import { useTutorRequestSocket } from '@/hooks/useTutorRequestSocket';
 import { usePalette } from '@/hooks/usePalette';
+import { Plus, Search, UserPlus } from 'lucide-react';
 
 // Fallback colors/icons for communities without them in DB
 const COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EC4899'];
@@ -177,11 +178,11 @@ export default function TutorCommunityPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 24, fontWeight: 700, color: palette.textPrimary, margin: 0 }}>My Communities</h2>
                 <button onClick={() => setShowCreateModal(true)} style={{ background: '#10B981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg> Create New
+                  <Plus size={14} strokeWidth={2} /> Create New
                 </button>
               </div>
               <div style={{ position: 'relative', marginBottom: 20 }}>
-                <svg style={{ position: 'absolute', left: 14, top: 13, color: palette.textMuted }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <Search style={{ position: 'absolute', left: 14, top: 13, color: palette.textMuted }} size={20} strokeWidth={2} />
                 <input
                   type="text"
                   placeholder="Search your communities..."
@@ -257,7 +258,7 @@ export default function TutorCommunityPage() {
             {/* Pending Requests Widget */}
             <div style={{ background: palette.surface, borderRadius: 20, padding: 22, boxShadow: palette.shadow, border: `1px solid ${palette.border}` }}>
               <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: palette.textPrimary, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+                <UserPlus size={18} strokeWidth={2} />
                 Student Requests
                 <span title={`Live updates: ${socketStatus}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: palette.surfaceAlt, borderRadius: 99, padding: '2px 8px', fontSize: 9, fontWeight: 700, letterSpacing: '0.03em', color: '#4B5563', marginLeft: 'auto' }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: socketStatus === 'connected' ? '#10B981' : socketStatus === 'connecting' ? '#F59E0B' : '#EF4444' }} />

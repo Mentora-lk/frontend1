@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Pin, Trash2, Download, FileText, BarChart3, MessageSquare, BellOff, Settings, Search, Clock, X } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { discoverCommunities, getMyClasses, getMyDeadlines, getCommunityStats, getCommunityFeed, requestCommunityAccess, cancelCommunityRequest, getMyPendingRequests, togglePostReaction } from '@/services/studentCommunityService';
 import { useCommunitySocket } from '@/hooks/useCommunitySocket';
@@ -249,7 +250,7 @@ export default function StudentCommunityPage() {
                 <p style={{ fontSize: 12, color: palette.textMuted, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {post.is_pinned && (
                     <span style={{ color: '#0F766E', display: 'flex' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#0F766E" stroke="#0F766E" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                      <Pin size={12} color="#0F766E" strokeWidth={2} />
                     </span>
                   )}
                   {new Date(post.created_at).toLocaleString()}
@@ -258,7 +259,7 @@ export default function StudentCommunityPage() {
             </div>
             {post.role === 'Tutor' && (
               <div style={{ display: 'flex', gap: 12, color: palette.textMuted }}>
-                <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, padding: 0 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg></button>
+                <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: palette.textMuted, padding: 0 }}><Trash2 size={16} strokeWidth={2} /></button>
               </div>
             )}
           </div>
@@ -272,7 +273,7 @@ export default function StudentCommunityPage() {
                 <img src={post.media_url} alt="Post media" style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12, display: 'block' }} />
                 <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                   <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                    <Download size={14} strokeWidth={2} />
                     Download Image
                   </a>
                 </div>
@@ -283,14 +284,14 @@ export default function StudentCommunityPage() {
           {['document', 'pdf', 'doc'].includes(post.type) && post.media_url && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: palette.surfaceAlt, border: `1px solid ${palette.border}`, borderRadius: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                <FileText size={24} strokeWidth={2} />
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: palette.textPrimary, margin: '0 0 2px 0' }}>Attached Document</p>
                 <p style={{ fontSize: 12, color: palette.textSecondary, margin: 0, textTransform: 'uppercase' }}>{post.type}</p>
               </div>
               <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                <Download size={20} strokeWidth={2} />
               </a>
             </div>
           )}
@@ -304,14 +305,14 @@ export default function StudentCommunityPage() {
           {post.type === 'announcement' && post.media_url && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: palette.surfaceAlt, border: `1px solid ${palette.border}`, borderRadius: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, background: '#E0F2FE', color: '#0EA5E9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                <FileText size={24} strokeWidth={2} />
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: palette.textPrimary, margin: '0 0 2px 0' }}>Attached File</p>
                 <p style={{ fontSize: 12, color: palette.textSecondary, margin: 0 }}>Attachment</p>
               </div>
               <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: 'none', color: '#10B981', border: 'none', padding: '8px 8px', fontSize: 18, cursor: 'pointer', display: 'flex' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                <Download size={20} strokeWidth={2} />
               </a>
             </div>
           )}
@@ -326,7 +327,7 @@ export default function StudentCommunityPage() {
             return (
               <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E40AF" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                  <BarChart3 size={16} color="#1E40AF" strokeWidth={2} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Poll</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -345,7 +346,7 @@ export default function StudentCommunityPage() {
           {/* Actions */}
           <div style={{ display: 'flex', gap: 4, paddingTop: 12, borderTop: `1px solid ${palette.border}` }}>
             <button className="like-btn" onClick={() => alert("Reply functionality coming soon!")} style={{ color: palette.textSecondary }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              <MessageSquare size={16} strokeWidth={2} />
               Reply
             </button>
           </div>
@@ -384,7 +385,7 @@ export default function StudentCommunityPage() {
                     </span>
                     {mutedCommunities.includes(selectedActiveCommunity.id) && (
                       <span style={{ marginLeft: 10, color: palette.textMuted, display: 'flex' }} title="Notifications Muted">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                        <BellOff size={20} strokeWidth={2} />
                       </span>
                     )}
                   </h2>
@@ -393,7 +394,7 @@ export default function StudentCommunityPage() {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
                   <button onClick={() => setSelectedActiveCommunity(null)} style={{ background: '#ECFDF5', color: '#0F766E', border: '1px solid #CCFBF1', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>Discover Communities</button>
                   <div style={{ position: 'relative' }}>
-                    <button onClick={() => setIsManageMenuOpen(!isManageMenuOpen)} style={{ background: palette.surface, color: palette.textSecondary, border: `1px solid ${palette.border}`, padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Manage</button>
+                    <button onClick={() => setIsManageMenuOpen(!isManageMenuOpen)} style={{ background: palette.surface, color: palette.textSecondary, border: `1px solid ${palette.border}`, padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><Settings size={14} strokeWidth={2} /> Manage</button>
                     {isManageMenuOpen && (
                       <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: palette.surface, border: `1px solid ${palette.border}`, borderRadius: 12, boxShadow: '0 10px 25px rgba(0,0,0,0.25)', width: 180, zIndex: 100, overflow: 'hidden' }}>
                         <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 600, color: palette.textSecondary, cursor: 'pointer', borderBottom: `1px solid ${palette.border}` }} onMouseOver={e => e.currentTarget.style.background = palette.hoverBg} onMouseOut={e => e.currentTarget.style.background = palette.surface} onClick={() => {
@@ -428,7 +429,7 @@ export default function StudentCommunityPage() {
                   </div>
                 )}
                 <div style={{ position: 'relative', marginBottom: 20 }}>
-                  <svg style={{ position: 'absolute', left: 14, top: 13, color: palette.textMuted }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                  <Search style={{ position: 'absolute', left: 14, top: 13, color: palette.textMuted }} size={20} strokeWidth={2} />
                   <input
                     type="text"
                     placeholder="Search by community name or tutor..."
@@ -473,7 +474,7 @@ export default function StudentCommunityPage() {
                             disabled
                             style={{ width: '100%', background: palette.surfaceAlt, border: `1.5px solid ${palette.border}`, color: palette.textMuted, padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <Clock size={14} strokeWidth={2} />
                             Pending
                           </button>
                           <button
@@ -531,7 +532,7 @@ export default function StudentCommunityPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: palette.textPrimary, margin: '0 0 2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</p>
                       <p style={{ fontSize: 11, color: '#D97706', margin: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        <Clock size={10} strokeWidth={2} />
                         Awaiting approval
                       </p>
                     </div>
@@ -543,7 +544,7 @@ export default function StudentCommunityPage() {
                       onMouseOver={e => e.currentTarget.style.color = '#EF4444'}
                       onMouseOut={e => e.currentTarget.style.color = '#9CA3AF'}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      <X size={16} strokeWidth={2} />
                     </button>
                   </div>
                 ))}

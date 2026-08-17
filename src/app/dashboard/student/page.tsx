@@ -7,6 +7,7 @@ import { getMyEnrollments, cancelEnrollment } from '@/services/enrollmentService
 import { useCurrentUser, getInitial, getDisplayName } from '@/hooks/useCurrentUser';
 import { usePalette } from '@/hooks/usePalette';
 import { useEnrollmentStatusSocket } from '@/hooks/useEnrollmentStatusSocket';
+import { Search, LayoutGrid, List } from 'lucide-react';
 
 type MyClassStatus = 'active' | 'requested' | 'approved';
 type MyClassMode = 'online' | 'offline' | 'both';
@@ -79,7 +80,7 @@ function MyClassCard({ cls, view, onCancel, onView }: { cls: MyClass; view: 'gri
 // /enrollments/:id, which is the status-transition endpoint.
 const ENROLLMENT_EDIT_ENABLED = true;
 
-function EnrollmentDetailsModal({ enrollment, onClose }: { enrollment: any; onClose: () => void }) {
+function EnrollmentDetailsModal({ enrollment, onClose, onDelete }: { enrollment: any; onClose: () => void; onDelete: (enrollmentId: number) => void }) {
   const palette = usePalette();
   const mode = enrollment.preferred_mode || enrollment.mode;
 
@@ -141,13 +142,21 @@ function EnrollmentDetailsModal({ enrollment, onClose }: { enrollment: any; onCl
           </div>
         )}
 
-        {ENROLLMENT_EDIT_ENABLED && enrollment.status === 'requested' && (
-          <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end' }}>
-            <Link href={`/classes/${enrollment.class_id}/enroll?enrollmentId=${enrollment.id}`}>
-              <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
-                Edit Enrollment
-              </button>
-            </Link>
+        {enrollment.status === 'requested' && (
+          <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              onClick={() => onDelete(enrollment.id)}
+              style={{ background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}
+            >
+              Delete Request
+            </button>
+            {ENROLLMENT_EDIT_ENABLED && (
+              <Link href={`/classes/${enrollment.class_id}/enroll?enrollmentId=${enrollment.id}`}>
+                <button style={{ background: '#10B981', color: 'white', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                  Edit Enrollment
+                </button>
+              </Link>
+            )}
           </div>
         )}
       </div>
@@ -209,6 +218,20 @@ export default function StudentDashboard() {
       ));
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to cancel enrollment.');
+    }
+  };
+
+  // Delete a still-pending request outright — unlike handleCancel above, the
+  // backend hard-deletes the row (DELETE /api/enrollments/:id), so it's
+  // removed from the list rather than flipped to a 'cancelled' status.
+  const handleDeleteRequest = async (enrollmentId: number) => {
+    if (!confirm('Delete this enrollment request? This cannot be undone.')) return;
+    try {
+      await cancelEnrollment(enrollmentId);
+      setClasses(prev => prev.filter(c => c.id !== enrollmentId));
+      setSelectedEnrollment(null);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete enrollment request.');
     }
   };
 
@@ -285,17 +308,6 @@ export default function StudentDashboard() {
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            {/* Notification bell — no unread badge shown: there's no real
-                notification backend yet (src/services/notification.ts is a
-                stub), so this used to show a fake "3" regardless of reality. */}
-            <div style={{ position: 'relative', cursor: 'pointer' }}>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: palette.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-              </div>
-            </div>
-
             {/* Avatar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 16 }}>{getInitial(user)}</div>
@@ -395,7 +407,6 @@ export default function StudentDashboard() {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {[
                       { key: 'all',       label: `All (${classes.length})` },
-                      { key: 'active',    label: `Active (${activeClasses.length})` },
                       { key: 'requested', label: `Pending (${pendingClasses.length})` },
                       { key: 'approved',  label: `Approved (${approvedClasses.length})` },
                     ].map(tab => (
@@ -414,9 +425,7 @@ export default function StudentDashboard() {
                   {/* Search + view toggle */}
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: palette.surface, border: `1.5px solid ${palette.border}`, borderRadius: 11, padding: '8px 14px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={palette.textMuted} strokeWidth="2">
-                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                      </svg>
+                      <Search size={14} color={palette.textMuted} strokeWidth={2} />
                       <input
                         type="text" placeholder="Search classes..."
                         value={searchQuery} onChange={e => setSearch(e.target.value)}
@@ -433,8 +442,8 @@ export default function StudentDashboard() {
                           transition: 'all 0.2s', display: 'flex', alignItems: 'center',
                         }}>
                           {v === 'grid'
-                            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                            : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                            ? <LayoutGrid size={15} strokeWidth={2} />
+                            : <List size={15} strokeWidth={2} />
                           }
                         </button>
                       ))}
@@ -514,7 +523,7 @@ export default function StudentDashboard() {
       </div>
 
       {selectedEnrollment && (
-        <EnrollmentDetailsModal enrollment={selectedEnrollment} onClose={() => setSelectedEnrollment(null)} />
+        <EnrollmentDetailsModal enrollment={selectedEnrollment} onClose={() => setSelectedEnrollment(null)} onDelete={handleDeleteRequest} />
       )}
     </>
   );

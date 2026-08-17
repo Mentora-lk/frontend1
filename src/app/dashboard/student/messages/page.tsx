@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { usePalette } from '@/hooks/usePalette';
+import { Send } from 'lucide-react';
 
 const CONVERSATIONS = [
   { id:1, name:'Kasun Fernando', subject:'Mathematics', avatar:'K', lastMsg:'Great! See you on Monday at 6PM. Please prepare the past papers.', time:'2m ago', unread:2, online:true, color:'#8B5CF6' },
@@ -135,7 +136,7 @@ export default function MessagesPage() {
             <button onClick={sendMsg} style={{ width:44, height:44, borderRadius:12, background:'linear-gradient(135deg,#10B981,#059669)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(16,185,129,0.4)', transition:'all 0.2s', flexShrink:0 }}
               onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.05)'; }}
               onMouseLeave={e=>{ e.currentTarget.style.transform='scale(1)'; }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <Send size={18} color="white" strokeWidth={2.5} />
             </button>
           </div>
         </div>

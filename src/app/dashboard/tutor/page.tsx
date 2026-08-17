@@ -6,6 +6,7 @@ import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { authService } from '@/services/authService';
 import { tutorService } from '@/services/tutorService';
 import { usePalette } from '@/hooks/usePalette';
+import { Search, LayoutGrid, List, Calendar, Clock } from 'lucide-react';
 
 type TutorClass = {
   id: number;
@@ -156,7 +157,7 @@ export default function TutorDashboard() {
             {/* Search + view toggle */}
             <div style={{ display:'flex', gap:10, alignItems:'center' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, background:palette.surface, border:`1.5px solid ${palette.border}`, borderRadius:11, padding:'8px 14px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <Search size={14} color="#9CA3AF" strokeWidth={2} />
                 <input type="text" placeholder="Search classes..." value={searchQuery} onChange={e => setSearch(e.target.value)}
                   style={{ border:'none', outline:'none', fontSize:13, color:palette.textSecondary, background:'transparent', width:130, fontFamily:"'DM Sans',sans-serif" }} />
               </div>
@@ -164,8 +165,8 @@ export default function TutorDashboard() {
                 {(['grid','list'] as const).map(v => (
                   <button key={v} onClick={() => setView(v)} style={{ padding:'8px 13px', border:'none', cursor:'pointer', background:view===v?'#10B981':'transparent', color:view===v?'white':palette.textMuted, transition:'all 0.2s', display:'flex', alignItems:'center' }}>
                     {v === 'grid'
-                      ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                      : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>}
+                      ? <LayoutGrid size={15} strokeWidth={2} />
+                      : <List size={15} strokeWidth={2} />}
                   </button>
                 ))}
               </div>
@@ -240,13 +241,13 @@ export default function TutorDashboard() {
           {/* Upcoming sessions */}
           <div style={{ background:palette.surface, borderRadius:20, padding:22, boxShadow:palette.shadow, border:`1px solid ${palette.border}`, marginBottom:20 }}>
             <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:palette.textPrimary, marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <Calendar size={17} color="#10B981" strokeWidth={2} />
               Upcoming Sessions
             </h3>
             {upcomingSessions.map((s: any, i: number) => (
               <div key={s.id} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom: i < upcomingSessions.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 <div style={{ width:40, height:40, borderRadius:11, background:`${s.color}15`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <Clock size={17} color={s.color} strokeWidth={2} />
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:13, fontWeight:700, color:palette.textPrimary, marginBottom:2 }}>{s.subject}</p>

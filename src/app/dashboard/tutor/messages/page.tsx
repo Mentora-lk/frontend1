@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import TutorDashboardLayout from '@/components/dashboard/TutorDashboardLayout';
 import { usePalette } from '@/hooks/usePalette';
+import { Search, Send } from 'lucide-react';
 
 const CONVERSATIONS = [
   { id:1, name:'Nimesh Perera',  avatar:'N', color:'#8B5CF6', lastMsg:'Thanks sir, I will attend tomorrow!', time:'2m',  unread:3, subject:'Mathematics' },
@@ -50,7 +51,7 @@ export default function MessagesPage() {
         <div style={{ width:280, background:palette.surface, borderRadius:18, boxShadow:palette.shadow, border:`1px solid ${palette.border}`, overflow:'hidden', flexShrink:0, display:'flex', flexDirection:'column' }}>
           <div style={{ padding:'18px 18px 12px', borderBottom:`1px solid ${palette.border}` }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, background:palette.surfaceAlt, borderRadius:10, padding:'8px 12px' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <Search size={14} color="#9CA3AF" strokeWidth={2} />
               <input placeholder="Search messages..." style={{ border:'none', outline:'none', background:'transparent', fontSize:13, color:palette.textSecondary, width:'100%', fontFamily:"'DM Sans',sans-serif" }} />
             </div>
           </div>
@@ -100,7 +101,7 @@ export default function MessagesPage() {
           <div style={{ padding:'14px 18px', borderTop:`1px solid ${palette.border}`, display:'flex', gap:10 }}>
             <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && sendMsg()} placeholder="Type a message..." style={{ flex:1, border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'11px 16px', fontSize:14, fontFamily:"'DM Sans',sans-serif", outline:'none', color:palette.textSecondary }} />
             <button onClick={sendMsg} style={{ background:'linear-gradient(135deg,#10B981,#059669)', color:'white', border:'none', borderRadius:12, padding:'0 20px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <Send size={18} strokeWidth={2} />
             </button>
           </div>
         </div>

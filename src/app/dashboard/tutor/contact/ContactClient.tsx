@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { Target, Eye, BookOpen, MapPin, Mail, Phone, Clock, Check, Send } from "lucide-react";
 
 const STATS = [
   { num: "15,000+", label: "Students Empowered" },
@@ -12,9 +13,7 @@ const STATS = [
 const PILLARS = [
   {
     icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-      </svg>
+      <Target size={26} strokeWidth={1.8} />
     ),
     color: "#0d9488",
     bg: "rgba(13,148,136,0.1)",
@@ -23,9 +22,7 @@ const PILLARS = [
   },
   {
     icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-      </svg>
+      <Eye size={26} strokeWidth={1.8} />
     ),
     color: "#6366f1",
     bg: "rgba(99,102,241,0.1)",
@@ -34,9 +31,7 @@ const PILLARS = [
   },
   {
     icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-      </svg>
+      <BookOpen size={26} strokeWidth={1.8} />
     ),
     color: "#f59e0b",
     bg: "rgba(245,158,11,0.1)",
@@ -48,9 +43,7 @@ const PILLARS = [
 const CONTACT_INFO = [
   {
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-      </svg>
+      <MapPin size={20} strokeWidth={2} />
     ),
     color: "#0d9488",
     label: "Colombo HQ",
@@ -58,9 +51,7 @@ const CONTACT_INFO = [
   },
   {
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-      </svg>
+      <Mail size={20} strokeWidth={2} />
     ),
     color: "#6366f1",
     label: "Email Us",
@@ -68,9 +59,7 @@ const CONTACT_INFO = [
   },
   {
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-      </svg>
+      <Phone size={20} strokeWidth={2} />
     ),
     color: "#f59e0b",
     label: "Phone",
@@ -78,9 +67,7 @@ const CONTACT_INFO = [
   },
   {
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
+      <Clock size={20} strokeWidth={2} />
     ),
     color: "#22c55e",
     label: "Support Hours",
@@ -452,9 +439,7 @@ export default function ContactClient() {
                 {FEATURES.map((f) => (
                   <div className="cc-feature" key={f}>
                     <div className="cc-feature-check">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
+                      <Check size={12} color="white" strokeWidth={3} />
                     </div>
                     {f}
                   </div>
@@ -499,9 +484,7 @@ export default function ContactClient() {
             {sent ? (
               <div className="cc-success">
                 <div className="cc-success-icon">
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
+                  <Check size={30} color="#16a34a" strokeWidth={2.5} />
                 </div>
                 <div className="cc-success-title">Message Sent!</div>
                 <div className="cc-success-sub">Thank you for reaching out. We'll get back to you within 24 hours.</div>
@@ -539,9 +522,7 @@ export default function ContactClient() {
                       <><div className="cc-spinner" /> Sending…</>
                     ) : (
                       <>Send Message
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
+                        <Send size={16} strokeWidth={2.5} />
                       </>
                     )}
                   </button>

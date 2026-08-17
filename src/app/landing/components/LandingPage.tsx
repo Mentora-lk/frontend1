@@ -6,6 +6,7 @@ import Navbar from "../../../components/navbar/Navbar";
 import { searchCourses, getPlatformStats } from "@/services/classService";
 import { usePalette } from "@/hooks/usePalette";
 import { useTheme } from "@/hooks/useTheme";
+import { MapPin, Search, SlidersHorizontal, Pencil, CreditCard } from "lucide-react";
 
 
 
@@ -176,10 +177,7 @@ function CourseCard({ course }: { course: any }) {
                 gap: 4,
               }}
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
+              <MapPin size={11} strokeWidth={2} />
               {(location || 'Sri Lanka').toString()}
             </span>
             <span style={{ fontSize: 14, fontWeight: 800, color: "#059669" }}>LKR {fee.toLocaleString()}</span>
@@ -543,10 +541,7 @@ export default function LandingPage() {
 
               <div className="anim-fade-up delay-4 search-wrap">
                 <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 18px", gap: 10 }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
+                  <Search size={17} color="#9CA3AF" strokeWidth={2} />
                   <input
                     className="search-input"
                     type="text"
@@ -566,10 +561,7 @@ export default function LandingPage() {
                       window.location.href = `/classes/search?q=${encodeURIComponent(searchQuery)}`;
                     }
                   }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
+                  <Search size={15} strokeWidth={2.5} />
                   Search
                 </button>
               </div>
@@ -648,11 +640,7 @@ export default function LandingPage() {
                       justifyContent: "center",
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2">
-                      <line x1="4" y1="6" x2="20" y2="6" />
-                      <line x1="8" y1="12" x2="16" y2="12" />
-                      <line x1="11" y1="18" x2="13" y2="18" />
-                    </svg>
+                    <SlidersHorizontal size={16} color="#059669" strokeWidth={2} />
                   </div>
                   <h3 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16, color: palette.textPrimary }}>Filters</h3>
                 </div>
@@ -817,10 +805,7 @@ export default function LandingPage() {
               {[
                 {
                   icon: (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <MapPin size={28} color="#059669" strokeWidth={1.8} />
                   ),
                   title: "Nearby Tutor",
                   desc: "Find tutors near your location, no matter where you are in Sri Lanka.",
@@ -828,10 +813,7 @@ export default function LandingPage() {
                 },
                 {
                   icon: (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
+                    <Pencil size={28} color="#059669" strokeWidth={1.8} />
                   ),
                   title: "Learn From the Best",
                   desc: "Filter and select verified top-rated tutors based on your preferences.",
@@ -839,10 +821,7 @@ export default function LandingPage() {
                 },
                 {
                   icon: (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-                      <rect x="1" y="4" width="22" height="16" rx="2" />
-                      <line x1="1" y1="10" x2="23" y2="10" />
-                    </svg>
+                    <CreditCard size={28} color="#059669" strokeWidth={1.8} />
                   ),
                   title: "No Subscription Fees",
                   desc: "This platform is completely free to use. Pay only for the classes you take.",

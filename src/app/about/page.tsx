@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Award, MapPin, Wallet } from 'lucide-react';
 import Navbar from '@/components/navbar/Navbar';
 import Footer from '@/components/footer/Footer';
 import { usePalette } from '@/hooks/usePalette';
@@ -9,33 +10,19 @@ import { useTheme } from '@/hooks/useTheme';
 
 const VALUES = [
   {
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-        <path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21l2-7.5L2 9h7z" />
-      </svg>
-    ),
+    icon: <Award size={26} color="#059669" strokeWidth={1.8} />,
     title: 'Quality First',
     desc: 'Every tutor on Mentora.lk is manually vetted so students only ever learn from people who actually know their subject.',
     color: '#d1fae5',
   },
   {
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
+    icon: <MapPin size={26} color="#059669" strokeWidth={1.8} />,
     title: 'Access For Everyone',
     desc: 'From Colombo to Jaffna, students anywhere in Sri Lanka can find a tutor nearby or connect online.',
     color: '#a7f3d0',
   },
   {
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8">
-        <rect x="1" y="4" width="22" height="16" rx="2" />
-        <line x1="1" y1="10" x2="23" y2="10" />
-      </svg>
-    ),
+    icon: <Wallet size={26} color="#059669" strokeWidth={1.8} />,
     title: 'Honest Pricing',
     desc: 'No subscriptions, no hidden platform fees. Students pay tutors directly for the classes they take.',
     color: '#6ee7b7',

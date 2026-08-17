@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, ChevronRight, User, Pencil } from 'lucide-react';
 import Navbar from '@/components/navbar/Navbar';
 import EnrollSidebar from './EnrollSidebar';
 import { getCourseById } from '@/services/classService';
@@ -15,7 +16,7 @@ const WEEK_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
 // ── Reusable sub-pieces (small, only used inside this file) ────────────────────
 function ErrMsg({ msg }: { msg:string }) {
   return <span style={{ fontSize:11, color:'#EF4444', marginTop:4, display:'flex', alignItems:'center', gap:4 }}>
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <AlertCircle size={11} strokeWidth={2} />
     {msg}
   </span>;
 }
@@ -42,7 +43,7 @@ function NavBtn({ label, onClick, primary=false, icon }: { label:string; onClick
   }}
     onMouseEnter={e=>{e.currentTarget.style.transform = primary ? 'translateY(-3px)' : 'translateX(-2px)';}}
     onMouseLeave={e=>{e.currentTarget.style.transform='none';}}>
-    {!primary && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>}
+    {!primary && <ArrowLeft size={15} strokeWidth={2.5} />}
     {label}
     {primary && icon}
   </button>;
@@ -59,7 +60,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
           <div key={s.n} style={{ display:'flex', alignItems:'center', flex: i<2?1:'none' }}>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
               <div style={{ width:40, height:40, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:15, transition:'all 0.35s cubic-bezier(.22,1,.36,1)', background:currentStep>s.n?'#10B981':currentStep===s.n?'linear-gradient(135deg,#10B981,#059669)':palette.surface, color:(currentStep>s.n||currentStep===s.n)?'white':palette.textMuted, border:(currentStep>s.n||currentStep===s.n)?'none':`2px solid ${palette.border}`, boxShadow:currentStep===s.n?'0 6px 20px rgba(16,185,129,0.4)':currentStep>s.n?'0 2px 8px rgba(16,185,129,0.25)':'none', fontFamily:"'DM Sans',sans-serif" }}>
-                {currentStep>s.n ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> : s.n}
+                {currentStep>s.n ? <Check size={18} color="white" strokeWidth={3} /> : s.n}
               </div>
               <span style={{ fontSize:11, fontWeight:600, color:currentStep===s.n?'#10B981':currentStep>s.n?'#059669':palette.textMuted, whiteSpace:'nowrap' }}>{s.label}</span>
             </div>
@@ -250,12 +251,17 @@ function EnrollPageContent() {
   const focus = (e: React.FocusEvent<any>) => { e.target.style.borderColor='#10B981'; e.target.style.boxShadow='0 0 0 3px rgba(16,185,129,0.12)'; };
   const blur  = (e: React.FocusEvent<any>, hasErr: boolean) => { e.target.style.borderColor=hasErr?'#FCA5A5':'#E5E7EB'; e.target.style.boxShadow='none'; };
 
+  const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const PHONE_REGEX = /^(?:\+94|0)[1-9]\d{8}$/; // Sri Lankan numbers: 0XXXXXXXXX or +94XXXXXXXXX
+
   const validateStep1 = () => {
     const e: Record<string,string> = {};
-    if (!fullName.trim())                      e.fullName = 'Full name is required';
-    if (!email.trim() || !email.includes('@')) e.email    = 'Valid email is required';
-    if (!phone.trim() || phone.length < 9)    e.phone    = 'Valid phone number is required';
-    if (!grade)                                e.grade    = 'Please select your grade/level';
+    if (!fullName.trim())                       e.fullName = 'Full name is required';
+    if (!email.trim())                           e.email    = 'Email is required';
+    else if (!EMAIL_REGEX.test(email.trim()))    e.email    = 'Enter a valid email address';
+    if (!phone.trim())                           e.phone    = 'Phone number is required';
+    else if (!PHONE_REGEX.test(phone.replace(/[\s-]/g, ''))) e.phone = 'Enter a valid Sri Lankan phone number (e.g. 077 123 4567)';
+    if (!grade)                                  e.grade    = 'Please select your grade/level';
     setErrors(e); return Object.keys(e).length === 0;
   };
   const validateStep2 = () => {
@@ -371,11 +377,11 @@ function EnrollPageContent() {
           <div style={{ maxWidth:1280, margin:'0 auto', position:'relative', zIndex:1 }}>
             <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
               <Link href="/"><span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>Home</span></Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <ChevronRight size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
               <Link href="/classes/search"><span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>Classes</span></Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <ChevronRight size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
               <Link href={`/classes/${course.id}`}><span style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>{course.subject}</span></Link>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              <ChevronRight size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
               <span style={{ fontSize:12, color:'#34D399', fontWeight:600 }}>Enroll</span>
             </div>
             <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:'clamp(24px,3.5vw,44px)', fontWeight:900, color:'white', marginBottom:8, lineHeight:1.1 }}>
@@ -406,7 +412,7 @@ function EnrollPageContent() {
               <div className="step-panel" style={{ background:palette.surface, borderRadius:22, padding:'32px', boxShadow:palette.shadow, border:`1px solid ${palette.border}` }}>
                 <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:28 }}>
                   <div style={{ width:44, height:44, borderRadius:13, background:'linear-gradient(135deg,#d1fae5,#6ee7b7)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <User size={22} color="#059669" strokeWidth={2} />
                   </div>
                   <div>
                     <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:22, fontWeight:700, color:palette.textPrimary }}>Your Details</h2>
@@ -445,7 +451,7 @@ function EnrollPageContent() {
                 </div>
 
                 <div style={{ display:'flex', justifyContent:'flex-end', marginTop:28 }}>
-                  <NavBtn primary label="Next: Pick Schedule" onClick={handleNext} icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>}/>
+                  <NavBtn primary label="Next: Pick Schedule" onClick={handleNext} icon={<ArrowRight size={16} strokeWidth={2.5} />}/>
                 </div>
               </div>
             )}
@@ -471,7 +477,7 @@ function EnrollPageContent() {
                           <div style={{ fontSize:12, color:palette.textMuted }}>{m.desc}</div>
                           {preferredMode===m.val && <div style={{ marginTop:10, display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
                             <div style={{ width:18, height:18, borderRadius:'50%', background:m.color, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                              <Check size={10} color="white" strokeWidth={3} />
                             </div>
                             <span style={{ fontSize:12, fontWeight:600, color:m.color }}>Selected</span>
                           </div>}
@@ -498,7 +504,7 @@ function EnrollPageContent() {
                         <div key={day} onClick={()=>setSelectedDays(prev => isSelected ? prev.filter(d=>d!==day) : [...prev, day])} style={{ flex:'1', minWidth:80, maxWidth:110, border:`2px solid ${isSelected?'#10B981':'#E5E7EB'}`, borderRadius:14, padding:'14px 8px', cursor:'pointer', textAlign:'center', transition:'all 0.22s', background:isSelected?'linear-gradient(135deg,#f0fdf4,#ecfdf5)':'white', boxShadow:isSelected?'0 6px 20px rgba(16,185,129,0.18)':'none', transform:isSelected?'translateY(-3px)':'none' }}>
                           <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.1em', color:isSelected?'#10B981':'#9CA3AF', textTransform:'uppercase' }}>{day}</div>
                           {isSelected && <div style={{ width:20, height:20, borderRadius:'50%', background:'#10B981', display:'flex', alignItems:'center', justifyContent:'center', margin:'8px auto 0' }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            <Check size={10} color="white" strokeWidth={3} />
                           </div>}
                         </div>
                       );
@@ -523,7 +529,7 @@ function EnrollPageContent() {
 
                 <div style={{ display:'flex', justifyContent:'space-between' }}>
                   <NavBtn label="Back" onClick={handleBack}/>
-                  <NavBtn primary label="Next: Review" onClick={handleNext} icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>}/>
+                  <NavBtn primary label="Next: Review" onClick={handleNext} icon={<ArrowRight size={16} strokeWidth={2.5} />}/>
                 </div>
               </div>
             )}
@@ -541,7 +547,7 @@ function EnrollPageContent() {
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
                       <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:palette.textMuted }}>Personal Details</p>
                       <button onClick={()=>{ setErrors({}); setStep(1); }} style={{ fontSize:12, color:'#10B981', background:'none', border:'none', cursor:'pointer', fontWeight:600, fontFamily:"'DM Sans',sans-serif", display:'flex', alignItems:'center', gap:4 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+                        <Pencil size={12} strokeWidth={2} />Edit
                       </button>
                     </div>
                     {[{l:'Full Name',v:fullName},{l:'Email',v:email},{l:'Phone',v:phone},{l:'School',v:school||'—'},{l:'Grade',v:grade},...(message?[{l:'Message',v:message}]:[])].map(row=>(
@@ -557,7 +563,7 @@ function EnrollPageContent() {
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
                       <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'#059669' }}>Selected Schedule</p>
                       <button onClick={()=>{ setErrors({}); setStep(2); }} style={{ fontSize:12, color:'#10B981', background:'none', border:'none', cursor:'pointer', fontWeight:600, fontFamily:"'DM Sans',sans-serif", display:'flex', alignItems:'center', gap:4 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+                        <Pencil size={12} strokeWidth={2} />Edit
                       </button>
                     </div>
                     {[
@@ -611,7 +617,7 @@ function EnrollPageContent() {
                       </>
                     ) : (
                       <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <Check size={16} strokeWidth={2.5} />
                         {isEditMode ? 'Save Changes' : 'Submit Enrollment Request'}
                       </>
                     )}
@@ -630,7 +636,7 @@ function EnrollPageContent() {
             {step===4 && (
               <div className="step-panel" style={{ textAlign:'center', padding:'48px 32px', background:palette.surface, borderRadius:24, boxShadow:'0 8px 40px rgba(0,0,0,0.08)', border:'1px solid rgba(16,185,129,0.15)' }}>
                 <div style={{ width:90, height:90, borderRadius:'50%', background:'linear-gradient(135deg,#10B981,#059669)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 24px', boxShadow:'0 12px 40px rgba(16,185,129,0.4)', animation:'scaleIn 0.5s cubic-bezier(.22,1,.36,1)' }}>
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <Check size={42} color="white" strokeWidth={2.5} />
                 </div>
                 <h2 style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:900, color:palette.textPrimary, marginBottom:8 }}>{isEditMode ? 'Changes Saved! ✅' : "You're Almost In! 🎉"}</h2>
                 <p style={{ fontSize:15, color:palette.textSecondary, marginBottom:28, lineHeight:1.7, maxWidth:420, margin:'0 auto 28px' }}>
