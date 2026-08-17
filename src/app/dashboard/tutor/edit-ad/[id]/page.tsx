@@ -114,15 +114,23 @@ export default function EditAdPage() {
       formData.append("fee", form.fees);
       formData.append("description", form.description);
       formData.append("schedule", form.schedule);
-      // Backend also uses mode and location, we can pass them if available
-      formData.append("mode", form.medium); // Assuming medium/mode overlap or backend needs it
-      
+      // Note: this form has no online/offline/both selector, so `mode` is
+      // intentionally omitted — the backend keeps the course's existing mode
+      // when none is sent. Sending `medium` (e.g. "English") here violates
+      // the courses_mode_check constraint since mode only accepts
+      // online/offline/both.
+
       if (form.banner) {
         formData.append("banner", form.banner);
       }
 
       await classService.updateClass(id, formData);
       setSubmitted(true);
+      // my-classes only fetches its data once on mount; if it's still sitting
+      // in Next's router cache from before this edit, navigating back to it
+      // would otherwise show the stale pre-edit banner/fields. refresh()
+      // invalidates that cache so it remounts and refetches on arrival.
+      router.refresh();
       setTimeout(() => {
         router.push('/dashboard/tutor/my-classes');
       }, 1500);

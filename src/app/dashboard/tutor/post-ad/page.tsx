@@ -1,8 +1,20 @@
 "use client";
 
 import React, { useState, ChangeEvent, DragEvent } from "react";
-import { classService } from "@/services/classService";
+import { isAxiosError } from "axios";
+import { paymentService } from "@/services/paymentService";
+import { usePayhereScript } from "@/hooks/usePayhereScript";
 import { useRouter } from "next/navigation";
+
+// Surfaces the backend's actual validation message (e.g. "Title, subject,
+// and fee are required") instead of letting a raw AxiosError reach the
+// Next.js dev overlay as an unhandled exception.
+const describeError = (err: unknown, fallback: string): string => {
+  if (isAxiosError(err) && typeof err.response?.data?.message === "string") {
+    return err.response.data.message;
+  }
+  return fallback;
+};
 
 interface AdFormData {
   name: string;
@@ -72,35 +84,117 @@ export default function PostAdPage() {
   };
 
   const [loading, setLoading] = useState(false);
+  const payhereReady = usePayhereScript();
+  const isDev = process.env.NODE_ENV !== "production";
+
+  const buildAdFormData = (): FormData => {
+    const formData = new FormData();
+    formData.append("title", form.name);
+    formData.append("subject", form.subject);
+    formData.append("grade", form.grade);
+    formData.append("medium", form.medium);
+    formData.append("fee", form.fees);
+    formData.append("description", form.description);
+    formData.append("schedule", form.schedule);
+    // Note: this form has no online/offline/both selector, so `mode` is
+    // intentionally omitted — the backend defaults it to 'both'. Sending
+    // `medium` (e.g. "English") here would violate the courses_mode_check
+    // constraint since mode only accepts online/offline/both.
+
+    if (form.banner) {
+      formData.append("banner", form.banner);
+    }
+    return formData;
+  };
+
+  // Mirrors the backend's "title, subject, and fee are required" check so
+  // the tutor sees an inline message instead of a raw 400 from the API.
+  const validateForm = (): string | null => {
+    if (!form.name.trim() || !form.subject.trim() || !form.fees.trim()) {
+      return "Please fill in the class name, subject, and fee before continuing.";
+    }
+    return null;
+  };
+
+  // Skips the PayHere popup entirely and marks the order paid directly.
+  // The backend route this calls 404s itself once NODE_ENV=production, so
+  // this button is a local-dev convenience only, not a real bypass path.
+  const handleDevSkipPayment = async (): Promise<void> => {
+    const validationError = validateForm();
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const order = await paymentService.initiateAdPayment(buildAdFormData());
+      await paymentService.devCompleteAdPayment(order.orderId);
+      router.push(`/dashboard/tutor/post-ad/payment-status?orderId=${order.orderId}`);
+    } catch (err) {
+      console.error("Failed to skip payment (dev)", err);
+      alert(describeError(err, "Dev skip-payment failed. Please try again."));
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+
+    const validationError = validateForm();
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+
+    if (!payhereReady || !window.payhere) {
+      alert("Payment gateway is still loading — please try again in a moment.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("title", form.name);
-      formData.append("subject", form.subject);
-      formData.append("grade", form.grade);
-      formData.append("medium", form.medium);
-      formData.append("fee", form.fees);
-      formData.append("description", form.description);
-      formData.append("schedule", form.schedule);
-      // Backend also uses mode and location, we can pass them if available
-      formData.append("mode", form.medium); // Assuming medium/mode overlap or backend needs it
-      
-      if (form.banner) {
-        formData.append("banner", form.banner);
-      }
+      // Stages the ad (not yet public) and opens a PayHere order for the
+      // posting fee — the ad only goes live once payment is confirmed.
+      const order = await paymentService.initiateAdPayment(buildAdFormData());
 
-      await classService.createClass(formData);
-      setSubmitted(true);
-      setTimeout(() => {
-        router.push('/dashboard/tutor/my-classes');
-      }, 1500);
+      window.payhere.onCompleted = () => {
+        // PayHere confirmed the payment client-side, but the backend only
+        // trusts its own signature-verified webhook — send the tutor to a
+        // status page that polls until that webhook has actually landed.
+        router.push(`/dashboard/tutor/post-ad/payment-status?orderId=${order.orderId}`);
+      };
+      window.payhere.onDismissed = () => {
+        setLoading(false);
+      };
+      window.payhere.onError = (error: string) => {
+        console.error("PayHere checkout error", error);
+        alert("Payment failed to start. Please try again.");
+        setLoading(false);
+      };
+
+      window.payhere.startPayment({
+        sandbox: true,
+        merchant_id: order.merchantId,
+        return_url: order.returnUrl,
+        cancel_url: order.cancelUrl,
+        notify_url: order.notifyUrl,
+        order_id: order.orderId,
+        items: order.items,
+        amount: order.amount,
+        currency: order.currency,
+        hash: order.hash,
+        first_name: order.firstName,
+        last_name: order.lastName,
+        email: order.email,
+        phone: order.phone,
+        address: order.address,
+        city: order.city,
+        country: order.country,
+      });
     } catch (err) {
-      console.error("Failed to post ad", err);
-      alert("Failed to post ad. Please try again.");
-    } finally {
+      console.error("Failed to start ad payment", err);
+      alert(describeError(err, "Failed to start payment. Please try again."));
       setLoading(false);
     }
   };
@@ -575,13 +669,37 @@ export default function PostAdPage() {
               <div className="divider" />
 
               {/* Submit */}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                <button className="btn-cancel" type="button" onClick={handleCancel}>
-                  Discard
-                </button>
-                <button className={`btn-submit${submitted ? " done" : ""}`} type="submit" disabled={loading}>
-                  {loading ? "Posting..." : submitted ? "✓ Ad Posted!" : "🚀 Post Ad"}
-                </button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                  💳 A one-time LKR 1000 posting fee applies, paid via PayHere.
+                </span>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  {isDev && (
+                    <button
+                      type="button"
+                      title="Skips PayHere entirely — only works while running the dev server"
+                      onClick={handleDevSkipPayment}
+                      disabled={loading}
+                      style={{
+                        background: "transparent",
+                        border: "1px dashed var(--muted)",
+                        color: "var(--muted)",
+                        borderRadius: 8,
+                        padding: "8px 14px",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ⚡ Skip payment (dev)
+                    </button>
+                  )}
+                  <button className="btn-cancel" type="button" onClick={handleCancel}>
+                    Discard
+                  </button>
+                  <button className={`btn-submit${submitted ? " done" : ""}`} type="submit" disabled={loading || !payhereReady}>
+                    {loading ? "Processing payment..." : submitted ? "✓ Ad Posted!" : "💳 Pay & Post Ad"}
+                  </button>
+                </div>
               </div>
 
             </div>
