@@ -14,8 +14,10 @@ export function middleware(request: NextRequest): NextResponse {
 
   const isAdminAuthRoute = pathname === "/dashboard/admin/auth" || pathname.startsWith("/dashboard/admin/auth/");
   const isAdminSignupRoute = pathname === "/dashboard/admin/signup" || pathname.startsWith("/dashboard/admin/signup/");
+  const isAdminForgotPasswordRoute = pathname === "/dashboard/admin/forgot-password" || pathname.startsWith("/dashboard/admin/forgot-password/");
+  const isAdminResetPasswordRoute = pathname.startsWith("/dashboard/admin/reset-password/");
 
-  if (isAdminAuthRoute || isAdminSignupRoute) {
+  if (isAdminAuthRoute || isAdminSignupRoute || isAdminForgotPasswordRoute || isAdminResetPasswordRoute) {
     return NextResponse.next();
   }
 
