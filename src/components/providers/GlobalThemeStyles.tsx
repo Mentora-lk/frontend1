@@ -14,6 +14,9 @@ export function GlobalThemeStyles() {
     <style>{`
       body { background: ${palette.bg}; color: ${palette.textPrimary}; transition: background 0.25s ease, color 0.25s ease; }
       ::selection { background: rgba(16,185,129,0.3); }
+      /* Edge draws its own reveal/clear buttons inside password fields, which
+         doubles up with the toggle in components/auth/PasswordInput.tsx. */
+      input::-ms-reveal, input::-ms-clear { display: none; }
     `}</style>
   );
 }

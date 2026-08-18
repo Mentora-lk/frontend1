@@ -64,7 +64,13 @@ export function PasswordInput({
         onFocus={onFocus}
         onBlur={onBlur}
         style={{
+          // Fill the wrapper: callers style these fields without a width, so
+          // an unstretched input leaves the absolutely-positioned toggle below
+          // sitting outside the visible box.
+          width: "100%",
+          boxSizing: "border-box",
           ...style,
+          // Room for the toggle, regardless of the padding the caller passed.
           paddingRight: 44,
         }}
         required={required}
