@@ -60,14 +60,14 @@ function CourseCard({ course }: { course: any }) {
 
   // Handle both real backend data structure and missing fields
   const tutorName = (course.tutor?.name || course.tutor_name || course.tutor || 'Unknown Tutor').toString();
-  const location  = (course.location || 'Sri Lanka').toString();
-  const rating    = course.average_rating || course.rating || 0;
-  const reviews   = course.review_count   || course.reviews || 0;
-  const fee       = Number(course.fee)    || 0;
-  const image     = (course.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80').toString();
-  const badge     = course.badge || null;
-  const subject   = (course.subject || 'Course').toString();
-  const mode      = (course.mode || 'online').toString().toLowerCase();
+  const location = (course.location || 'Sri Lanka').toString();
+  const rating = course.average_rating || course.rating || 0;
+  const reviews = course.review_count || course.reviews || 0;
+  const fee = Number(course.fee) || 0;
+  const image = (course.image || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400&q=80').toString();
+  const badge = course.badge || null;
+  const subject = (course.subject || 'Course').toString();
+  const mode = (course.mode || 'online').toString().toLowerCase();
 
   return (
     <Link href={`/classes/${course.id}`} style={{ textDecoration: "none" }}>
@@ -147,8 +147,8 @@ function CourseCard({ course }: { course: any }) {
                   mode === "online"
                     ? "#34D399"
                     : mode === "offline"
-                    ? "#60A5FA"
-                    : "#FBBF24",
+                      ? "#60A5FA"
+                      : "#FBBF24",
                 background: "rgba(0,0,0,0.55)",
                 backdropFilter: "blur(6px)",
                 textTransform: "uppercase",
@@ -249,9 +249,9 @@ export default function LandingPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    activeTutors:      0,
-    studentsEnrolled:  0,
-    subjectsAvailable: 0,
+    activeTutors:      11,
+    studentsEnrolled:  14,
+    subjectsAvailable: 16,
   });
 
   // Fetch top 6 courses and platform stats on mount
@@ -261,8 +261,8 @@ export default function LandingPage() {
         const [coursesData, statsData] = await Promise.all([
           searchCourses({
             sortBy: 'rating',
-            limit:  6,
-            page:   1,
+            limit: 6,
+            page: 1,
           }),
           getPlatformStats(),
         ]);
@@ -295,20 +295,20 @@ export default function LandingPage() {
   const filteredCourses = (Array.isArray(courses) ? courses : [])
     .filter((c) => c && typeof c === 'object' && c.id) // Filter out empty/invalid objects
     .filter((c) => {
-    const tutorNameStr = (c.tutor?.name || c.tutor_name || c.tutor || '').toString().toLowerCase();
-    const titleStr = (c.title || '').toString().toLowerCase();
-    const subjectStr = (c.subject || '').toString().toLowerCase();
-    const matchSearch =
-      searchQuery.trim() === "" ||
-      titleStr.includes(searchQuery.toLowerCase()) ||
-      tutorNameStr.includes(searchQuery.toLowerCase()) ||
-      subjectStr.includes(searchQuery.toLowerCase());
-    const matchTag = activeTag === "IT" ? true : subjectStr.includes(activeTag.toLowerCase());
-    const matchSubject = filterSubject === "All" || c.subject === filterSubject;
-    const matchRating = filterRating === 0 || (c.average_rating || c.rating || 0) >= filterRating;
-    const matchFee = (c.fee || 0) <= priceRange;
-    return matchSearch && matchTag && matchSubject && matchRating && matchFee;
-  });
+      const tutorNameStr = (c.tutor?.name || c.tutor_name || c.tutor || '').toString().toLowerCase();
+      const titleStr = (c.title || '').toString().toLowerCase();
+      const subjectStr = (c.subject || '').toString().toLowerCase();
+      const matchSearch =
+        searchQuery.trim() === "" ||
+        titleStr.includes(searchQuery.toLowerCase()) ||
+        tutorNameStr.includes(searchQuery.toLowerCase()) ||
+        subjectStr.includes(searchQuery.toLowerCase());
+      const matchTag = activeTag === "IT" ? true : subjectStr.includes(activeTag.toLowerCase());
+      const matchSubject = filterSubject === "All" || c.subject === filterSubject;
+      const matchRating = filterRating === 0 || (c.average_rating || c.rating || 0) >= filterRating;
+      const matchFee = (c.fee || 0) <= priceRange;
+      return matchSearch && matchTag && matchSubject && matchRating && matchFee;
+    });
 
   return (
     <>
@@ -635,9 +635,9 @@ export default function LandingPage() {
 
             <div className="hero-stats-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {[
-                { label: "Active Tutors", val: stats.activeTutors > 0 ? `${stats.activeTutors.toLocaleString()}+` : "1,200+", icon: "👨‍🏫", cls: "float-a" },
-                { label: "Students Enrolled", val: stats.studentsEnrolled > 0 ? `${stats.studentsEnrolled.toLocaleString()}+` : "25,000+", icon: "🎓", cls: "float-b" },
-                { label: "Subjects Available", val: stats.subjectsAvailable > 0 ? `${stats.subjectsAvailable.toLocaleString()}+` : "50+", icon: "📚", cls: "float-c" },
+                { label: "Active Tutors", val: `${(stats.activeTutors ?? 11).toLocaleString()}+`, icon: "👨‍🏫", cls: "float-a" },
+                { label: "Students Enrolled", val: `${(stats.studentsEnrolled ?? 14).toLocaleString()}+`, icon: "🎓", cls: "float-b" },
+                { label: "Subjects Available", val: `${(stats.subjectsAvailable ?? 16).toLocaleString()}+`, icon: "📚", cls: "float-c" },
               ].map((s, i) => (
                 <div key={i} className={`stat-float ${s.cls} anim-fade-up`} style={{ animationDelay: `${0.5 + i * 0.18}s` }}>
                   <span style={{ fontSize: 30 }}>{s.icon}</span>
@@ -836,11 +836,11 @@ export default function LandingPage() {
                       boxShadow: palette.shadow,
                       animation: 'pulse 1.5s ease-in-out infinite',
                     }}>
-                      <div style={{ height: 185, background: palette.surfaceAlt }}/>
+                      <div style={{ height: 185, background: palette.surfaceAlt }} />
                       <div style={{ padding: '16px 18px' }}>
-                        <div style={{ height: 16, background: palette.surfaceAlt, borderRadius: 8, marginBottom: 10 }}/>
-                        <div style={{ height: 12, background: palette.surfaceAlt, borderRadius: 8, width: '60%', marginBottom: 8 }}/>
-                        <div style={{ height: 12, background: palette.surfaceAlt, borderRadius: 8, width: '40%' }}/>
+                        <div style={{ height: 16, background: palette.surfaceAlt, borderRadius: 8, marginBottom: 10 }} />
+                        <div style={{ height: 12, background: palette.surfaceAlt, borderRadius: 8, width: '60%', marginBottom: 8 }} />
+                        <div style={{ height: 12, background: palette.surfaceAlt, borderRadius: 8, width: '40%' }} />
                       </div>
                     </div>
                   ))

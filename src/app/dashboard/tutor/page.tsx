@@ -110,24 +110,7 @@ export default function TutorDashboard() {
         .class-card-hover:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,0.12)!important;}
       `}</style>
 
-      {/* ── STAT CARDS ── */}
-      <div className="fade-up delay-1" style={{ display:'flex', gap:16, marginBottom:28, flexWrap:'wrap' }}>
-        {[
-          { label:'Total Classes',    value: classes.length,       icon:'📚', color:'#8B5CF6', bg:'#F5F3FF', border:'#DDD6FE', shadow:'rgba(139,92,246,0.1)', clickable:false },
-          { label:'Active Students',  value: totalStudents,        icon:'🎓', color:'#10B981', bg:'#ECFDF5', border:'#A7F3D0', shadow:'rgba(16,185,129,0.1)', clickable:true  },
-          { label:'Pending Requests', value: pendingRequestsCount, icon:'⏳', color:'#F59E0B', bg:'#FFFBEB', border:'#FDE68A', shadow:'rgba(245,158,11,0.1)', clickable:false },
-          { label:'Monthly Earnings', value:`Rs.${(monthlyEarnings/1000).toFixed(0)}K`, icon:'💰', color:'#3B82F6', bg:'#EFF6FF', border:'#BFDBFE', shadow:'rgba(59,130,246,0.1)', clickable:false },
-        ].map((s, i) => (
-          <div key={i} className="stat-card" onClick={() => s.clickable && setShowStudentsModal(true)}
-            style={{ boxShadow:`0 4px 20px ${s.shadow}`, border:`1px solid ${s.border}`, cursor: s.clickable ? 'pointer' : 'default' }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-              <div style={{ width:42, height:42, borderRadius:12, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>{s.icon}</div>
-            </div>
-            <div style={{ fontFamily:"'Playfair Display',serif", fontSize:26, fontWeight:900, color:palette.textPrimary, lineHeight:1, marginBottom:4 }}>{s.value}</div>
-            <div style={{ fontSize:13, color:palette.textSecondary, fontWeight:500 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
+
 
       {/* ── TWO COLUMN ── */}
       <div style={{ display:'flex', gap:24, alignItems:'flex-start' }}>

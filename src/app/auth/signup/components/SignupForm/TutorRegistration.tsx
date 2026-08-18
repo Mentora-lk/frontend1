@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   getInputStyle,
@@ -40,6 +40,17 @@ export default function TutorRegistration() {
   const router = useRouter();
   const palette = usePalette();
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Upper bound for the date-of-birth picker. Computed after mount, not during
+  // render: "today" depends on when and where the render happens, so deriving
+  // it inline makes the server HTML and the first client render disagree on
+  // the max attribute (a hydration mismatch) whenever the page was prerendered
+  // on an earlier day. Rendering it as absent on both sides, then filling it in
+  // post-hydration, keeps the two passes identical.
+  const [maxDateOfBirth, setMaxDateOfBirth] = useState("");
+  useEffect(() => {
+    setMaxDateOfBirth(new Date().toISOString().split("T")[0]);
+  }, []);
   const [formData, setFormData] = useState({
     // Step 1: About
     fullName: "",
@@ -427,7 +438,7 @@ export default function TutorRegistration() {
               onChange={handleInputChange}
               onFocus={() => setHoveredField("dateOfBirth")}
               onBlur={() => setHoveredField(null)}
-              max={new Date().toISOString().split("T")[0]}
+              max={maxDateOfBirth || undefined}
               style={{
                 ...themedInput("dateOfBirth"),
                 cursor: "pointer",
