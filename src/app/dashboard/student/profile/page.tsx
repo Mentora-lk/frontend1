@@ -102,7 +102,7 @@ export default function ProfilePage() {
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error('Error saving student profile:', err);
-      alert('Failed to save changes. Please try again.');
+      alert(err instanceof Error ? err.message : 'Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }

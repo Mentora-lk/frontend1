@@ -236,7 +236,6 @@ export default function StudentDashboard() {
   };
 
   // These now calculated from real backend data
-  const activeClasses  = classes.filter(c => c.status === 'active');
   const pendingClasses  = classes.filter(c => c.status === 'requested');
 
   const approvedClasses = classes.filter(c => c.status === 'approved');
@@ -345,7 +344,7 @@ export default function StudentDashboard() {
             <div className="fade-up delay-1" style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
               {[
                 { label: 'Total Classes',    value: classes.length,        icon: '📚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', shadow: 'rgba(139,92,246,0.1)' },
-                { label: 'Active Classes',   value: activeClasses.length,  icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
+                { label: 'Active Classes',   value: approvedClasses.length, icon: '🟢', color: '#10B981', bg: '#ECFDF5', border: '#A7F3D0', shadow: 'rgba(16,185,129,0.1)'  },
                 { label: 'Pending Approval', value: pendingClasses.length, icon: '⏳', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', shadow: 'rgba(245,158,11,0.1)'  },
 
               ].map((s, i) => (
