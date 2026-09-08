@@ -30,11 +30,12 @@ export const getInputStyle = (
 ): React.CSSProperties => ({
   padding: "12px 16px",
   fontSize: 14,
+  fontFamily: "'DM Sans', sans-serif",
   border:
     hoveredField === fieldName
       ? `2px solid ${FORM_COLORS.primary}`
       : `1px solid ${FORM_COLORS.border}`,
-  borderRadius: 10,
+  borderRadius: 14,
   background: FORM_COLORS.background,
   outline: "none",
   transition: "all 0.3s ease",
@@ -51,8 +52,9 @@ export const getStaticInputStyle = (
 ): React.CSSProperties => ({
   padding: "12px 16px",
   fontSize: 14,
+  fontFamily: "'DM Sans', sans-serif",
   border: `1px solid ${FORM_COLORS.border}`,
-  borderRadius: 10,
+  borderRadius: 14,
   background: FORM_COLORS.background,
   outline: "none",
   ...additionalStyles,
@@ -84,6 +86,7 @@ export const formContainerStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 20,
+  fontFamily: "'DM Sans', sans-serif",
 };
 
 export const formSectionStyle: React.CSSProperties = {
@@ -105,18 +108,17 @@ export const getPrimaryButtonStyle = (
   padding: "14px 24px",
   fontSize: 15,
   fontWeight: 700,
+  fontFamily: "'DM Sans', sans-serif",
   color: "white",
   background: !disabled
     ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
     : FORM_COLORS.lightGray,
   border: "none",
-  borderRadius: 10,
+  borderRadius: 14,
   cursor: disabled ? "not-allowed" : "pointer",
   marginTop: 12,
   transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
   boxShadow: !disabled ? "0 4px 15px rgba(16, 185, 129, 0.3)" : "none",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
 });
 
 // Secondary Button styles
@@ -127,12 +129,13 @@ export const getSecondaryButtonStyle = (
   padding: "12px 24px",
   fontSize: 14,
   fontWeight: 600,
+  fontFamily: "'DM Sans', sans-serif",
   color: disabled ? FORM_COLORS.textMuted : FORM_COLORS.primary,
   background: disabled ? FORM_COLORS.lightGray : "white",
   border: disabled
     ? `1px solid ${FORM_COLORS.border}`
     : `2px solid ${FORM_COLORS.primary}`,
-  borderRadius: 10,
+  borderRadius: 14,
   cursor: disabled ? "not-allowed" : "pointer",
   transition: "all 0.2s ease",
 });
@@ -140,7 +143,7 @@ export const getSecondaryButtonStyle = (
 // File upload area styles
 export const fileUploadAreaStyle: React.CSSProperties = {
   border: `2px dashed ${FORM_COLORS.primary}`,
-  borderRadius: 12,
+  borderRadius: 16,
   padding: 32,
   textAlign: "center",
   cursor: "pointer",
@@ -150,14 +153,14 @@ export const fileUploadAreaStyle: React.CSSProperties = {
 // Card/Box styles
 export const cardStyle: React.CSSProperties = {
   border: `1px solid ${FORM_COLORS.lightBorder}`,
-  borderRadius: 12,
+  borderRadius: 16,
   padding: 16,
   background: FORM_COLORS.background,
 };
 
 export const cardLightStyle: React.CSSProperties = {
   border: `1px solid ${FORM_COLORS.lightBorder}`,
-  borderRadius: 12,
+  borderRadius: 16,
   padding: 16,
   background: FORM_COLORS.bgLight,
 };

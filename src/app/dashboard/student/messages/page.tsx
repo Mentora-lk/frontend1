@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import { usePalette } from '@/hooks/usePalette';
 
 const CONVERSATIONS = [
   { id:1, name:'Kasun Fernando', subject:'Mathematics', avatar:'K', lastMsg:'Great! See you on Monday at 6PM. Please prepare the past papers.', time:'2m ago', unread:2, online:true, color:'#8B5CF6' },
@@ -33,6 +34,7 @@ const MESSAGES: Record<number, { from:'me'|'tutor'; text:string; time:string }[]
 };
 
 export default function MessagesPage() {
+  const palette = usePalette();
   const [activeId,  setActiveId]  = useState(1);
   const [newMsg,    setNewMsg]    = useState('');
   const [messages,  setMessages]  = useState(MESSAGES);
@@ -54,16 +56,16 @@ export default function MessagesPage() {
       <div style={{ display:'flex', gap:20, height:580 }}>
 
         {/* Conversation list */}
-        <div style={{ width:280, flexShrink:0, background:'white', borderRadius:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', overflow:'hidden', display:'flex', flexDirection:'column' }}>
-          <div style={{ padding:'18px 18px 12px', borderBottom:'1px solid #F3F4F6' }}>
-            <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:'#111827' }}>Conversations</h3>
+        <div style={{ width:280, flexShrink:0, background:palette.surface, borderRadius:20, boxShadow:palette.shadow, border:`1px solid ${palette.border}`, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'18px 18px 12px', borderBottom:`1px solid ${palette.border}` }}>
+            <h3 style={{ fontFamily:"'Playfair Display',serif", fontSize:17, fontWeight:700, color:palette.textPrimary }}>Conversations</h3>
           </div>
           <div style={{ flex:1, overflowY:'auto' }}>
             {CONVERSATIONS.map(c=>(
               <div key={c.id} onClick={()=>setActiveId(c.id)}
-                style={{ padding:'14px 18px', cursor:'pointer', borderBottom:'1px solid #F9FAFB', background:activeId===c.id?'#ECFDF5':'white', transition:'all 0.18s' }}
-                onMouseEnter={e=>{ if(activeId!==c.id) (e.currentTarget as HTMLDivElement).style.background='#F9FAFB'; }}
-                onMouseLeave={e=>{ if(activeId!==c.id) (e.currentTarget as HTMLDivElement).style.background='white'; }}>
+                style={{ padding:'14px 18px', cursor:'pointer', borderBottom:`1px solid ${palette.border}`, background:activeId===c.id?palette.activeBg:palette.surface, transition:'all 0.18s' }}
+                onMouseEnter={e=>{ if(activeId!==c.id) (e.currentTarget as HTMLDivElement).style.background=palette.hoverBg; }}
+                onMouseLeave={e=>{ if(activeId!==c.id) (e.currentTarget as HTMLDivElement).style.background=palette.surface; }}>
                 <div style={{ display:'flex', gap:11, alignItems:'flex-start' }}>
                   <div style={{ position:'relative', flexShrink:0 }}>
                     <div style={{ width:40, height:40, borderRadius:'50%', background:`linear-gradient(135deg,${c.color},${c.color}cc)`, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700, fontSize:16 }}>{c.avatar}</div>
@@ -71,11 +73,11 @@ export default function MessagesPage() {
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'#111827' }}>{c.name}</p>
-                      <p style={{ fontSize:10, color:'#9CA3AF' }}>{c.time}</p>
+                      <p style={{ fontSize:13, fontWeight:700, color:palette.textPrimary }}>{c.name}</p>
+                      <p style={{ fontSize:10, color:palette.textMuted }}>{c.time}</p>
                     </div>
-                    <p style={{ fontSize:11, color:'#9CA3AF', marginBottom:2 }}>{c.subject}</p>
-                    <p style={{ fontSize:12, color:'#6B7280', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>{c.lastMsg}</p>
+                    <p style={{ fontSize:11, color:palette.textMuted, marginBottom:2 }}>{c.subject}</p>
+                    <p style={{ fontSize:12, color:palette.textSecondary, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>{c.lastMsg}</p>
                   </div>
                   {c.unread>0 && <span style={{ width:18, height:18, borderRadius:'50%', background:'#EF4444', color:'white', fontSize:10, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{c.unread}</span>}
                 </div>
@@ -85,16 +87,16 @@ export default function MessagesPage() {
         </div>
 
         {/* Chat window */}
-        <div style={{ flex:1, background:'white', borderRadius:20, boxShadow:'0 4px 24px rgba(0,0,0,0.06)', border:'1px solid rgba(0,0,0,0.04)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ flex:1, background:palette.surface, borderRadius:20, boxShadow:palette.shadow, border:`1px solid ${palette.border}`, display:'flex', flexDirection:'column', overflow:'hidden' }}>
           {/* Header */}
-          <div style={{ padding:'16px 22px', borderBottom:'1px solid #F3F4F6', display:'flex', alignItems:'center', gap:12 }}>
+          <div style={{ padding:'16px 22px', borderBottom:`1px solid ${palette.border}`, display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ position:'relative' }}>
               <div style={{ width:42, height:42, borderRadius:'50%', background:`linear-gradient(135deg,${active.color},${active.color}cc)`, display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:700, fontSize:16 }}>{active.avatar}</div>
               {active.online && <div style={{ position:'absolute', bottom:0, right:0, width:11, height:11, borderRadius:'50%', background:'#10B981', border:'2px solid white' }}/>}
             </div>
             <div>
-              <p style={{ fontSize:15, fontWeight:700, color:'#111827' }}>{active.name}</p>
-              <p style={{ fontSize:12, color:active.online?'#10B981':'#9CA3AF' }}>{active.online?'Online now':'Offline'} · {active.subject} Tutor</p>
+              <p style={{ fontSize:15, fontWeight:700, color:palette.textPrimary }}>{active.name}</p>
+              <p style={{ fontSize:12, color:active.online?'#10B981':palette.textMuted }}>{active.online?'Online now':'Offline'} · {active.subject} Tutor</p>
             </div>
           </div>
 
@@ -105,30 +107,30 @@ export default function MessagesPage() {
                 <div style={{ maxWidth:'72%' }}>
                   <div style={{
                     padding:'11px 16px', borderRadius:msg.from==='me'?'18px 18px 4px 18px':'18px 18px 18px 4px',
-                    background:msg.from==='me'?'linear-gradient(135deg,#10B981,#059669)':'#F3F4F6',
-                    color:msg.from==='me'?'white':'#111827',
+                    background:msg.from==='me'?'linear-gradient(135deg,#10B981,#059669)':palette.surfaceAlt,
+                    color:msg.from==='me'?'white':palette.textPrimary,
                     fontSize:14, lineHeight:1.6,
                     boxShadow:msg.from==='me'?'0 4px 12px rgba(16,185,129,0.3)':'none',
                   }}>
                     {msg.text}
                   </div>
-                  <p style={{ fontSize:10, color:'#9CA3AF', marginTop:4, textAlign:msg.from==='me'?'right':'left' }}>{msg.time}</p>
+                  <p style={{ fontSize:10, color:palette.textMuted, marginTop:4, textAlign:msg.from==='me'?'right':'left' }}>{msg.time}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Input */}
-          <div style={{ padding:'14px 18px', borderTop:'1px solid #F3F4F6', display:'flex', gap:10 }}>
+          <div style={{ padding:'14px 18px', borderTop:`1px solid ${palette.border}`, display:'flex', gap:10 }}>
             <input
               type="text"
               placeholder={`Message ${active.name}...`}
               value={newMsg}
               onChange={e=>setNewMsg(e.target.value)}
               onKeyDown={e=>{ if(e.key==='Enter') sendMsg(); }}
-              style={{ flex:1, border:'1.5px solid #E5E7EB', borderRadius:12, padding:'11px 16px', fontSize:14, fontFamily:"'DM Sans',sans-serif", color:'#111827', background:'#FAFAFA', outline:'none', transition:'border-color 0.2s' }}
-              onFocus={e=>{ e.target.style.borderColor='#10B981'; e.target.style.background='white'; }}
-              onBlur={e=>{ e.target.style.borderColor='#E5E7EB'; e.target.style.background='#FAFAFA'; }}
+              style={{ flex:1, border:`1.5px solid ${palette.border}`, borderRadius:12, padding:'11px 16px', fontSize:14, fontFamily:"'DM Sans',sans-serif", color:palette.textPrimary, background:palette.surfaceAlt, outline:'none', transition:'border-color 0.2s' }}
+              onFocus={e=>{ e.target.style.borderColor='#10B981'; e.target.style.background=palette.surface; }}
+              onBlur={e=>{ e.target.style.borderColor=palette.border; e.target.style.background=palette.surfaceAlt; }}
             />
             <button onClick={sendMsg} style={{ width:44, height:44, borderRadius:12, background:'linear-gradient(135deg,#10B981,#059669)', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(16,185,129,0.4)', transition:'all 0.2s', flexShrink:0 }}
               onMouseEnter={e=>{ e.currentTarget.style.transform='scale(1.05)'; }}

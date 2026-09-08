@@ -3,8 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "../../../components/navbar/Navbar";
+import { usePalette } from "@/hooks/usePalette";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function SignupPage() {
+  const palette = usePalette();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -14,7 +19,7 @@ export default function SignupPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#ffffff" }}>
+    <div style={{ minHeight: "100vh", background: palette.bg, transition: "background 0.25s ease" }}>
       {/* <Navbar scrollY={scrollY} /> */}
 
       <div
@@ -31,7 +36,7 @@ export default function SignupPage() {
               fontFamily: "'Playfair Display', serif",
               fontSize: 48,
               fontWeight: 900,
-              color: "#111827",
+              color: palette.textPrimary,
               margin: "0 0 16px",
               lineHeight: 1.2,
             }}
@@ -41,9 +46,10 @@ export default function SignupPage() {
           <p
             style={{
               fontSize: 18,
-              color: "#5f646f",
+              color: palette.textSecondary,
               margin: 0,
               lineHeight: 1.6,
+              fontFamily: "'DM Sans', sans-serif"
             }}
           >
             What brings you here today?
@@ -63,7 +69,7 @@ export default function SignupPage() {
           <Link href="/auth/signup/student-details" style={{ textDecoration: 'none' }}>
             <div
               style={{
-                background: " rgb(224, 255, 224)",
+                background: isDark ? "rgba(16,185,129,0.12)" : " rgb(224, 255, 224)",
                 border: "2px solid transparent",
                 borderRadius: 16,
                 padding: 48,
@@ -107,7 +113,7 @@ export default function SignupPage() {
                     fontFamily: "'Playfair Display', serif",
                     fontSize: 28,
                     fontWeight: 700,
-                    color: "#111827",
+                    color: palette.textPrimary,
                     margin: "0 0 8px",
                   }}
                 >
@@ -116,9 +122,10 @@ export default function SignupPage() {
                 <p
                   style={{
                     fontSize: 14,
-                    color: "#6b7280",
+                    color: palette.textSecondary,
                     margin: 0,
                     lineHeight: 1.6,
+                    fontFamily: "'DM Sans', sans-serif"
                   }}
                 >
                   Find the perfect tutor and start learning today
@@ -136,6 +143,7 @@ export default function SignupPage() {
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                   marginTop: 8,
+                  fontFamily: "'DM Sans', sans-serif"
                 }}
                 onMouseEnter={(e) => {
                   (e.target as HTMLButtonElement).style.transform =
@@ -155,7 +163,7 @@ export default function SignupPage() {
           <Link href="/auth/signup/tutor-details" style={{ textDecoration: 'none' }}>
             <div
               style={{
-                background: "rgb(224, 255, 224)",
+                background: isDark ? "rgba(16,185,129,0.12)" : "rgb(224, 255, 224)",
                 border: "2px solid transparent",
                 borderRadius: 16,
                 padding: 48,
@@ -199,7 +207,7 @@ export default function SignupPage() {
                     fontFamily: "'Playfair Display', serif",
                     fontSize: 28,
                     fontWeight: 700,
-                    color: "#111827",
+                    color: palette.textPrimary,
                     margin: "0 0 8px",
                   }}
                 >
@@ -208,9 +216,10 @@ export default function SignupPage() {
                 <p
                   style={{
                     fontSize: 14,
-                    color: "#6b7280",
+                    color: palette.textSecondary,
                     margin: 0,
                     lineHeight: 1.6,
+                    fontFamily: "'DM Sans', sans-serif"
                   }}
                 >
                   Start teaching and earn by sharing your expertise
@@ -245,8 +254,8 @@ export default function SignupPage() {
         </div>
 
         {/* Login Link */}
-        <div style={{ textAlign: "center", marginTop: 48 }}>
-          <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>
+        <div style={{ textAlign: "center", marginTop: 48, fontFamily: "'DM Sans', sans-serif" }}>
+          <p style={{ fontSize: 14, color: palette.textSecondary, margin: 0 }}>
             Already have an account?{" "}
             <Link
               href="/auth/login"

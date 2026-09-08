@@ -31,6 +31,13 @@ export const getCommunityById = async (id: string) => {
     });
 };
 
+export const deleteCommunity = async (id: string | number) => {
+    return apiCall<any>(`/api/tutor/communities/${id}`, { 
+        method: "DELETE",
+        headers: getAuthHeaders() 
+    });
+};
+
 export const getCommunityPosts = async (id: string) => {
     return apiCall<any>(`/api/tutor/communities/${id}/posts`, { 
         method: "GET",
@@ -41,6 +48,13 @@ export const getCommunityPosts = async (id: string) => {
 export const getCommunityMembers = async (id: string) => {
     return apiCall<any>(`/api/tutor/communities/${id}/members`, { 
         method: "GET",
+        headers: getAuthHeaders() 
+    });
+};
+
+export const removeCommunityMember = async (id: string | number, memberId: string | number) => {
+    return apiCall<any>(`/api/tutor/communities/${id}/members/${memberId}`, { 
+        method: "DELETE",
         headers: getAuthHeaders() 
     });
 };

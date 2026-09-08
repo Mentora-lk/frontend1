@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { getCommunityFeed } from '@/services/studentCommunityService';
+import { toDownloadUrl } from '@/utils/cloudinaryDownload';
 
 // ── Community Detail Data ─────────────────────────────────────────────────────
 const COMMUNITY_DATA: Record<string, {
@@ -255,7 +256,7 @@ export default function CommunityDetailPage() {
                         <img src={post.media_url} alt={post.mediaName} style={{ maxWidth: '100%', borderRadius: 8, marginBottom: 12 }} />
                         <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName}</p>
                         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                          <a href={post.media_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600 }}>
+                          <a href={toDownloadUrl(post.media_url, post.mediaName)} rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#3B82F6', fontSize: 13, fontWeight: 600 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                             Download Image
                           </a>
@@ -274,7 +275,7 @@ export default function CommunityDetailPage() {
                           <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached Document'}</p>
                           <p style={{ color: '#6B7280', fontSize: 12, textTransform: 'uppercase' }}>{post.type}</p>
                         </div>
-                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#3B82F6', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={toDownloadUrl(post.media_url, post.mediaName)} rel="noreferrer" style={{ background: '#3B82F6', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                           Download
                         </a>
                       </div>
@@ -306,7 +307,7 @@ export default function CommunityDetailPage() {
                           <p style={{ color: '#111827', fontWeight: 600, fontSize: 13 }}>{post.mediaName || 'Attached File'}</p>
                           <p style={{ color: '#6B7280', fontSize: 12 }}>Attachment</p>
                         </div>
-                        <a href={post.media_url} target="_blank" rel="noreferrer" style={{ background: '#4F46E5', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                        <a href={toDownloadUrl(post.media_url, post.mediaName)} rel="noreferrer" style={{ background: '#4F46E5', color: 'white', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
                           Download
                         </a>
                       </div>
@@ -357,7 +358,7 @@ export default function CommunityDetailPage() {
                       <p style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{file.size}</p>
                       <p style={{ fontSize: 10, color: '#9CA3AF' }}>{file.downloads} downloads</p>
                     </div>
-                    <a href={file.media_url} target="_blank" rel="noreferrer" style={{
+                    <a href={toDownloadUrl(file.media_url, file.name)} rel="noreferrer" style={{
                       background: '#F3F4F6', border: 'none', borderRadius: 8, padding: '6px 12px',
                       textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#4B5563'
                     }}>

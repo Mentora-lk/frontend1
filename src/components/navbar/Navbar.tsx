@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { usePalette } from '@/hooks/usePalette';
 
 interface NavbarProps {
   scrollY: number;
 }
 
 export default function Navbar({ scrollY }: NavbarProps) {
+  const palette = usePalette();
+  const scrolled = scrollY > 50;
+
   return (
     <nav
       style={{
@@ -15,9 +19,9 @@ export default function Navbar({ scrollY }: NavbarProps) {
         left: 0,
         right: 0,
         zIndex: 999,
-        background: scrollY > 50 ? 'rgba(255,255,255,0.96)' : 'transparent',
-        backdropFilter: scrollY > 50 ? 'blur(24px)' : 'none',
-        boxShadow: scrollY > 50 ? '0 2px 24px rgba(0,0,0,0.07)' : 'none',
+        background: scrolled ? palette.navBg : 'transparent',
+        backdropFilter: scrolled ? 'blur(24px)' : 'none',
+        boxShadow: scrolled ? palette.shadow : 'none',
         transition: 'all 0.4s ease',
         padding: '0 6%',
       }}
@@ -38,7 +42,7 @@ export default function Navbar({ scrollY }: NavbarProps) {
               fontFamily: "'Playfair Display',serif",
               fontSize: 22,
               fontWeight: 900,
-              color: scrollY > 50 ? '#111' : 'white',
+              color: scrolled ? palette.textPrimary : 'white',
               transition: 'color 0.4s',
             }}
           >
@@ -61,7 +65,7 @@ export default function Navbar({ scrollY }: NavbarProps) {
               <span
                 className="nav-link"
                 style={{
-                  color: scrollY > 50 ? '#374151' : 'rgba(255,255,255,0.88)',
+                  color: scrolled ? palette.textSecondary : 'rgba(255,255,255,0.88)',
                   transition: 'color 0.2s',
                   fontSize: 12,
                   fontWeight: 600,
